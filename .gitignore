@@ -1,0 +1,44 @@
+# Common
+.env
+.env.*
+!.env.example
+*.local
+tmp/*
+!tmp/.gitkeep
+logs/
+*.log
+.DS_Store
+.idea/
+.vscode/
+
+# Reports temporary output
+reports/*.log
+reports/tmp/
+reports/output/
+
+# Flutter
+apps/mobile/.dart_tool/
+apps/mobile/.packages
+apps/mobile/build/
+apps/mobile/android/.gradle/
+apps/mobile/ios/Pods/
+apps/mobile/ios/.symlinks/
+apps/mobile/*.iml
+
+# Vue
+apps/admin/node_modules/
+apps/admin/dist/
+apps/admin/.vite/
+apps/admin/coverage/
+
+# Secrets
+*.keystore
+*.jks
+key.properties
+GoogleService-Info.plist
+google-services.json
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
