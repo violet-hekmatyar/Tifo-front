@@ -1,26 +1,28 @@
 # 南看台前端技术栈
 
 > 版本：v0.1
-> 当前阶段：F01
+> 当前阶段：F02
 > 文档定位：技术栈和完整依赖版本表的唯一权威文档。
 > 不负责：本机安装路径、页面流程、接口字段或验收教程。
 
 ## Flutter 移动端版本
 
-| 技术 | F01 实际版本 |
+| 技术 | F02 实际版本 |
 |---|---:|
 | Flutter | 3.44.6 stable |
 | Dart | 3.12.2 stable |
 | DevTools | 2.57.0 |
 | flutter_riverpod | 3.3.2 |
 | go_router | 17.3.0 |
+| Dio | 5.10.0 |
+| http_mock_adapter（测试） | 0.6.1 |
 | flutter_lints | 6.0.0 |
 
-F02/F03 计划中的 Dio、模型生成、安全存储等依赖尚未安装。
+模型生成、安全存储等 F03 及后续依赖尚未安装。
 
 ## Vue 管理后台版本
 
-| 技术 | F01 实际版本 |
+| 技术 | F02 实际版本 |
 |---|---:|
 | Node.js | 24.17.0 |
 | npm | 11.13.0 |
@@ -37,6 +39,8 @@ F02/F03 计划中的 Dio、模型生成、安全存储等依赖尚未安装。
 | Vue Test Utils | 2.4.11 |
 | Vue DevTools Vite plugin | 8.1.5 |
 | Oxc linter | 1.69.0 |
+| Axios | 1.18.1 |
+| axios-mock-adapter（测试） | 2.1.0 |
 
 包管理器固定为 npm，锁文件为 `package-lock.json`。Vue DevTools 和 Oxc linter 是 create-vue 3.22.4 当前生成配置的一部分。
 

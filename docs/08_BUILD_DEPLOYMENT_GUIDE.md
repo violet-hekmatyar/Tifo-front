@@ -1,7 +1,7 @@
 # 南看台前端构建与部署指南
 
 > 版本：v0.1
-> 当前阶段：F01
+> 当前阶段：F02
 > 文档定位：构建、产物、发布和回滚计划。
 > 不负责：本机 SDK 安装说明或真实生产参数。
 
@@ -12,7 +12,9 @@
 ```powershell
 cd D:\Football-APP-Front\apps\mobile
 flutter pub get
-flutter run -d <android-device-id>
+flutter run -d Pixel_8_API_36 `
+  --dart-define=APP_ENV=development `
+  --dart-define=API_BASE_URL=http://10.0.2.2:8080
 flutter build apk --debug
 ```
 
@@ -23,8 +25,10 @@ flutter build apk --debug
 ```powershell
 cd D:\Football-APP-Front\apps\admin
 npm ci
+$env:VITE_APP_ENV='development'
+$env:VITE_API_BASE_URL='http://localhost:8080'
 npm run dev
 npm run build
 ```
 
-浏览器使用 Vite dev server 预览；构建产物位于 `apps/admin/dist`。正式静态部署、域名、证书和回滚参数留待 F13。
+浏览器使用 Vite dev server 预览；构建产物位于 `apps/admin/dist`。环境值仅为本地示例，不写入仓库真实 `.env`。正式静态部署、域名、证书和回滚参数留待 F13。

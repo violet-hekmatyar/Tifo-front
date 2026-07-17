@@ -1,7 +1,7 @@
 # 南看台本地开发环境与预览
 
 > 版本：v0.1
-> 当前阶段：F01
+> 当前阶段：F02
 > 文档定位：本机 Flutter、Android、Node、模拟器和双端界面预览方式的唯一权威文档。
 > 权威边界：不承担技术选型、业务需求、API 契约或生产部署配置。
 > 最后验证日期：2026-07-17
@@ -53,7 +53,7 @@ $env:FLUTTER_STORAGE_BASE_URL
 
 ## Android Emulator
 
-本次检测到 AVD `Pixel_8_API_36`，emulator id 同为 `Pixel_8_API_36`，使用 Android 16 / API 36。AVD 已创建但未启动，`flutter devices` 当前未发现 Android connected device；视觉预览待用户启动模拟器后完成。AVD 镜像属于本机配置，不提交 Git。后续优先使用 Pixel 7/8、API 36 稳定 Google APIs 镜像，不使用 API 37 Preview。
+本次检测到并连接 AVD `Pixel_8_API_36`，Flutter device id 为 `emulator-5554`，使用 Android 16 / API 36。AVD 镜像属于本机配置，不提交 Git；自动检查只观察设备，不负责启动模拟器，也不替代人工视觉预览。后续优先使用 Pixel 7/8、API 36 稳定 Google APIs 镜像，不使用 API 37 Preview。
 
 ## Flutter 界面预览
 
@@ -62,10 +62,12 @@ flutter emulators
 flutter emulators --launch Pixel_8_API_36
 flutter devices
 cd D:\Football-APP-Front\apps\mobile
-flutter run -d <flutter-devices-显示的实际Android设备ID>
+flutter run -d Pixel_8_API_36 `
+  --dart-define=APP_ENV=development `
+  --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
 
-运行中：`r` 热重载，`R` 热重启，`q` 退出。真机替代方式为启用开发者选项与 USB 调试、连接设备、在 `flutter devices` 确认 device id 后执行 `flutter run -d <deviceId>`。
+`10.0.2.2` 是 Android 模拟器访问 Windows 宿主机 localhost 的专用地址，只用于本地开发示例。`APP_ENV` 只允许 `development`、`test`、`production`。运行中：`r` 热重载，`R` 热重启，`q` 退出。真机替代方式为启用开发者选项与 USB 调试、连接设备、在 `flutter devices` 确认 device id 后执行 `flutter run -d <deviceId>`；真机不能使用 `10.0.2.2`，应使用开发机在局域网中的可达地址。
 
 `flutter build apk --debug` 仅做构建验证，不显示界面；`flutter run` 才会安装并运行。模拟器适合日常 UI 开发，Android 真机用于最终交互、网络、图片、键盘和性能验证。不得使用 Windows 桌面或 Web 代替移动端视觉验收。人工至少确认“南看台”“Flutter mobile initialized”可见，且无红屏、溢出或启动异常。
 
@@ -74,6 +76,8 @@ flutter run -d <flutter-devices-显示的实际Android设备ID>
 ```powershell
 cd D:\Football-APP-Front\apps\admin
 npm ci
+$env:VITE_APP_ENV='development'
+$env:VITE_API_BASE_URL='http://localhost:8080'
 npm run dev
 ```
 
