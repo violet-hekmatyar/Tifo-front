@@ -21,6 +21,12 @@ flutter run -d Pixel_8_API_36 `
 
 登录页、注册页与 onboarding 页面使用真实数据；完成后进入的页面只是 F03 临时完成页，F04 才开发主框架与首页。
 
+## F03.1 设计系统与占位
+
+视觉 Token 位于 `lib/shared/design_system`，共享表单、按钮、状态、选择卡片和实体占位位于 `lib/shared/widgets`；唯一视觉规则见 `docs/13_CLIENT_UI_VISUAL_BASELINE.md`。球队 Logo 与球员头像优先使用后端 URL，空值或失败时按稳定实体 ID/名称显示一致的本地占位，不下载随机网络图片。
+
+人工预览需启动本地后端和 Pixel 8 模拟器，再使用下方 `flutter run` 命令；逐页检查登录、注册、三步首次设置、错误重试和临时完成页。自动测试与 APK 构建不能替代人工视觉观察。
+
 ## 测试与验收
 
 ```powershell

@@ -1,7 +1,7 @@
 # 南看台前端验证与 Smoke 指南
 
 > 版本：v0.1
-> 当前阶段：F03
+> 当前阶段：F03.1
 > 文档定位：验证命令与 smoke 计划的唯一权威文档。
 > 不负责：任务路线或本机安装教程。
 
@@ -47,3 +47,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f03.
 ```
 
 真实 smoke 创建唯一命名用户但不重置数据库。ensure 仅在 8080 空闲时启动，stop 只停止 runtime 元数据确认由 F03 启动且命令行匹配 jar 的 PID。人工视觉验收需检查登录/注册、真实选项、选择提交、退出、冷启动恢复、键盘 overflow 与断网重试；自动检查不得替代人工观察。
+
+## F03.1 视觉基线验收
+
+- `check-mobile-f03-1.ps1`：检查视觉文档、Token/共享组件、可疑图片/外链、格式、analyze、Widget 测试和 Android Debug APK；
+- `check-f03-1.ps1`：依次运行仓库检查、完整 F03 回归、移动端 F03.1 检查和文档/报告检查；
+- 人工视觉验收：在 Pixel 8 模拟器或 Android 真机检查登录/注册一致性、三步流程、稳定占位、选中态、键盘、长列表、返回键、错误重试、文字放大及临时完成页。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f03-1.ps1
+```
+
+成功输出为 `F03.1 client visual baseline check passed`。自动测试与 APK 构建不代表人工视觉验收完成。

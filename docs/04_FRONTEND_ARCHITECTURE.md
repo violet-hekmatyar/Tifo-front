@@ -1,7 +1,7 @@
 # 南看台前端架构
 
 > 版本：v0.1
-> 当前阶段：F03
+> 当前阶段：F03.1
 > 文档定位：定义总体架构、目录边界、依赖方向和唯一完整项目结构树。
 > 不负责：接口字段、完整技术版本或任务路线。
 
@@ -11,7 +11,7 @@ Flutter App 与 Vue 管理后台物理隔离、独立构建，共享后端 HTTP 
 
 ## F03 实际结构
 
-F03 在 F02 网络层上新增 `core/auth`、`features/auth`、`features/onboarding` 和认证路由状态机。调用方向固定为页面 → Controller → Repository → ApiClient；页面不直接访问 Dio 或 secure storage。Vue 保持 F02，不增加登录功能。
+F03 在 F02 网络层上新增 `core/auth`、`features/auth`、`features/onboarding` 和认证路由状态机。F03.1 新增 `shared/design_system` 与 `shared/widgets`，集中 Flutter 视觉 Token、通用状态、表单、按钮、选择卡片及实体图片占位。调用方向固定为页面 → Controller → Repository → ApiClient；页面不直接访问 Dio 或 secure storage。Vue 保持 F02，不增加登录功能。
 
 ```text
 apps
@@ -22,6 +22,7 @@ apps
 │   │   ├── app/{app.dart,config,router,theme}
 │   │   ├── core/network
 │   │   ├── core/auth
+│   │   ├── shared/{design_system,widgets}
 │   │   └── features/{auth,onboarding}
 │   └── test
 └── admin
@@ -63,6 +64,7 @@ D:\Football-APP-Front
 │   │   │   │   ├── error
 │   │   │   │   └── utils
 │   │   │   ├── shared
+│   │   │   │   ├── design_system
 │   │   │   │   ├── widgets
 │   │   │   │   ├── models
 │   │   │   │   └── providers
@@ -126,6 +128,8 @@ D:\Football-APP-Front
 采用 feature-first。`core` 只放跨业务基础设施，`shared` 放稳定、无特定业务归属的复用元素，`features` 按业务闭环组织。复杂 feature 可使用 `data → domain ← presentation`；简单模块允许省略 domain，避免空壳抽象。
 
 页面/Widget 调用状态控制器，状态控制器调用用例或仓储，数据层调用统一网络/存储；禁止页面直接创建 Dio、捕获 `DioException`、跨 feature 访问对方 data 层或基础层反向依赖 feature。`appConfigProvider → dioProvider → apiClientProvider` 可在测试中替换。
+
+业务页面不得散落颜色、间距、圆角和字体常量，统一从 `shared/design_system` 消费；共享 Widget 不依赖 auth/onboarding data 层。视觉唯一权威见 [13_CLIENT_UI_VISUAL_BASELINE.md](13_CLIENT_UI_VISUAL_BASELINE.md)。
 
 ## Vue 边界与依赖方向
 
