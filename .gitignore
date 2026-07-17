@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 *.local
+node_modules/
+dist/
+build/
 tmp/*
 !tmp/.gitkeep
 logs/
@@ -21,8 +24,12 @@ apps/mobile/.dart_tool/
 apps/mobile/.packages
 apps/mobile/build/
 apps/mobile/android/.gradle/
+apps/mobile/android/local.properties
 apps/mobile/ios/Pods/
 apps/mobile/ios/.symlinks/
+apps/mobile/ios/Flutter/ephemeral/
+apps/mobile/ios/Flutter/Generated.xcconfig
+apps/mobile/ios/Flutter/flutter_export_environment.sh
 apps/mobile/*.iml
 
 # Vue

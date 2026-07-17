@@ -1,28 +1,25 @@
 # 南看台前端验证与 Smoke 指南
 
-> 版本：v0.1  
-> 当前阶段：F00  
-> 文档定位：验证命令与 smoke 计划的唯一权威文档。  
-> 不负责：任务路线或业务实现细节。
+> 版本：v0.1
+> 当前阶段：F01
+> 文档定位：验证命令与 smoke 计划的唯一权威文档。
+> 不负责：任务路线或本机安装教程。
 
-## F00 唯一验证
+## F01 自动验收
+
+| 脚本 | 覆盖范围 | 成功输出 |
+|---|---|---|
+| `check-repo.ps1` | 阶段无关的目录、文档、Git 与敏感产物检查 | `Frontend repository base check passed` |
+| `check-mobile-f01.ps1` | Flutter 环境、Android toolchain、格式、analyze、test、APK | `F01 Flutter mobile check passed` |
+| `check-admin-f01.ps1` | Node engine、npm ci、lint、类型、测试、build | `F01 Vue admin check passed` |
+| `check-f01.ps1` | 按顺序聚合以上检查 | `F01 frontend skeleton check passed` |
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\windows\check-repo.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\windows\check-f01.ps1
 ```
 
-F00 不执行 `flutter analyze`、`flutter test`、`flutter build`、`npm install`、`npm run lint` 或 `npm run build`，因为尚未创建应用工程。
+Windows 不执行 iOS build。APK 构建成功不等于视觉预览完成；Android 模拟器/真机和 Vue 浏览器视觉观察不放入自动脚本，操作见 [12_LOCAL_DEVELOPMENT_ENVIRONMENT.md](12_LOCAL_DEVELOPMENT_ENVIRONMENT.md)。F01 不调用后端，也不进行登录、首页或管理业务 smoke。
 
-## Flutter 后续验证计划
+`flutter doctor` 中 Chrome 与 Visual Studio 缺失分别只影响 Flutter Web 和 Windows 桌面端，对本项目 Android/iOS 范围非阻塞。GitHub Network resources 偶发超时属于网络诊断提示；只要 Android toolchain、依赖解析、测试和 APK 构建成功，不应误判为 Android 构建失败。
 
-F01 后按任务逐步启用：`flutter pub get`、`dart format --set-exit-if-changed .`、`flutter analyze`、`flutter test`、`flutter build apk --debug` 和 `integration_test`。具体工作目录与参数以初始化后的 README 为准。
-
-## Vue 后续验证计划
-
-使用 F01 确认的包管理器安装锁定依赖，并运行 lint、type-check、Vitest 单元测试和 production build。不得在未锁定包管理器时伪造命令结果。
-
-## 业务 Smoke 计划
-
-覆盖用户登录、首次选择、首页、内容详情、评论/点赞/收藏、足球数据、我的页面；后台覆盖管理员登录、用户与内容管理、足球数据维护和文件上传。每项同时验证成功、无权限、空数据、网络错误和关键回退路径。
-
-报告必须保留命令、退出码、通过/失败项、环境和未执行原因。失败项存在时不得把对应阶段标记完成。
+F02 后按任务扩展网络层单元测试；业务 smoke 从相应功能任务开始。失败项存在时不得标记对应阶段完成。

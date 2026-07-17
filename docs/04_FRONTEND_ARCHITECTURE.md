@@ -1,21 +1,40 @@
 # 南看台前端架构
 
-> 版本：v0.1  
-> 当前阶段：F00  
-> 文档定位：定义总体架构、目录边界、依赖方向和唯一完整项目结构树。  
+> 版本：v0.1
+> 当前阶段：F01
+> 文档定位：定义总体架构、目录边界、依赖方向和唯一完整项目结构树。
 > 不负责：接口字段、完整技术版本或任务路线。
 
 ## 总体架构
 
 Flutter App 与 Vue 管理后台物理隔离、独立构建，共享后端 HTTP 契约但不共享平台代码。前端仓库与 `D:\Football-APP` 后端仓库独立；前端只消费公开 API 和只读文档快照，不依赖数据库、Entity、Mapper 或 Service。
 
-## F00 当前结构
+## F01 实际结构
 
-F00 仅含根配置、文档、参考快照、`apps/mobile` 与 `apps/admin` 两个应用占位目录、脚本、Prompt、报告和临时目录。不得出现业务代码、依赖目录或构建产物。
+F01 只创建 skeleton 能力，不提前建立空业务模块。Flutter 使用 `ProviderScope → MaterialApp.router → GoRouter → SkeletonPage`；Vue 使用 `App → Router → View`，并注册 Pinia 与 Element Plus。
+
+```text
+apps
+├── mobile
+│   ├── android / ios
+│   ├── lib
+│   │   ├── main.dart
+│   │   ├── app/{app.dart,router,theme}
+│   │   └── features/skeleton/presentation/pages
+│   └── test
+└── admin
+    ├── src
+    │   ├── components/common
+    │   ├── router
+    │   ├── stores
+    │   ├── styles
+    │   └── views/{skeleton,error}
+    └── public
+```
 
 ## 完整项目结构树（Complete Project Structure Tree）
 
-本节是项目结构树的唯一权威维护位置。未标为 F00 占位的应用文件仅代表后续计划，不在本轮创建。
+下方是目标结构，仍是完整项目结构树的唯一权威维护位置；未出现在上述 F01 实际结构中的业务目录由后续任务按需创建。
 
 ```text
 D:\Football-APP-Front

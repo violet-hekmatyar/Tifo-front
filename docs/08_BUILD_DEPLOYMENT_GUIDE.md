@@ -1,24 +1,30 @@
 # 南看台前端构建与部署指南
 
-> 版本：v0.1  
-> 当前阶段：F00  
-> 文档定位：记录未来构建、产物、发布和回滚计划。  
-> 不负责：宣称已完成构建或保存真实生产参数。
+> 版本：v0.1
+> 当前阶段：F01
+> 文档定位：构建、产物、发布和回滚计划。
+> 不负责：本机 SDK 安装说明或真实生产参数。
 
-## 当前状态
+本机环境和界面预览详见 [12_LOCAL_DEVELOPMENT_ENVIRONMENT.md](12_LOCAL_DEVELOPMENT_ENVIRONMENT.md)。F01 只完成本地构建，未完成正式部署，未创建 Dockerfile、Nginx 正式配置或生产环境文件。
 
-F00 仅建立计划，不创建 Dockerfile、Nginx 正式配置、环境文件、APK、IPA 或 `dist`。
+## Flutter
 
-## Flutter 计划
+```powershell
+cd D:\Football-APP-Front\apps\mobile
+flutter pub get
+flutter run -d <android-device-id>
+flutter build apk --debug
+```
 
-Android 由 Flutter 工具链生成可签名 APK/AAB，版本号与构建号在发布任务中确认，产物归档时记录源码提交、环境和校验值。iOS 构建保留占位，需在 macOS/Xcode、签名与商店账号准备完成后验证。
+`flutter run` 将应用安装并运行在 Android 模拟器/真机中，用于界面预览；`flutter build apk --debug` 只生成 APK，不显示界面。Windows 不执行 iOS build。
 
-## Vue 管理后台计划
+## Vue 管理后台
 
-按 F01 确认的包管理器安装锁定依赖，通过 lint、type-check、unit test 和 build 后生成 `dist`。静态部署计划使用 Linux/Nginx，API Base URL 由环境模板注入；正式配置、域名、证书和服务器路径必须由部署任务人工确认。
+```powershell
+cd D:\Football-APP-Front\apps\admin
+npm ci
+npm run dev
+npm run build
+```
 
-## 环境、产物与回滚
-
-开发、测试、生产使用独立环境配置模板，不写真实域名、IP 或密钥。移动端产物与后台 `dist` 均记录版本号、构建时间、Git 提交和验证结果。每次发布保留上一可用版本、配置变更和回滚步骤；回滚不得覆盖数据契约变更的兼容性检查。
-
-Windows 作为当前本地开发环境；Linux 仅作为管理后台静态部署计划。实际命令与产物目录在 F01/F12/F13 完成后回填。
+浏览器使用 Vite dev server 预览；构建产物位于 `apps/admin/dist`。正式静态部署、域名、证书和回滚参数留待 F13。

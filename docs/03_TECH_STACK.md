@@ -1,37 +1,45 @@
 # 南看台前端技术栈
 
-> 版本：v0.1  
-> 当前阶段：F00  
-> 文档定位：技术栈和依赖边界的唯一权威文档。  
-> 不负责：页面流程、接口字段、目录树或完整验收命令。
+> 版本：v0.1
+> 当前阶段：F01
+> 文档定位：技术栈和完整依赖版本表的唯一权威文档。
+> 不负责：本机安装路径、页面流程、接口字段或验收教程。
 
-## Flutter 移动端
+## Flutter 移动端版本
 
-| 能力 | 方案 |
-|---|---|
-| 框架/语言 | Flutter / Dart |
-| 状态管理 | Riverpod |
-| 路由 | go_router |
-| 网络 | Dio |
-| 模型生成 | Freezed / json_serializable |
-| 安全存储 | flutter_secure_storage |
-| 普通偏好 | shared_preferences |
-| 图片缓存/选择 | cached_network_image / image_picker |
-| 测试 | Flutter 原生测试 / integration_test |
+| 技术 | F01 实际版本 |
+|---|---:|
+| Flutter | 3.44.6 stable |
+| Dart | 3.12.2 stable |
+| DevTools | 2.57.0 |
+| flutter_riverpod | 3.3.2 |
+| go_router | 17.3.0 |
+| flutter_lints | 6.0.0 |
 
-## Vue 管理后台
+F02/F03 计划中的 Dio、模型生成、安全存储等依赖尚未安装。
 
-| 能力 | 方案 |
-|---|---|
-| 框架/语言 | Vue 3 / TypeScript |
-| 构建 | Vite |
-| 路由/状态 | Vue Router / Pinia |
-| 网络 | Axios |
-| UI/样式 | Element Plus / SCSS |
-| 测试/质量 | Vitest / ESLint / Prettier |
+## Vue 管理后台版本
 
-## 约束
+| 技术 | F01 实际版本 |
+|---|---:|
+| Node.js | 24.17.0 |
+| npm | 11.13.0 |
+| Vue | 3.5.40 |
+| TypeScript | 6.0.3 |
+| Vite | 8.1.5 |
+| Vue Router | 5.2.0 |
+| Pinia | 3.0.4 |
+| Element Plus | 2.14.3 |
+| Vitest | 4.1.10 |
+| ESLint | 10.7.0 |
+| Prettier | 3.8.4 |
+| Sass | 1.101.0 |
+| Vue Test Utils | 2.4.11 |
+| Vue DevTools Vite plugin | 8.1.5 |
+| Oxc linter | 1.69.0 |
 
-Flutter 统一使用 Riverpod，不混用 Bloc；后台固定 Vue 3 + TypeScript，不改用 React。F00 不生成依赖或 lock 文件，具体小版本和包管理器由 F01 初始化时依据当时稳定版本锁定。
+包管理器固定为 npm，锁文件为 `package-lock.json`。Vue DevTools 和 Oxc linter 是 create-vue 3.22.4 当前生成配置的一部分。
 
-第一版不引入第二套 UI 组件库、微前端、Nuxt、SSR 或 GraphQL。新增依赖必须说明用途、维护状态、体积与替代方案，并由人工确认。
+## 版本来源与约束
+
+Flutter/Dart 版本来自 `flutter --version`，Dart 包来自 `pubspec.lock`，Node/npm 来自命令输出，Vue 依赖来自 `package-lock.json` 与 `npm list --depth=0`。Flutter 统一使用 Riverpod，不混用 Bloc；后台固定 Vue 3 + TypeScript，不改用 React，不引入第二套 UI 库、微前端、Nuxt、SSR 或 GraphQL。
