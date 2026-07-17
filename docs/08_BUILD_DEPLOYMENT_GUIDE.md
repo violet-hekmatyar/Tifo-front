@@ -1,11 +1,17 @@
 # 南看台前端构建与部署指南
 
 > 版本：v0.1
-> 当前阶段：F02
+> 当前阶段：F03
 > 文档定位：构建、产物、发布和回滚计划。
 > 不负责：本机 SDK 安装说明或真实生产参数。
 
 本机环境和界面预览详见 [12_LOCAL_DEVELOPMENT_ENVIRONMENT.md](12_LOCAL_DEVELOPMENT_ENVIRONMENT.md)。F01 只完成本地构建，未完成正式部署，未创建 Dockerfile、Nginx 正式配置或生产环境文件。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\ensure-local-backend-f03.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\status-local-backend-f03.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\stop-local-backend-f03.ps1
+```
 
 ## Flutter
 
@@ -18,7 +24,7 @@ flutter run -d Pixel_8_API_36 `
 flutter build apk --debug
 ```
 
-`flutter run` 将应用安装并运行在 Android 模拟器/真机中，用于界面预览；`flutter build apk --debug` 只生成 APK，不显示界面。Windows 不执行 iOS build。
+`flutter run` 将应用安装并运行在 Android 模拟器/真机中，用于界面预览；`flutter build apk --debug` 只生成 APK，不显示界面。Windows 不执行 iOS build。本地明文 HTTP 仅由 debug manifest 开放；main/release 未全局开放，正式环境必须使用 HTTPS。
 
 ## Vue 管理后台
 

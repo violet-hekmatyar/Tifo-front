@@ -1,19 +1,21 @@
 # 南看台前端鉴权、路由与安全
 
 > 版本：v0.2
-> 当前阶段：F02
+> 当前阶段：F03
 > 文档定位：会话、路由守卫和前端安全边界的唯一权威文档。
 > 不负责：后端 BCrypt/JWT/Redis 内部实现或完整接口说明。
 
-## F02 Token 边界
+## F03 Token 边界
 
-F02 不实现 Token 获取、持久化或刷新，也不引入 `flutter_secure_storage` 或浏览器存储。双端网络层只提供可替换请求头扩展点；不得放入假 Token、源码 Token、构建常量、URL 或可公开日志。具体存储与生命周期由 F03/F08 结合风险确认。
+Flutter Access Token 使用 `flutter_secure_storage`，存储 key 集中定义；不保存密码、完整响应、JWT Secret 或 Refresh Token。后端当前没有 Refresh Token。Bearer 由统一请求头 provider 注入，Feature 不拼接 Authorization。
 
 后续 App 启动时恢复 Token、调用权威会话接口并根据 `onboardingCompleted` 选择路由的设计仍保留，但不是 F02 实现范围。
 
 ## 路由守卫与错误副作用
 
-F02 中 HTTP `401` / `403` 以及业务 `40101` / `40102` / `40301` 只被归一化并向调用方返回，不触发清理、登录跳转、权限跳转或刷新 Token。会话副作用从 F03/F08 起由认证协调层统一处理；不得塞入基础网络拦截器。
+业务 `40101` / `40102` 在会话恢复时清除本地 Token 并回登录；网络临时失败与 `40301` 保留 Token 并显示重试/权限错误。退出登录仅清除本地状态，不伪造服务端 logout。
+
+路由状态为 bootstrapping、unauthenticated、authenticatedNeedsOnboarding、authenticatedReady、recoverable failure。公开路由仅 login/register；认证用户按 onboardingCompleted 进入 onboarding 或临时完成页，避免启动时闪烁和 redirect 循环。
 
 后续 Flutter 守卫以认证状态与 onboarding 状态为输入并保证跳转幂等。管理后台除登录/错误页外默认需要认证且只允许 `ADMIN`。退出登录、并发 401 去重和安全路由栈替换都应由后续会话层实现。
 

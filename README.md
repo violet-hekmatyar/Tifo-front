@@ -2,7 +2,7 @@
 
 南看台前端包含面向普通用户的 Flutter 原生移动 App，以及仅供内部管理员使用的 Vue 3 + TypeScript 管理后台。当前不建设面向用户的 H5、PWA 或小程序。
 
-- 当前阶段：F02（双端环境与网络基础层）
+- 当前阶段：F03（Flutter 认证与首次偏好闭环）
 - Flutter：`apps/mobile`
 - Vue 管理后台：`apps/admin`
 - 文档入口：[docs/00_DOCUMENT_MAP.md](docs/00_DOCUMENT_MAP.md)
@@ -21,10 +21,16 @@ npm ci
 npm run dev
 ```
 
-## F02 验收
+## F03 本地后端与客户端预览
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f02.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\status-local-backend-f03.ps1
+cd apps\mobile
+flutter run -d Pixel_8_API_36 `
+  --dart-define=APP_ENV=development `
+  --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
 
-F02 在 F01 骨架上增加双端集中式环境配置、统一响应/分页解析、Dio/Axios 客户端和可替换请求头扩展点。当前仍未实现登录、Token 存储、401/403 跳转、首页或管理业务；自动验收全部使用 Mock，不访问真实后端。Base URL、Token、密码和密钥不得硬编码或提交。
+F03 已为 Flutter 接入本机真实后端的注册、登录、Access Token 安全存储、冷启动恢复、Bearer 注入、首次偏好选择和本地退出。Vue 管理后台登录尚未开始，留待 F08；当前完成页不是正式首页。
+
+后端状态管理入口为 `ensure-local-backend-f03.ps1`、`status-local-backend-f03.ps1` 和 `stop-local-backend-f03.ps1`。完整验收运行 `scripts/windows/check-f03.ps1`。

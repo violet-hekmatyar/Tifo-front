@@ -1,7 +1,7 @@
 # 南看台前端验证与 Smoke 指南
 
 > 版本：v0.1
-> 当前阶段：F02
+> 当前阶段：F03
 > 文档定位：验证命令与 smoke 计划的唯一权威文档。
 > 不负责：任务路线或本机安装教程。
 
@@ -35,3 +35,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f02.
 ```
 
 F02 单元测试全部使用 mock adapter，不访问真实后端，也不启动 dev server 或模拟器。F01 必须在聚合脚本中完整回归；失败项存在时不得标记 F02 完成。
+
+## F03 验收
+
+- `check-mobile-f03.ps1`：格式、analyze、29 项默认 Mock/Widget 测试与带本地 Debug Base URL 的 APK；
+- `smoke-mobile-auth-f03.ps1`：ensure 后端并运行独立 `test_local_backend` 真实注册/登录/onboarding；
+- `check-f03.ps1`：完整 F02 回归、后端健康、F03 客户端、真实 smoke 与最终状态。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f03.ps1
+```
+
+真实 smoke 创建唯一命名用户但不重置数据库。ensure 仅在 8080 空闲时启动，stop 只停止 runtime 元数据确认由 F03 启动且命令行匹配 jar 的 PID。人工视觉验收需检查登录/注册、真实选项、选择提交、退出、冷启动恢复、键盘 overflow 与断网重试；自动检查不得替代人工观察。

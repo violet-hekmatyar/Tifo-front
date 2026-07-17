@@ -1,7 +1,7 @@
 # 南看台前端架构
 
 > 版本：v0.1
-> 当前阶段：F02
+> 当前阶段：F03
 > 文档定位：定义总体架构、目录边界、依赖方向和唯一完整项目结构树。
 > 不负责：接口字段、完整技术版本或任务路线。
 
@@ -9,9 +9,9 @@
 
 Flutter App 与 Vue 管理后台物理隔离、独立构建，共享后端 HTTP 契约但不共享平台代码。前端仓库与 `D:\Football-APP` 后端仓库独立；前端只消费公开 API 和只读文档快照，不依赖数据库、Entity、Mapper 或 Service。
 
-## F02 实际结构
+## F03 实际结构
 
-F02 保留 skeleton，不提前建立业务模块；新增的基础层不连接真实接口。Flutter 使用 `app/config` 管理编译期环境，`core/network` 管理 Dio、包络、分页和异常，全部通过 Riverpod 注入。Vue 使用 `config` 管理 Vite 环境，`api` 集中创建 Axios、安装拦截器并解析包络。
+F03 在 F02 网络层上新增 `core/auth`、`features/auth`、`features/onboarding` 和认证路由状态机。调用方向固定为页面 → Controller → Repository → ApiClient；页面不直接访问 Dio 或 secure storage。Vue 保持 F02，不增加登录功能。
 
 ```text
 apps
@@ -21,7 +21,8 @@ apps
 │   │   ├── main.dart
 │   │   ├── app/{app.dart,config,router,theme}
 │   │   ├── core/network
-│   │   └── features/skeleton/presentation/pages
+│   │   ├── core/auth
+│   │   └── features/{auth,onboarding}
 │   └── test
 └── admin
     ├── src

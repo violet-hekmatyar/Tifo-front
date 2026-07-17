@@ -1,34 +1,32 @@
 # 南看台 Flutter 移动端
 
-项目名为 `tifo`，Android applicationId 与 iOS bundle identifier 均为 `com.southstand.tifo`。使用 Flutter 3.44.6 / Dart 3.12.2，支持 Android 与 iOS；不支持 Flutter Web 或 Windows/Linux/macOS 桌面端，也不需要 Visual Studio 桌面开发组件。
+项目名 `tifo`，Android applicationId 与 iOS bundle identifier 均为 `com.southstand.tifo`。F03 使用 Dio、Riverpod、go_router 与 `flutter_secure_storage`，完成注册、登录、登录态恢复、首次偏好选择和本地退出。后端当前只有 Access Token，没有 Refresh Token；不保存密码或完整响应。
 
-F02 已在 F01 骨架上接入 Dio 5.10.0、`APP_ENV` / `API_BASE_URL`、Riverpod 配置与客户端注入、统一响应/分页解析及可测试异常分类。未配置 Base URL 时骨架仍可启动，首次 API 请求会抛出 `ConfigException`。当前不实现 Token、401/403 跳转或任何业务 API。
+## 本机真实后端
 
-## 运行与 Hot Reload
+在前端仓库根目录运行：
 
 ```powershell
-flutter devices
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\ensure-local-backend-f03.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\status-local-backend-f03.ps1
+```
+
+Android 模拟器通过 `10.0.2.2` 访问 Windows 宿主机：
+
+```powershell
 flutter run -d Pixel_8_API_36 `
   --dart-define=APP_ENV=development `
   --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
 
-运行中按 `r` 热重载、`R` 热重启、`q` 退出。Android 模拟器/真机、镜像及 SDK 配置见 [本地开发环境](../../docs/12_LOCAL_DEVELOPMENT_ENVIRONMENT.md)。
+登录页、注册页与 onboarding 页面使用真实数据；完成后进入的页面只是 F03 临时完成页，F04 才开发主框架与首页。
 
-## 验证与构建
+## 测试与验收
 
 ```powershell
-flutter pub get
-dart format --output=none --set-exit-if-changed .
-flutter analyze
 flutter test
-flutter build apk --debug
+powershell -NoProfile -ExecutionPolicy Bypass -File ..\..\scripts\windows\check-mobile-f03.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File ..\..\scripts\windows\smoke-mobile-auth-f03.ps1
 ```
 
-iOS 工程已保留，但 Windows 下未执行 iOS build。
-
-F02 自动验收使用 mock adapter，不依赖后端在线：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File ..\..\scripts\windows\check-mobile-f02.ps1
-```
+默认 `flutter test` 只运行 Mock/Widget 测试；真实 smoke 使用独立 `test_local_backend`，会创建唯一命名测试用户且不重置数据库。Windows 不执行 iOS build。

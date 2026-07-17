@@ -1,7 +1,7 @@
 # 南看台前端 API 接入规范
 
 > 版本：v0.2
-> 当前阶段：F02
+> 当前阶段：F03
 > 文档定位：前端接口接入、解析、错误处理和变更流程的唯一权威文档。
 > 不负责：复制后端完整请求/响应示例或重新定义后端契约。
 
@@ -13,7 +13,7 @@
 
 Base URL 必须按环境配置，不得硬编码服务器地址。Flutter 使用 `--dart-define=APP_ENV=...` 和 `--dart-define=API_BASE_URL=...`；Vue 使用 `VITE_APP_ENV` 和 `VITE_API_BASE_URL`。环境只允许 `development`、`test`、`production`。接口前缀包括 `/api/auth/**`、`/api/app/**`、`/api/admin/**`、`/api/public/**`、`/api/file/**`。
 
-F02 只提供可替换的请求头 provider，不生成假 Token、不选择存储方案。后续认证任务需要登录时才发送：
+F03 从安全存储读取 Access Token，并由统一请求头 provider 发送：
 
 ```http
 Authorization: Bearer <access_token>
@@ -37,6 +37,12 @@ Authorization: Bearer <access_token>
 统一成功码暂按后端文档的 `code == 0`；`data` 由调用方提供强类型 decoder，支持对象、空数据、列表和 `PageResult<T>`。二进制文件响应不经过 JSON 包络解析。后端对“业务失败使用 2xx 还是非 2xx”的具体端点策略、无数据时 `data` 是否始终存在，仍以联调为准；当前 HTTP 与业务错误分层集中在适配层，可局部调整而不污染 Feature。
 
 后端返回相对图片 URL 时，后续由 URL resolver 使用当前环境 Base URL 拼接；绝对 URL 需按允许策略直接使用。DTO/VO 在网络边界转换为前端模型，页面不接触后端 Entity 概念。未知枚举或 `cardType` 必须有兼容占位和可观测日志，不能导致整个列表崩溃。
+
+## F03 真实接口
+
+本轮真实使用 `/api/public/health*`、`POST /api/auth/register`、`POST /api/auth/login`、`GET /api/auth/me`、`GET /api/app/onboarding/options`、`POST /api/app/onboarding/preferences`。注册返回用户信息但不返回 Token；登录返回 Access Token、tokenType、expiresIn 与 user。当前后端业务与鉴权失败均使用 HTTP 200 的统一业务包络，因此 40101/40102/40301 从 `BusinessException` 分流。
+
+Windows 集成测试使用 `http://localhost:8080`；Android 模拟器使用 `http://10.0.2.2:8080`。球队 logo 与球员头像的相对 URL 使用当前 Base URL 解析，空值/加载失败显示稳定占位。
 
 ## 页面与接口关系
 

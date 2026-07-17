@@ -1,7 +1,7 @@
 # 南看台本地开发环境与预览
 
 > 版本：v0.1
-> 当前阶段：F02
+> 当前阶段：F03
 > 文档定位：本机 Flutter、Android、Node、模拟器和双端界面预览方式的唯一权威文档。
 > 权威边界：不承担技术选型、业务需求、API 契约或生产部署配置。
 > 最后验证日期：2026-07-17
@@ -56,6 +56,16 @@ $env:FLUTTER_STORAGE_BASE_URL
 本次检测到并连接 AVD `Pixel_8_API_36`，Flutter device id 为 `emulator-5554`，使用 Android 16 / API 36。AVD 镜像属于本机配置，不提交 Git；自动检查只观察设备，不负责启动模拟器，也不替代人工视觉预览。后续优先使用 Pixel 7/8、API 36 稳定 Google APIs 镜像，不使用 API 37 Preview。
 
 ## Flutter 界面预览
+
+先确认本地后端：
+
+```powershell
+cd D:\Football-APP-Front
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\ensure-local-backend-f03.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\status-local-backend-f03.ps1
+```
+
+runtime 位于 `tmp/runtime/f03-backend`，包含 PID、非敏感元数据及 stdout/stderr 日志且被 Git 忽略。health、db、redis 都必须为 UP。开发结束后可人工运行 `stop-local-backend-f03.ps1`；它不会停止复用进程或未知 Java 进程。
 
 ```powershell
 flutter emulators

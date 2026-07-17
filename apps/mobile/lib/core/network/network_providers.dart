@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/config/app_config.dart';
+import '../auth/token_storage_provider.dart';
 import 'api_client.dart';
 import 'request_interceptors.dart';
 
@@ -9,10 +10,14 @@ final appConfigProvider = Provider<AppConfig>(
   (ref) => AppConfig.fromDartDefines(),
 );
 
-final requestHeadersProvider = Provider<RequestHeadersProvider>(
-  (ref) =>
-      () => const <String, String>{},
-);
+final requestHeadersProvider = Provider<RequestHeadersProvider>((ref) {
+  final storage = ref.watch(tokenStorageProvider);
+  return () async {
+    final token = await storage.readAccessToken();
+    if (token == null || token.trim().isEmpty) return const <String, String>{};
+    return {'Authorization': 'Bearer $token'};
+  };
+});
 
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
