@@ -4,4 +4,12 @@ abstract final class RouteNames {
   static const register = 'register';
   static const onboarding = 'onboarding';
   static const authenticated = 'authenticated';
+  static const home = 'home';
+  static const data = 'data';
+  static const messages = 'messages';
+  static const profile = 'profile';
+  static const search = 'search';
+  static const publish = 'publish';
+  static const contentDetail = 'content-detail';
+  static const matchDetail = 'match-detail';
 }

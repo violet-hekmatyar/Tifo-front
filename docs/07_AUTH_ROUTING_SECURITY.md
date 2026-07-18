@@ -27,3 +27,8 @@ Flutter Access Token 使用 `flutter_secure_storage`，存储 key 集中定义�
 - 文件上传前校验类型和大小以改善体验，后端仍是最终校验方；
 - 隐藏按钮不是权限控制，所有权限以后端判定为准；
 - 外部 URL、富文本、文件名和错误消息按使用场景转义/校验，不执行服务端返回脚本。
+# F04 主框架路由
+
+`authenticatedReady` 的默认目标为 `/app/home`，`/app/home|data|messages|profile` 由有状态壳管理；`/search`、`/publish`、`/content/:id`、`/match/:id` 也是仅登录用户可达的占位路由。旧 `/authenticated` 仅保留重定向兼容，不再作为主入口。Onboarding 未完成仍只允许进入 `/onboarding`，未登录用户仍回到 `/login`，避免重定向环。
+
+我的页调用既有 `AuthController.logout` 清理本地 Access Token，路由监听状态后返回登录。40101/40102 与 F03 相同触发会话失效处理，403 只显示无权访问而不清 Token。Feed 日志只记录未知 cardType，不输出 Token、请求体或完整 JSON。

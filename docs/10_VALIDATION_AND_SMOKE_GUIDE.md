@@ -59,3 +59,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f03-
 ```
 
 成功输出为 `F03.1 client visual baseline check passed`。自动测试与 APK 构建不代表人工视觉验收完成。
+# F04 检查链
+
+- `check-mobile-f04.ps1`：文件/分层/假数据静态检查、pub get、格式、analyze、默认 Mock/Widget 测试与 Android Debug APK。
+- `smoke-mobile-feed-f04.ps1`：确保并核对 health/db/redis 后，只运行独立真实 Flutter Feed 集成测试。
+- `check-f04.ps1`：依次执行仓库策略、F03.1 全量回归、后端确保、F04 移动端检查、真实 Feed smoke、最终状态和文档报告检查。
+
+默认 `flutter test` 不要求后端；真实测试必须显式设置 `RUN_LOCAL_BACKEND_INTEGRATION=true`，使用 localhost 且不打印密码/Token、不重置数据库。自动检查不能替代 Pixel 8、文字放大、刷新分页和导航返回行为的人工视觉验收。

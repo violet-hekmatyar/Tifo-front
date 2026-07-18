@@ -1,7 +1,7 @@
 # 南看台前端文档地图
 
 > 版本：v0.1
-> 当前阶段：F03.1
+> 当前阶段：F04
 > 文档定位：前端文档集入口，只负责导航。
 > 权威边界：不承载项目结构、技术版本、接口细节或任务实现。
 
@@ -26,7 +26,7 @@
 | `10_VALIDATION_AND_SMOKE_GUIDE.md` | 验证命令和 smoke 计划 |
 | `11_CODEX_TASK_PLAN.md` | F00-F13 大任务路线图 |
 | `12_LOCAL_DEVELOPMENT_ENVIRONMENT.md` | 本机工具、Android 模拟器和双端预览方式 |
-| `13_CLIENT_UI_VISUAL_BASELINE.md` | Flutter 客户端 Token、共享组件与认证流程视觉基线 |
+| `13_CLIENT_UI_VISUAL_BASELINE.md` | Flutter 客户端 Token、共享组件、认证流程与首页视觉基线 |
 
 完整结构树只见 [04_FRONTEND_ARCHITECTURE.md](04_FRONTEND_ARCHITECTURE.md)。
 

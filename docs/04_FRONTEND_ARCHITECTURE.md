@@ -131,6 +131,12 @@ D:\Football-APP-Front
 
 业务页面不得散落颜色、间距、圆角和字体常量，统一从 `shared/design_system` 消费；共享 Widget 不依赖 auth/onboarding data 层。视觉唯一权威见 [13_CLIENT_UI_VISUAL_BASELINE.md](13_CLIENT_UI_VISUAL_BASELINE.md)。
 
+### F04 主框架与 Feed 实际结构
+
+认证完成后由 `StatefulShellRoute.indexedStack` 承载首页、数据、消息、我的四个分支；分支各自保留导航栈，首页滚动位置使用稳定 PageStorage key。`features/main_shell/presentation` 负责壳与三个最小入口，`features/feed` 按 `data/domain/presentation` 分层，卡片 DTO、领域联合类型、控制器与渲染器职责分离。
+
+调用链固定为 `HomeFeedPage/Widget → FeedController → FeedRepository → FeedApi → F02 ApiClient`。原始 JSON 只在 data/dto 层解析；`FeedCardRenderer` 集中分发内容、比赛和未知卡片；页面不依赖 Dio。连续内容卡按原顺序组成双列，比赛和未知卡全宽，分组不重排后端顺序。
+
 ## Vue 边界与依赖方向
 
 `views` 负责页面编排，`api` 封装后端访问，`stores` 管客户端状态，`router` 负责路由和守卫，`layouts` 负责后台框架，`components/common` 保持通用，`components/business` 承载复用业务展示，`types` 定义前端模型。

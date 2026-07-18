@@ -108,3 +108,8 @@ npm run dev
 ## 安全与维护
 
 不记录 Token、密码、签名文件或私密配置，不提交 `local.properties`。路径、版本或 AVD 状态变化后更新本文档，且只记录已验证事实。完整依赖版本表见 [03_TECH_STACK.md](03_TECH_STACK.md)，构建与部署见 [08_BUILD_DEPLOYMENT_GUIDE.md](08_BUILD_DEPLOYMENT_GUIDE.md)。
+# F04 首页预览与检查
+
+后端复用 F03 管理脚本：先运行 `ensure-local-backend-f03.ps1` 和 `status-local-backend-f03.ps1`，确认 health/db/redis 均为 UP。Android 模拟器使用宿主映射 `http://10.0.2.2:8080`；Windows 真实 Feed 测试使用 `http://localhost:8080`。
+
+人工预览前先执行 `adb devices`，已有 `emulator-*` 时复用；否则冷启动 `Pixel_8_API_36`。在 `apps/mobile` 使用 README 中带 dart-define 的 `flutter run`。F04 自动检查入口是仓库根目录的 `scripts/windows/check-f04.ps1`，不会启动模拟器或长期运行 App，也不会停止后端。

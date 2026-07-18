@@ -187,7 +187,7 @@ void main() {
     );
     expect(
       authRedirect(AuthStatus.authenticatedReady, '/onboarding'),
-      '/authenticated',
+      '/app/home',
     );
   });
 

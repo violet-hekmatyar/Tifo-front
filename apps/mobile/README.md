@@ -19,7 +19,7 @@ flutter run -d Pixel_8_API_36 `
   --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
 
-登录页、注册页与 onboarding 页面使用真实数据；完成后进入的页面只是 F03 临时完成页，F04 才开发主框架与首页。
+登录页、注册页与 onboarding 页面使用真实数据；完成后进入首页、数据、消息、我的四栏正式主框架。首页通过真实 Feed 接口展示推荐、资讯、关注和关注球队筛选，支持刷新与分页；数据、消息、我的完整功能尚未开发。
 
 ## F03.1 设计系统与占位
 
@@ -31,8 +31,12 @@ flutter run -d Pixel_8_API_36 `
 
 ```powershell
 flutter test
-powershell -NoProfile -ExecutionPolicy Bypass -File ..\..\scripts\windows\check-mobile-f03.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File ..\..\scripts\windows\smoke-mobile-auth-f03.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File ..\..\scripts\windows\check-mobile-f04.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File ..\..\scripts\windows\smoke-mobile-feed-f04.ps1
 ```
 
 默认 `flutter test` 只运行 Mock/Widget 测试；真实 smoke 使用独立 `test_local_backend`，会创建唯一命名测试用户且不重置数据库。Windows 不执行 iOS build。
+
+## F04 首页
+
+Feed 数据经 `FeedApi → FeedRepository → FeedController → HomeFeedPage` 流动，页面不访问 Dio 或解析 JSON。当前真实实现识别 `CONTENT`、`MATCH`，同时兼容文档旧称 `CONTENT_CARD`、`MATCH_CARD`；未知类型显示安全占位且不阻断后续卡片。内容详情、比赛详情、搜索和发布路由本轮仅提供清晰占位。

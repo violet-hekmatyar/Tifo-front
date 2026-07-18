@@ -1,7 +1,7 @@
 # 南看台前端 API 接入规范
 
 > 版本：v0.2
-> 当前阶段：F03
+> 当前阶段：F04
 > 文档定位：前端接口接入、解析、错误处理和变更流程的唯一权威文档。
 > 不负责：复制后端完整请求/响应示例或重新定义后端契约。
 
@@ -47,6 +47,12 @@ Windows 集成测试使用 `http://localhost:8080`；Android 模拟器使用 `ht
 ## 页面与接口关系
 
 页面只依赖按业务域封装的 API：认证/首次选择、feed、内容互动、足球数据、用户中心、管理用户内容、文件。具体路径和实际已实现范围以最新后端契约的 Current Implementation Notes 为准；计划接口不得当作已可用接口。F02 不调用任何真实业务 API。
+
+## F04 Feed 真实契约
+
+Flutter 使用 `GET /api/app/feed`，参数为 `tab`、`pageNum`、`pageSize`，球队筛选额外传 `teamId`；一级筛选集中映射为 `recommend`、`news`、`following`。关注球队来自 `GET /api/app/users/me/stand` 的 `mainTeam` 与 `followTeams`，按 `teamId` 去重。Feed 继续使用统一分页 `records/total/pageNum/pageSize/pages` 和 HTTP 200 业务包络。
+
+当前实现实际返回 `cardType=CONTENT|MATCH`。内容卡使用 `contentId/contentType/title/summary/coverUrl/author/hotComment/publishTime/likeCount/commentCount`；比赛卡使用 `matchId/leagueName/homeTeam/awayTeam/homeScore/awayScore/matchStatus/matchTime/eventSummary`。字段为空时前端不补造数据。DTO 同时接受旧文档样例中的 `CONTENT_CARD|MATCH_CARD`，其他或单卡畸形类型降级为 `UnknownFeedCard`。相对图片 URL 统一由 F02 resolver 解析。
 
 ## 变更流程
 

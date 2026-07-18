@@ -2,6 +2,12 @@ import '../../features/auth/presentation/controllers/auth_controller.dart';
 
 String? authRedirect(AuthStatus status, String location) {
   const publicLocations = {'/login', '/register'};
+  final isProtectedLocation =
+      location.startsWith('/app') ||
+      location == '/search' ||
+      location == '/publish' ||
+      location.startsWith('/content/') ||
+      location.startsWith('/match/');
   return switch (status) {
     AuthStatus.bootstrapping ||
     AuthStatus.failure => location == '/bootstrap' ? null : '/bootstrap',
@@ -9,7 +15,6 @@ String? authRedirect(AuthStatus status, String location) {
       publicLocations.contains(location) ? null : '/login',
     AuthStatus.authenticatedNeedsOnboarding =>
       location == '/onboarding' ? null : '/onboarding',
-    AuthStatus.authenticatedReady =>
-      location == '/authenticated' ? null : '/authenticated',
+    AuthStatus.authenticatedReady => isProtectedLocation ? null : '/app/home',
   };
 }

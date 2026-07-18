@@ -23,7 +23,9 @@ void main() {
     );
     expect(
       authRedirect(AuthStatus.authenticatedReady, '/onboarding'),
-      '/authenticated',
+      '/app/home',
     );
+    expect(authRedirect(AuthStatus.authenticatedReady, '/app/data'), isNull);
+    expect(authRedirect(AuthStatus.authenticatedReady, '/content/42'), isNull);
   });
 }

@@ -2,7 +2,7 @@
 
 南看台前端包含面向普通用户的 Flutter 原生移动 App，以及仅供内部管理员使用的 Vue 3 + TypeScript 管理后台。当前不建设面向用户的 H5、PWA 或小程序。
 
-- 当前阶段：F03.1（Flutter 客户端视觉基线与认证流程视觉治理）
+- 当前阶段：F04（Flutter 正式主框架与首页真实卡片流）
 - Flutter：`apps/mobile`
 - Vue 管理后台：`apps/admin`
 - 文档入口：[docs/00_DOCUMENT_MAP.md](docs/00_DOCUMENT_MAP.md)
@@ -31,8 +31,8 @@ flutter run -d Pixel_8_API_36 `
   --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
 
-F03 已为 Flutter 接入本机真实后端的注册、登录、Access Token 安全存储、冷启动恢复、Bearer 注入、首次偏好选择和本地退出。Vue 管理后台登录尚未开始，留待 F08；当前完成页不是正式首页。
+F03 已为 Flutter 接入本机真实后端的注册、登录、Access Token 安全存储、冷启动恢复、Bearer 注入、首次偏好选择和本地退出。F04 已将认证完成入口替换为正式四栏主框架，并通过真实 Feed 接口提供首页混合卡片流。Vue 管理后台登录尚未开始，留待 F08。
 
-F03.1 在不改变认证、会话、路由和 Onboarding 业务契约的前提下，新增统一 Design Token、共享组件、稳定图片占位，并将首次设置整理为三步视觉流程。视觉规则见 [docs/13_CLIENT_UI_VISUAL_BASELINE.md](docs/13_CLIENT_UI_VISUAL_BASELINE.md)。F04 主框架与首页尚未开始。
+F03.1 建立的 Design Token、共享组件和稳定图片占位继续作为首页视觉基础。F04 支持推荐/资讯/关注、关注球队、下拉刷新、分页、内容卡片、比赛卡片和未知卡片降级；搜索、发布、内容详情、比赛详情及数据/消息/我的完整业务仍是明确占位，不伪造业务数据。
 
-后端状态管理入口为 `ensure-local-backend-f03.ps1`、`status-local-backend-f03.ps1` 和 `stop-local-backend-f03.ps1`。完整验收运行 `scripts/windows/check-f03.ps1`。
+后端状态管理入口为 `ensure-local-backend-f03.ps1`、`status-local-backend-f03.ps1` 和 `stop-local-backend-f03.ps1`。F04 移动端检查、真实 Feed smoke 与完整验收分别运行 `check-mobile-f04.ps1`、`smoke-mobile-feed-f04.ps1` 和 `check-f04.ps1`。
