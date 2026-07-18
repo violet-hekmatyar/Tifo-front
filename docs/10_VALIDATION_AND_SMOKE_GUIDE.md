@@ -1,5 +1,17 @@
 # 南看台前端验证与 Smoke 指南
 
+## F06 人工阻塞回归
+
+新增真实 `createAppRouter` Widget 回归，覆盖数据页卡片进入 root MatchDetailPage、详情逐层球队/球员跳转、非法 ID 不回首页；排序纯函数覆盖分组、升降序、稳定性、空时间和不按比分推断；多页 Widget 覆盖滚动加载、失败 Footer、点击重试、去重与到底。真实 smoke 从列表提取 matchId/teamId，并在事件含 playerId 时查询该球员。
+
+## F06 检查链
+
+- `check-mobile-f06.ps1`：核对 football 分层、真实路由与占位移除，执行 pub get、format、analyze、默认 Mock/Widget 全量测试和 Android Debug APK；成功输出 `F06 Flutter football data and detail check passed`。
+- `smoke-mobile-football-f06.ps1`：ensure/status 后执行独立 Flutter Repository/ApiClient 真实联赛、比赛、球队、球队赛程、球员、事件与图片 URL 测试；只创建唯一登录用户，不写 football 数据、不重置数据库；成功输出 `F06 local backend football data smoke passed`。
+- `check-f06.ps1`：执行 repo、F05 全量回归、ensure、移动端 F06、真实 smoke、最终 status 与文档检查；成功输出 `F06 Flutter football data details check passed`。
+
+自动检查不代表 Pixel 8、140% 字体、图片失败和 Android 返回键的人工视觉验收完成。
+
 ## F05 检查链
 
 `check-mobile-f05.ps1` 验证格式/analyze/测试/APK；`smoke-mobile-content-f05.ps1` 跑真实详情、上传、发布、互动与评论生命周期；`check-f05.ps1` 先回归 F04。后端无用户帖子删除接口，smoke 保留唯一帖子及绑定媒体，不重置数据库。
@@ -74,3 +86,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f03-
 ## F05 发布返回与首页分区
 
 `check-mobile-f05.ps1` 静态核对 pushReplacement、详情返回兜底、刷新协调器和 `FeedDisplaySections`，随后运行全量 Flutter 检查。`smoke-mobile-content-f05.ps1` 发布唯一真实帖子，验证详情，再逐页查询 recommend/news/following 并输出仅含 contentId、tab 和页码的安全摘要；测试不重置数据库、不删除非测试数据、不输出 Token 或密码。
+
+## F06 最终收口与文字审计
+
+- `check-mobile-f06.ps1` 额外静态确认球队卡不含独立箭头、整卡安全跳转和语义标记，并运行全量 Flutter 检查与 APK。
+- `check-f06-text-data-audit.ps1` 解析 corrections JSON，拒绝视觉/媒体字段及其资源地址、敏感字段和非 HTTPS 来源，确认后端 Git 干净，再运行 format、analyze、全量测试和 APK。
+- `check-f06.ps1` 聚合上述检查、F05/F04/F03.1 回归、真实 football smoke，最终仍输出 `F06 Flutter football data details check passed`；审计脚本单独输出 `F06 real-world text data audit check passed`。
+
+自动检查覆盖 Pixel 8 尺寸和 140% 字体 Widget 用例，但球队卡按压、真实设备观感、返回后的滚动位置仍需用户人工复验。审计数据以 2026-07-18 为时点，后续使用前应重新核验。

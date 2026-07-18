@@ -1,5 +1,13 @@
 # 南看台前端架构
 
+## F06 路由与展示排序修正
+
+详情 GoRoute 通过 `parentNavigatorKey: rootNavigatorKey` 覆盖 StatefulShellRoute，push 后保留来源分支。认证 redirect 明确认可 matches/teams/players。纯函数 `domain/match_display_sort.dart` 在 Controller 首屏和分页合并后集中排序；Widget 只按已排序集合建立日期组。
+
+## F06 Football Feature
+
+`features/football` 包含集中 JSON 适配的 `data/football_api.dart`、仓储契约与实现、纯领域模型、数据页和球队/球员/比赛详情。数据页与球队赛程使用 ChangeNotifier 控制首次加载、刷新、分页、去重、防并发和旧请求隔离；详情使用按 ID 的 auto-dispose FutureProvider，并由 `IndexedStack` 保留页内 Tab。固定调用链为 `Page/Widget → Controller/Provider → FootballRepository → FootballApi → ApiClient`。
+
 ## F05 内容、互动与上传
 
 `content` 管详情/发布，`interaction` 管 toggle、评论分页/回复，`file_upload` 管 F05 图片上传/删除。调用为 `Page → Controller → Repository → ApiClient`，multipart 复用统一 Bearer 注入。
@@ -82,6 +90,9 @@ D:\Football-APP-Front
 │   │   │       ├── interaction
 │   │   │       ├── publish
 │   │   │       ├── football
+│   │   │       │   ├── data
+│   │   │       │   ├── domain
+│   │   │       │   └── presentation
 │   │   │       ├── follow
 │   │   │       ├── user_center
 │   │   │       ├── message

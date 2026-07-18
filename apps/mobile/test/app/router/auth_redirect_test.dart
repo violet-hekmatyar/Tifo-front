@@ -27,5 +27,16 @@ void main() {
     );
     expect(authRedirect(AuthStatus.authenticatedReady, '/app/data'), isNull);
     expect(authRedirect(AuthStatus.authenticatedReady, '/content/42'), isNull);
+    for (final location in [
+      '/matches/50001',
+      '/teams/30001',
+      '/players/40001',
+    ]) {
+      expect(
+        authRedirect(AuthStatus.authenticatedReady, location),
+        isNull,
+        reason: '$location must not be redirected to home',
+      );
+    }
   });
 }

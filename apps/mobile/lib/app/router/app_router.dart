@@ -6,9 +6,12 @@ import '../../features/auth/presentation/pages/bootstrap_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/feed/presentation/pages/home_feed_page.dart';
+import '../../features/football/presentation/pages/football_data_page.dart';
+import '../../features/football/presentation/pages/match_detail_page.dart';
+import '../../features/football/presentation/pages/player_detail_page.dart';
+import '../../features/football/presentation/pages/team_detail_page.dart';
 import '../../features/content/presentation/pages/content_detail_page.dart';
 import '../../features/content/presentation/pages/publish_post_page.dart';
-import '../../features/main_shell/presentation/data_placeholder_page.dart';
 import '../../features/main_shell/presentation/feature_placeholder_page.dart';
 import '../../features/main_shell/presentation/main_shell_page.dart';
 import '../../features/main_shell/presentation/messages_placeholder_page.dart';
@@ -17,7 +20,10 @@ import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import 'auth_redirect.dart';
 import 'route_names.dart';
 
+final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+
 GoRouter createAppRouter(AuthController authController) => GoRouter(
+  navigatorKey: rootNavigatorKey,
   initialLocation: '/bootstrap',
   refreshListenable: authController,
   redirect: (context, state) =>
@@ -66,7 +72,7 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
             GoRoute(
               path: '/app/data',
               name: RouteNames.data,
-              builder: (context, state) => const DataPlaceholderPage(),
+              builder: (context, state) => const FootballDataPage(),
             ),
           ],
         ),
@@ -113,12 +119,33 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
       ),
     ),
     GoRoute(
-      path: '/match/:matchId',
+      path: '/matches/:matchId',
       name: RouteNames.matchDetail,
-      builder: (context, state) => FeaturePlaceholderPage(
-        title: '比赛详情',
-        message: '比赛详情入口已建立',
-        detail: '比赛 ID：${state.pathParameters['matchId']}',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => MatchDetailPage(
+        matchId: int.tryParse(state.pathParameters['matchId'] ?? '') ?? -1,
+      ),
+    ),
+    GoRoute(
+      path: '/match/:matchId',
+      parentNavigatorKey: rootNavigatorKey,
+      redirect: (context, state) =>
+          '/matches/${state.pathParameters['matchId']}',
+    ),
+    GoRoute(
+      path: '/teams/:teamId',
+      name: RouteNames.teamDetail,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => TeamDetailPage(
+        teamId: int.tryParse(state.pathParameters['teamId'] ?? '') ?? -1,
+      ),
+    ),
+    GoRoute(
+      path: '/players/:playerId',
+      name: RouteNames.playerDetail,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => PlayerDetailPage(
+        playerId: int.tryParse(state.pathParameters['playerId'] ?? '') ?? -1,
       ),
     ),
   ],

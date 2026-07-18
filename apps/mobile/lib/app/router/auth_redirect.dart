@@ -8,7 +8,10 @@ String? authRedirect(AuthStatus status, String location) {
       location.startsWith('/publish/') ||
       location.startsWith('/contents/') ||
       location.startsWith('/content/') ||
-      location.startsWith('/match/');
+      location.startsWith('/match/') ||
+      location.startsWith('/matches/') ||
+      location.startsWith('/teams/') ||
+      location.startsWith('/players/');
   return switch (status) {
     AuthStatus.bootstrapping ||
     AuthStatus.failure => location == '/bootstrap' ? null : '/bootstrap',

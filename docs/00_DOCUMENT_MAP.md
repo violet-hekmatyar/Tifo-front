@@ -1,7 +1,11 @@
 # 南看台前端文档地图
 
+## F06 补充
+
+足球数据任务依次阅读 02/04/05/06/07/10/13、产品 PDF 第 10–38 页，以及只读后端 football Controller/VO/Service。执行结果见 `reports/F06_EXECUTION_REPORT.md`，人工验收见 `reports/F06_UI_REVIEW_CHECKLIST.md`。
+
 > 版本：v0.1
-> 当前阶段：F05
+> 当前阶段：F06
 > 文档定位：前端文档集入口，只负责导航。
 > 权威边界：不承载项目结构、技术版本、接口细节或任务实现。
 

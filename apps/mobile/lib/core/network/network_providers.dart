@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/config/app_config.dart';
 import '../auth/token_storage_provider.dart';
+import '../auth/session_invalidation.dart';
 import 'api_client.dart';
 import 'request_interceptors.dart';
 
@@ -35,6 +36,14 @@ final dioProvider = Provider<Dio>((ref) {
   return dio;
 });
 
-final apiClientProvider = Provider<ApiClient>(
-  (ref) => ApiClient(ref.watch(appConfigProvider), ref.watch(dioProvider)),
-);
+final apiClientProvider = Provider<ApiClient>((ref) {
+  final storage = ref.watch(tokenStorageProvider);
+  return ApiClient(
+    ref.watch(appConfigProvider),
+    ref.watch(dioProvider),
+    onSessionExpired: () async {
+      await storage.deleteAccessToken();
+      ref.read(sessionInvalidationProvider.notifier).state++;
+    },
+  );
+});

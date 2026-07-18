@@ -12,12 +12,14 @@ class FollowedTeamBar extends ConsumerWidget {
     required this.teams,
     required this.selectedTeamId,
     required this.onSelected,
+    required this.onOpenTeam,
     super.key,
   });
 
   final List<FollowedTeam> teams;
   final int? selectedTeamId;
   final ValueChanged<int?> onSelected;
+  final ValueChanged<int> onOpenTeam;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,11 +43,15 @@ class FollowedTeamBar extends ConsumerWidget {
             );
           }
           final team = teams[index - 1];
+          final canOpenTeam = team.teamId > 0;
           return _TeamButton(
             key: ValueKey('followed_team_${team.teamId}'),
             label: team.teamName,
             selected: selectedTeamId == team.teamId,
-            onTap: () => onSelected(team.teamId),
+            semanticLabel: canOpenTeam
+                ? '查看 ${team.teamName} 详情'
+                : '${team.teamName} 暂不可用',
+            onTap: canOpenTeam ? () => onOpenTeam(team.teamId) : null,
             child: AppTeamLogo(
               identity: 'team:${team.teamId}',
               name: team.teamName,
@@ -65,40 +71,47 @@ class _TeamButton extends StatelessWidget {
     required this.selected,
     required this.onTap,
     required this.child,
+    this.semanticLabel,
     super.key,
   });
 
   final String label;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final Widget child;
+  final String? semanticLabel;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(AppRadius.md),
-    child: Container(
-      width: 66,
-      padding: const EdgeInsets.all(AppSpacing.xs),
-      decoration: BoxDecoration(
-        color: selected ? AppColors.brandSoft : Colors.transparent,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(
-          color: selected ? AppColors.brand : Colors.transparent,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox.square(dimension: 42, child: Center(child: child)),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelSmall,
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    enabled: onTap != null,
+    label: semanticLabel,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Container(
+        width: 66,
+        padding: const EdgeInsets.all(AppSpacing.xs),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.brandSoft : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(
+            color: selected ? AppColors.brand : Colors.transparent,
           ),
-        ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox.square(dimension: 42, child: Center(child: child)),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+          ],
+        ),
       ),
     ),
   );

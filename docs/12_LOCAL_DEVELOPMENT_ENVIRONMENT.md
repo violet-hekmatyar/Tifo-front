@@ -1,6 +1,10 @@
 # 南看台本地开发环境与预览
 
-F05 预览复用 F03 后端和 Pixel 8，并需在模拟器相册准备图片。`check-f05.ps1` 不启动模拟器、长期 App 或停止后端。
+## F06 数据页预览
+
+ensure/status 后运行既有 `flutter run` 命令，进入“数据”Tab 检查联赛切换、日期分组和详情跳转。Windows 真实 smoke 使用 `http://localhost:8080`，Android 模拟器使用 `http://10.0.2.2:8080`。F06 不要求相册资源，也不启动实时比分轮询。
+
+F06 预览复用 F03 后端和 Pixel 8。`check-f06.ps1` 不启动模拟器、长期 App 或停止后端。
 
 > 版本：v0.1
 > 当前阶段：F03

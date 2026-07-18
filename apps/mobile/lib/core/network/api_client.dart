@@ -5,11 +5,14 @@ import 'api_response.dart';
 import 'dio_exception_mapper.dart';
 import 'network_exceptions.dart';
 
+typedef SessionExpiredCallback = Future<void> Function();
+
 final class ApiClient {
-  const ApiClient(this._config, this._dio);
+  const ApiClient(this._config, this._dio, {this.onSessionExpired});
 
   final AppConfig _config;
   final Dio _dio;
+  final SessionExpiredCallback? onSessionExpired;
 
   Future<T> get<T>(
     String path, {
@@ -77,6 +80,12 @@ final class ApiClient {
         options: Options(method: method),
       );
       return ApiResponse<T>.fromRaw(response.data, decode).data;
+    } on BusinessException catch (error) {
+      if ((error.code == 40101 || error.code == 40102) &&
+          onSessionExpired != null) {
+        await onSessionExpired!();
+      }
+      rethrow;
     } on AppNetworkException {
       rethrow;
     } on DioException catch (error) {

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import '../../../../core/auth/auth_providers.dart';
+import '../../../../core/auth/session_invalidation.dart';
 import '../../../../core/network/network_exceptions.dart';
 import '../../data/auth_repository.dart';
 import '../../domain/auth_user.dart';
@@ -35,7 +36,11 @@ final class AuthState {
 }
 
 final authControllerProvider = ChangeNotifierProvider<AuthController>((ref) {
-  return AuthController(ref.watch(authRepositoryProvider));
+  final controller = AuthController(ref.watch(authRepositoryProvider));
+  ref.listen(sessionInvalidationProvider, (_, _) {
+    controller.handleSessionInvalidation();
+  });
+  return controller;
 });
 
 final class AuthController extends ChangeNotifier {
@@ -145,6 +150,13 @@ final class AuthController extends ChangeNotifier {
   Future<void> logout() async {
     await _repository.logout();
     _setState(const AuthState(status: AuthStatus.unauthenticated));
+  }
+
+  Future<void> handleSessionInvalidation() async {
+    await _repository.logout();
+    if (_state.status != AuthStatus.unauthenticated) {
+      _setState(const AuthState(status: AuthStatus.unauthenticated));
+    }
   }
 
   void _setAuthenticated(AuthUser user) {

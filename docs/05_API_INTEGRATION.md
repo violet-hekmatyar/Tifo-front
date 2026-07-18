@@ -1,5 +1,21 @@
 # 南看台前端 API 接入规范
 
+## F06 展示排序边界
+
+后端重要/关注/联赛列表的分页结果保持原字段与状态。前端仅为产品展示对已加载且去重后的集合排序：进行中、即将开始、已结束、异常/未知；未开始时间升序，已结束时间降序，进行中和其他组保持后端相对顺序。不得按比分推断状态或回写后端。当前真实枚举为 `LIVE/SCHEDULED/FINISHED`，同时安全兼容同义和异常状态。
+
+## F06 Football 真实契约
+
+- `GET /api/app/football/leagues`：公开联赛列表；
+- `GET /api/app/football/matches/important`：重要比赛分页；
+- `GET /api/app/football/matches/following-teams`：登录用户关注球队比赛分页；
+- `GET /api/app/football/matches`：按 `leagueId/teamId/date/status` 查询分页；
+- `GET /api/app/football/matches/{matchId}`、`teams/{teamId}`、`players/{playerId}`：公开详情，可选 Token 决定只读 followed 状态。
+
+比赛分页沿用 `records/total/pageNum/pageSize/pages`。前端映射已知比赛状态，未知值安全展示；比分为空时不显示 0:0。Logo/头像可为相对 URL 或空，由统一 Resolver 处理。业务失败仍为 HTTP 200 包络，`40401` 表示对象不存在；`40101/40102` 清本地会话，403 保留 Token。
+
+当前 Java 实现没有 standings/ranking、球队 roster、球员比赛/赛季统计、match lineup/advanced statistics 接口。详情仅消费基本资料、球队最近/未来比赛、比赛事件和战报，不复制 Entity 或从比赛推算排名。
+
 ## F05 契约
 
 详情当前没有 blocks/source/isOfficial；ARTICLE 用 body+mediaList 降级。发帖提交 title/body/mediaFileIds/空 relationList。toggle 只返回布尔值，成功后重读详情取计数。评论使用 contentId/sort/分页、replies、专用点赞和软删除；上传 multipart 为 file + `CONTENT_IMAGE`。
@@ -65,3 +81,7 @@ Flutter 使用 `GET /api/app/feed`，参数为 `tab`、`pageNum`、`pageSize`，
 ## F05 发布后 Feed 核验
 
 发布仍以 `POST /api/app/contents/posts` 返回的真实 contentId 为准，并立即通过详情接口读取。详情返回只重新请求当前 `GET /api/app/feed` 的 tab/teamId 第一页；刷新不清空旧列表，失败保留旧数据。真实 smoke 还逐页查询 recommend/news/following 并记录 contentId 所在页；未返回时前端不伪造可见性。展示分区不改变请求参数、分页元数据或后端推荐结果。
+
+## F06 文字数据审计边界
+
+现实核验从现有 football 接口只读收集当前 F06 可展示记录，联网来源只写入 `reports/F06_REAL_WORLD_TEXT_DATA_AUDIT.md` 和 corrections JSON。Flutter 不请求这些外部页面，也不以硬编码覆盖球队、球员、比分、时间、事件或状态。所有运行事实仍来自后端 API；需修正的现实数据必须另建获授权后端任务。本轮不处理视觉/媒体字段，未修改数据库。

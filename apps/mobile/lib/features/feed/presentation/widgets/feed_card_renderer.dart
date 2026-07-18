@@ -29,7 +29,7 @@ class FeedCardRenderer extends ConsumerWidget {
         card: card,
         homeLogoUrl: resolveMediaUrl(config, card.homeTeam.logoUrl),
         awayLogoUrl: resolveMediaUrl(config, card.awayTeam.logoUrl),
-        onTap: () => context.push('/match/${card.matchId}'),
+        onTap: () => context.push('/matches/${card.matchId}'),
       ),
       UnknownFeedCard card => UnknownCard(card: card),
     };

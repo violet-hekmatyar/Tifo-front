@@ -121,6 +121,33 @@ void main() {
     );
   });
 
+  test('only business 40101 and 40102 invalidate the session', () async {
+    var invalidations = 0;
+    client = ApiClient(
+      AppConfig.fromValues(apiBaseUrl: baseUrl),
+      dio,
+      onSessionExpired: () async {
+        invalidations++;
+      },
+    );
+    for (final code in [40101, 40102, 40301]) {
+      adapter.onGet(
+        '$baseUrl/business-$code',
+        (server) => server.reply(200, {
+          'code': code,
+          'message': 'denied',
+          'data': null,
+          'traceId': 'trace-$code',
+        }),
+      );
+      await expectLater(
+        client.get<void>('/business-$code', decode: decodeVoid),
+        throwsA(isA<BusinessException>()),
+      );
+    }
+    expect(invalidations, 2);
+  });
+
   test('maps HTTP 401 and 403 without authentication side effects', () async {
     for (final status in [401, 403]) {
       final path = '$baseUrl/http-$status';

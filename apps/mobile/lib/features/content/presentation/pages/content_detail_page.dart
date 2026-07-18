@@ -150,11 +150,12 @@ class _DetailBody extends ConsumerWidget {
               for (final r in d.relations)
                 ActionChip(
                   label: Text('# ${r.name}'),
-                  onPressed: {'TEAM', 'PLAYER', 'MATCH'}.contains(r.type)
-                      ? () => ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('相关足球详情将在 F06 实现')),
-                        )
-                      : null,
+                  onPressed: switch (r.type) {
+                    'TEAM' => () => context.push('/teams/${r.id}'),
+                    'PLAYER' => () => context.push('/players/${r.id}'),
+                    'MATCH' => () => context.push('/matches/${r.id}'),
+                    _ => null,
+                  },
                 ),
             ],
           ),

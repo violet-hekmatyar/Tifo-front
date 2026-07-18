@@ -1,5 +1,13 @@
 # 南看台前端构建与部署指南
 
+## F06 修正验收
+
+`check-f06.ps1` 同时检查认证详情白名单、root Navigator、集中排序、分页 Footer、真实路由测试和增强 football smoke，再复跑 F05、全量测试与 Debug APK。真实数据少不影响分页自动测试，生产运行不增加 fixture。
+
+## F06 构建与预览
+
+运行 `scripts/windows/check-f06.ps1` 完成 F05 全量回归、Flutter format/analyze/test、真实 football smoke 和 Android Debug APK。模拟器仍使用 `API_BASE_URL=http://10.0.2.2:8080`；`flutter run` 中 `r` 热重载、`R` 热重启、`d` 断开并保留 App、`q` 结束。检查脚本不启动模拟器、不长期运行 App、不执行 iOS build。
+
 F05 沿用 Android `10.0.2.2` 配置；相册选择需要系统照片权限。iOS 已声明 `NSPhotoLibraryUsageDescription`，Windows 验收不执行 iOS build。
 
 > 版本：v0.1
@@ -49,3 +57,7 @@ F04 Debug APK 由 `check-mobile-f04.ps1` 生成到 `apps/mobile/build/app/output
 ## F05 修复验收
 
 运行 `scripts/windows/check-f05.ps1` 会覆盖 F04/F03.1 回归、发布返回路由、Feed 刷新协调、集中分区、全量测试、静态分析、真实发布与三 tab Feed 核验，以及 Android Debug APK 构建。最终成功标记保持 `F05 Flutter content publish interaction check passed`。
+
+## F06 最终收口构建
+
+`check-f06.ps1` 聚合历史回归、F06 移动端验证、文字审计验证、真实 football smoke 和后端状态；`check-f06-text-data-audit.ps1` 可独立检查报告/JSON、球队整卡入口、全量测试、analyze 与 Debug APK。APK 仍输出到 `apps/mobile/build/app/outputs/flutter-apk/app-debug.apk`。联网核验不参与构建产物运行时，也不包含视觉/媒体资源。

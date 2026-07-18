@@ -1,5 +1,9 @@
 # 南看台前端鉴权、路由与安全
 
+## F06 Football 路由与鉴权
+
+`/app/data`、`/teams/:teamId`、`/players/:playerId`、`/matches/:matchId` 位于登录后 App 路由体系；后端 leagues/matches/team/player GET 实际为公开接口，关注球队比赛要求认证。请求包络返回 `40101/40102` 时 ApiClient 删除 Access Token 并通知 AuthController 回到未登录；`403/40301` 只展示无权访问，不清 Token。旧 `/match/:matchId` 仅重定向至复数规范路径。
+
 ## F05 写操作
 
 `/contents/:id` 与 `/publish/post` 受认证守卫保护；40101/40102 沿用会话规则，403/网络失败不清 Token。发布不提交 authorId、官方状态或统计，仅当前用户匹配作者时显示删除。

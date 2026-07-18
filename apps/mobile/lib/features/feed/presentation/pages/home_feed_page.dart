@@ -75,6 +75,7 @@ class _HomeFeedPageState extends ConsumerState<HomeFeedPage> {
               teams: state.followedTeams,
               selectedTeamId: state.teamId,
               onSelected: (value) => unawaited(controller.selectTeam(value)),
+              onOpenTeam: (teamId) => context.push('/teams/$teamId'),
             ),
             Expanded(child: _body(context, controller)),
           ],
