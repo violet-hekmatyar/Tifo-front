@@ -6,6 +6,8 @@ import '../../features/auth/presentation/pages/bootstrap_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/feed/presentation/pages/home_feed_page.dart';
+import '../../features/content/presentation/pages/content_detail_page.dart';
+import '../../features/content/presentation/pages/publish_post_page.dart';
 import '../../features/main_shell/presentation/data_placeholder_page.dart';
 import '../../features/main_shell/presentation/feature_placeholder_page.dart';
 import '../../features/main_shell/presentation/main_shell_page.dart';
@@ -98,21 +100,16 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
       ),
     ),
     GoRoute(
-      path: '/publish',
-      name: RouteNames.publish,
-      builder: (context, state) => const FeaturePlaceholderPage(
-        title: '发布',
-        message: '发布入口已建立',
-        detail: '内容编辑与发布能力将在 F05 开发。',
-      ),
+      path: '/publish/post',
+      name: RouteNames.publishPost,
+      builder: (context, state) => const PublishPostPage(),
     ),
     GoRoute(
-      path: '/content/:contentId',
+      path: '/contents/:contentId',
       name: RouteNames.contentDetail,
-      builder: (context, state) => FeaturePlaceholderPage(
-        title: '内容详情',
-        message: '内容详情入口已建立',
-        detail: '内容 ID：${state.pathParameters['contentId']}',
+      builder: (context, state) => ContentDetailPage(
+        contentId: int.tryParse(state.pathParameters['contentId'] ?? '') ?? -1,
+        refreshFeedOnExit: state.extra is PublishedContentNavigation,
       ),
     ),
     GoRoute(

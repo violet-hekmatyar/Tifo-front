@@ -23,7 +23,7 @@ class FeedCardRenderer extends ConsumerWidget {
         coverUrl: resolveMediaUrl(config, card.coverUrl),
         authorAvatarUrl: resolveMediaUrl(config, card.author?.avatarUrl),
         onTap: () =>
-            context.push('/content/${card.contentId}', extra: card.title),
+            context.push('/contents/${card.contentId}', extra: card.title),
       ),
       MatchFeedCard card => MatchCard(
         card: card,

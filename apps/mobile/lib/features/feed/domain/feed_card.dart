@@ -93,3 +93,9 @@ final class MatchFeedCard extends FeedCard {
 final class UnknownFeedCard extends FeedCard {
   const UnknownFeedCard({required super.cardId, required super.rawCardType});
 }
+
+String feedCardStableKey(FeedCard card) => switch (card) {
+  ContentFeedCard card => 'content:${card.contentId}',
+  MatchFeedCard card => 'match:${card.matchId}',
+  UnknownFeedCard card => 'unknown:${card.cardId}',
+};

@@ -9,6 +9,8 @@ import '../../../../shared/widgets/app_state_view.dart';
 import '../../domain/feed_card.dart';
 import '../../domain/feed_filter.dart';
 import '../controllers/feed_controller.dart';
+import '../controllers/feed_refresh_coordinator.dart';
+import '../models/feed_display_sections.dart';
 import '../widgets/feed_card_renderer.dart';
 import '../widgets/feed_filter_bar.dart';
 import '../widgets/feed_load_more.dart';
@@ -28,6 +30,11 @@ class _HomeFeedPageState extends ConsumerState<HomeFeedPage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    ref.listenManual(feedRefreshRequestProvider, (previous, next) {
+      if (next == null) return;
+      ref.read(feedRefreshRequestProvider.notifier).state = null;
+      unawaited(ref.read(feedControllerProvider).refresh());
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(ref.read(feedControllerProvider).loadInitial());
     });
@@ -57,7 +64,7 @@ class _HomeFeedPageState extends ConsumerState<HomeFeedPage> {
           children: [
             _HomeHeader(
               onSearch: () => context.push('/search'),
-              onPublish: () => context.push('/publish'),
+              onPublish: () => context.push('/publish/post'),
             ),
             const SizedBox(height: AppSpacing.sm),
             FeedFilterBar(
@@ -104,6 +111,8 @@ class _HomeFeedPageState extends ConsumerState<HomeFeedPage> {
         child: _ReadyFeed(
           cards: state.cards,
           controller: _scrollController,
+          refreshMessage: state.message,
+          onRetryRefresh: controller.refresh,
           loadMore: FeedLoadMore(
             isLoading: state.isLoadingMore,
             hasMore: state.hasMore,
@@ -120,39 +129,141 @@ class _ReadyFeed extends StatelessWidget {
   const _ReadyFeed({
     required this.cards,
     required this.controller,
+    required this.refreshMessage,
+    required this.onRetryRefresh,
     required this.loadMore,
   });
 
   final List<FeedCard> cards;
   final ScrollController controller;
+  final String? refreshMessage;
+  final Future<void> Function() onRetryRefresh;
   final Widget loadMore;
 
   @override
   Widget build(BuildContext context) {
-    final blocks = _blocks(cards);
+    final sections = FeedDisplaySections.fromCards(cards);
     return CustomScrollView(
       key: const PageStorageKey('home_feed_scroll'),
       controller: controller,
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
+        if (refreshMessage != null)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              0,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: Material(
+                key: const ValueKey('feed_refresh_error'),
+                color: AppColors.warning.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: ListTile(
+                  dense: true,
+                  title: Text(refreshMessage!),
+                  trailing: TextButton(
+                    onPressed: onRetryRefresh,
+                    child: const Text('重试'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        if (sections.matches.isNotEmpty) _matchSection(sections.matches),
+        if (sections.contents.isNotEmpty) _contentSection(sections.contents),
+        if (sections.compatibility.isNotEmpty)
+          _compatibilitySection(sections.compatibility),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.lg,
             AppSpacing.sm,
             AppSpacing.lg,
-            0,
+            AppSpacing.xxl,
           ),
-          sliver: SliverList.separated(
-            itemCount: blocks.length,
-            separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-            itemBuilder: (context, index) => blocks[index],
-          ),
+          sliver: SliverToBoxAdapter(child: loadMore),
         ),
-        SliverToBoxAdapter(child: loadMore),
       ],
     );
   }
 }
+
+SliverPadding _matchSection(List<MatchFeedCard> cards) => SliverPadding(
+  key: const ValueKey('feed_match_section'),
+  padding: const EdgeInsets.fromLTRB(
+    AppSpacing.lg,
+    AppSpacing.sm,
+    AppSpacing.lg,
+    0,
+  ),
+  sliver: SliverList.separated(
+    itemCount: cards.length,
+    separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+    itemBuilder: (context, index) {
+      final card = cards[index];
+      return FeedCardRenderer(key: ValueKey(card.cardId), card: card);
+    },
+  ),
+);
+
+SliverPadding _contentSection(List<ContentFeedCard> cards) => SliverPadding(
+  key: const ValueKey('feed_content_section'),
+  padding: const EdgeInsets.fromLTRB(
+    AppSpacing.lg,
+    AppSpacing.sm,
+    AppSpacing.lg,
+    0,
+  ),
+  sliver: SliverList.separated(
+    itemCount: (cards.length + 1) ~/ 2,
+    separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+    itemBuilder: (context, rowIndex) {
+      final left = cards[rowIndex * 2];
+      final rightIndex = rowIndex * 2 + 1;
+      final right = rightIndex < cards.length ? cards[rightIndex] : null;
+      return Row(
+        key: ValueKey(
+          right == null
+              ? 'feed_row_${left.cardId}'
+              : 'feed_row_${left.cardId}_${right.cardId}',
+        ),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: FeedCardRenderer(key: ValueKey(left.cardId), card: left),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: right == null
+                ? const SizedBox()
+                : FeedCardRenderer(key: ValueKey(right.cardId), card: right),
+          ),
+        ],
+      );
+    },
+  ),
+);
+
+SliverPadding _compatibilitySection(List<UnknownFeedCard> cards) =>
+    SliverPadding(
+      key: const ValueKey('feed_compatibility_section'),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        0,
+      ),
+      sliver: SliverList.separated(
+        itemCount: cards.length,
+        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+        itemBuilder: (context, index) {
+          final card = cards[index];
+          return FeedCardRenderer(key: ValueKey(card.cardId), card: card);
+        },
+      ),
+    );
 
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader({required this.onSearch, required this.onPublish});
@@ -199,53 +310,6 @@ class _HomeHeader extends StatelessWidget {
       ],
     ),
   );
-}
-
-List<Widget> _blocks(List<FeedCard> cards) {
-  final result = <Widget>[];
-  var index = 0;
-  while (index < cards.length) {
-    final card = cards[index];
-    if (card is ContentFeedCard) {
-      final next = index + 1 < cards.length ? cards[index + 1] : null;
-      if (next is ContentFeedCard) {
-        result.add(
-          Row(
-            key: ValueKey('feed_row_${card.cardId}_${next.cardId}'),
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: FeedCardRenderer(key: ValueKey(card.cardId), card: card),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: FeedCardRenderer(key: ValueKey(next.cardId), card: next),
-              ),
-            ],
-          ),
-        );
-        index += 2;
-        continue;
-      }
-      result.add(
-        Row(
-          key: ValueKey('feed_row_${card.cardId}'),
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: FeedCardRenderer(key: ValueKey(card.cardId), card: card),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            const Expanded(child: SizedBox()),
-          ],
-        ),
-      );
-    } else {
-      result.add(FeedCardRenderer(key: ValueKey(card.cardId), card: card));
-    }
-    index++;
-  }
-  return result;
 }
 
 String _emptyTitle(FeedFilter filter, int? teamId) {

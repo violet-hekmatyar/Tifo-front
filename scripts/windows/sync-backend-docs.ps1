@@ -55,8 +55,17 @@ if ($productPdfs.Count -eq 0) {
 }
 else {
     foreach ($pdf in $productPdfs) {
-        Copy-Item -LiteralPath $pdf.FullName -Destination (Join-Path $productTarget $pdf.Name) -Force
-        $copied.Add("product/$($pdf.Name)")
+        $target = Join-Path $productTarget $pdf.Name
+        $unchanged = (Test-Path -LiteralPath $target -PathType Leaf) -and
+            ((Get-FileHash -LiteralPath $pdf.FullName -Algorithm SHA256).Hash -eq
+             (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash)
+        if ($unchanged) {
+            $skipped.Add("product/$($pdf.Name) (unchanged)")
+        }
+        else {
+            Copy-Item -LiteralPath $pdf.FullName -Destination $target -Force
+            $copied.Add("product/$($pdf.Name)")
+        }
     }
 }
 

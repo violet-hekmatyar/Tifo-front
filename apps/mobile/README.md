@@ -1,5 +1,9 @@
 # 南看台 Flutter 移动端
 
+## F05 内容与互动
+
+真实详情支持 POST/ARTICLE、多图、点赞收藏、hot/latest 评论、回复与本人删除。发布使用 `image_picker 1.2.3` 仅从相册选图，上传 `CONTENT_IMAGE` 后提交 `mediaFileIds`。限制为标题 255、正文 2000、图片 9 张/10MB、评论 1000 字。
+
 项目名 `tifo`，Android applicationId 与 iOS bundle identifier 均为 `com.southstand.tifo`。F03 使用 Dio、Riverpod、go_router 与 `flutter_secure_storage`，完成注册、登录、登录态恢复、首次偏好选择和本地退出。后端当前只有 Access Token，没有 Refresh Token；不保存密码或完整响应。
 
 ## 本机真实后端
@@ -39,4 +43,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ..\..\scripts\windows\smoke-
 
 ## F04 首页
 
-Feed 数据经 `FeedApi → FeedRepository → FeedController → HomeFeedPage` 流动，页面不访问 Dio 或解析 JSON。当前真实实现识别 `CONTENT`、`MATCH`，同时兼容文档旧称 `CONTENT_CARD`、`MATCH_CARD`；未知类型显示安全占位且不阻断后续卡片。内容详情、比赛详情、搜索和发布路由本轮仅提供清晰占位。
+Feed 数据经 `FeedApi → FeedRepository → FeedController → HomeFeedPage` 流动，页面不访问 Dio 或解析 JSON。当前真实实现识别 `CONTENT`、`MATCH`，同时兼容文档旧称 `CONTENT_CARD`、`MATCH_CARD`；未知类型显示安全占位且不阻断后续卡片。内容详情与发布已由 F05 接通真实接口；比赛详情和搜索仍提供清晰占位。
+
+首页不再完全交错渲染 MATCH/CONTENT。`FeedDisplaySections` 保留控制器原始分页列表，按稳定 contentId/matchId/cardId 去重后展示为全宽比赛区、双列内容区、Unknown 兼容区。发布入口使用 push，成功后 replacement 进入详情；详情返回通过一次性信号刷新当前 tab/teamId，不向首页硬插帖子。

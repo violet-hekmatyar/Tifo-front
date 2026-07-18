@@ -133,10 +133,10 @@ final class FeedController extends ChangeNotifier {
       final page = await _loadPage(_state.pageNum + 1);
       if (generation != _generation) return;
       final byId = <String, FeedCard>{
-        for (final card in _state.cards) card.cardId: card,
+        for (final card in _state.cards) feedCardStableKey(card): card,
       };
       for (final card in page.cards) {
-        byId[card.cardId] = card;
+        byId[feedCardStableKey(card)] = card;
       }
       _setState(
         FeedState(

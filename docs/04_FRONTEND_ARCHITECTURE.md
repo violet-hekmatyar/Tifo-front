@@ -1,5 +1,9 @@
 # 南看台前端架构
 
+## F05 内容、互动与上传
+
+`content` 管详情/发布，`interaction` 管 toggle、评论分页/回复，`file_upload` 管 F05 图片上传/删除。调用为 `Page → Controller → Repository → ApiClient`，multipart 复用统一 Bearer 注入。
+
 > 版本：v0.1
 > 当前阶段：F03.1
 > 文档定位：定义总体架构、目录边界、依赖方向和唯一完整项目结构树。
@@ -146,3 +150,10 @@ D:\Football-APP-Front
 ## 命名与扩展
 
 Dart 文件使用 `snake_case`，类型使用 `UpperCamelCase`；TypeScript 变量使用 `camelCase`，Vue 组件使用 `PascalCase`。新增模块先确认业务归属和依赖方向；仅因“以后可能复用”不得提前建立大量抽象层。
+
+## F05 发布返回与 Feed 展示分区修正
+
+- 发布页位于主框架之上的命令式路由栈；成功后解除草稿离开拦截，并以 replacement 将发布页替换为详情页。
+- `FeedRefreshRequest` 是一次性 presentation 协调信号。原首页消费后调用既有 `FeedController.refresh()`，不重建 StatefulShellRoute。
+- `FeedDisplaySections.fromCards` 是集中式展示模型：MATCH、CONTENT、Unknown 分组；原始 DTO/domain 列表不被重排或污染。
+- 稳定去重键分别为 matchId、contentId、Unknown cardId；同类型保持后端与跨页到达顺序。

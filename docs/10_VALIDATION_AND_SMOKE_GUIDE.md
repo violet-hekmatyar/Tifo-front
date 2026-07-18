@@ -1,5 +1,9 @@
 # 南看台前端验证与 Smoke 指南
 
+## F05 检查链
+
+`check-mobile-f05.ps1` 验证格式/analyze/测试/APK；`smoke-mobile-content-f05.ps1` 跑真实详情、上传、发布、互动与评论生命周期；`check-f05.ps1` 先回归 F04。后端无用户帖子删除接口，smoke 保留唯一帖子及绑定媒体，不重置数据库。
+
 > 版本：v0.1
 > 当前阶段：F03.1
 > 文档定位：验证命令与 smoke 计划的唯一权威文档。
@@ -66,3 +70,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f03-
 - `check-f04.ps1`：依次执行仓库策略、F03.1 全量回归、后端确保、F04 移动端检查、真实 Feed smoke、最终状态和文档报告检查。
 
 默认 `flutter test` 不要求后端；真实测试必须显式设置 `RUN_LOCAL_BACKEND_INTEGRATION=true`，使用 localhost 且不打印密码/Token、不重置数据库。自动检查不能替代 Pixel 8、文字放大、刷新分页和导航返回行为的人工视觉验收。
+
+## F05 发布返回与首页分区
+
+`check-mobile-f05.ps1` 静态核对 pushReplacement、详情返回兜底、刷新协调器和 `FeedDisplaySections`，随后运行全量 Flutter 检查。`smoke-mobile-content-f05.ps1` 发布唯一真实帖子，验证详情，再逐页查询 recommend/news/following 并输出仅含 contentId、tab 和页码的安全摘要；测试不重置数据库、不删除非测试数据、不输出 Token 或密码。

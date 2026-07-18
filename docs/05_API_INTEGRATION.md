@@ -1,5 +1,9 @@
 # 南看台前端 API 接入规范
 
+## F05 契约
+
+详情当前没有 blocks/source/isOfficial；ARTICLE 用 body+mediaList 降级。发帖提交 title/body/mediaFileIds/空 relationList。toggle 只返回布尔值，成功后重读详情取计数。评论使用 contentId/sort/分页、replies、专用点赞和软删除；上传 multipart 为 file + `CONTENT_IMAGE`。
+
 > 版本：v0.2
 > 当前阶段：F04
 > 文档定位：前端接口接入、解析、错误处理和变更流程的唯一权威文档。
@@ -57,3 +61,7 @@ Flutter 使用 `GET /api/app/feed`，参数为 `tab`、`pageNum`、`pageSize`，
 ## 变更流程
 
 后端先更新并确认原始契约 → 运行同步脚本 → 在 `references/BACKEND_API_CHANGELOG.md` 登记影响 → 更新前端 API 层与模型 → 完成单元/联调/smoke → 再修改页面。禁止只改页面临时适配后跳过统一网络层。
+
+## F05 发布后 Feed 核验
+
+发布仍以 `POST /api/app/contents/posts` 返回的真实 contentId 为准，并立即通过详情接口读取。详情返回只重新请求当前 `GET /api/app/feed` 的 tab/teamId 第一页；刷新不清空旧列表，失败保留旧数据。真实 smoke 还逐页查询 recommend/news/following 并记录 contentId 所在页；未返回时前端不伪造可见性。展示分区不改变请求参数、分页元数据或后端推荐结果。

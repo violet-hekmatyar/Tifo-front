@@ -114,6 +114,42 @@ void main() {
     expect(controller.state.teamId, 7);
     expect(controller.state.cards.single.cardId, 'fresh');
   });
+
+  test(
+    'refresh failure keeps old cards and duplicate refresh is ignored',
+    () async {
+      final refresh = Completer<FeedPage>();
+      final repository = _FakeFeedRepository(
+        pages: {
+          1: _page(1, [_content('old')]),
+        },
+      );
+      final controller = FeedController(repository);
+      await controller.loadInitial();
+      repository.deferred[1] = refresh;
+      final first = controller.refresh();
+      final duplicate = controller.refresh();
+      expect(repository.requests.where((page) => page == 1).length, 2);
+      refresh.completeError(const NetworkException('down'));
+      await Future.wait([first, duplicate]);
+      expect(controller.state.cards.single.cardId, 'old');
+      expect(controller.state.message, contains('网络连接失败'));
+    },
+  );
+
+  test('pagination deduplicates by content identity across card ids', () async {
+    final repository = _FakeFeedRepository(
+      pages: {
+        1: _page(1, [_contentWithIdentity('card-a', 9)], pages: 2),
+        2: _page(2, [_contentWithIdentity('card-b', 9)], pages: 2),
+      },
+    );
+    final controller = FeedController(repository);
+    await controller.loadInitial();
+    await controller.loadMore();
+    expect(controller.state.cards, hasLength(1));
+    expect(controller.state.cards.single.cardId, 'card-b');
+  });
 }
 
 final class _FakeFeedRepository implements FeedRepositoryContract {
@@ -165,3 +201,14 @@ ContentFeedCard _content(String id) => ContentFeedCard(
   likeCount: 0,
   commentCount: 0,
 );
+
+ContentFeedCard _contentWithIdentity(String cardId, int contentId) =>
+    ContentFeedCard(
+      cardId: cardId,
+      rawCardType: 'CONTENT',
+      contentId: contentId,
+      contentType: 'POST',
+      title: cardId,
+      likeCount: 0,
+      commentCount: 0,
+    );

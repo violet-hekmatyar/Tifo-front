@@ -46,6 +46,20 @@ final class ApiClient {
     required JsonDecoder<T> decode,
   }) => _request(path, method: 'DELETE', body: body, decode: decode);
 
+  Future<T> postMultipart<T>(
+    String path, {
+    required String filePath,
+    required String fileName,
+    required Map<String, String> fields,
+    required JsonDecoder<T> decode,
+  }) async {
+    final form = FormData.fromMap({
+      ...fields,
+      'file': await MultipartFile.fromFile(filePath, filename: fileName),
+    });
+    return _request(path, method: 'POST', body: form, decode: decode);
+  }
+
   Future<T> _request<T>(
     String path, {
     required String method,

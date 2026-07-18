@@ -10,6 +10,7 @@ import 'package:tifo/features/feed/domain/feed_card.dart';
 import 'package:tifo/features/feed/domain/feed_filter.dart';
 import 'package:tifo/features/feed/domain/feed_page.dart';
 import 'package:tifo/features/feed/presentation/controllers/feed_controller.dart';
+import 'package:tifo/features/feed/presentation/controllers/feed_refresh_coordinator.dart';
 import 'package:tifo/features/feed/presentation/pages/home_feed_page.dart';
 import 'package:tifo/features/feed/presentation/widgets/content_card.dart';
 import 'package:tifo/features/feed/presentation/widgets/match_card.dart';
@@ -54,10 +55,10 @@ void main() {
       expect(find.text(label), findsOneWidget);
     }
     expect(find.byKey(const ValueKey('followed_team_7')), findsOneWidget);
+    expect(find.byType(MatchCard), findsWidgets);
     expect(find.byType(ContentCard), findsNWidgets(2));
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -500));
     await tester.pumpAndSettle();
-    expect(find.byType(MatchCard), findsOneWidget);
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -350));
     await tester.pumpAndSettle();
     expect(find.byType(UnknownCard), findsOneWidget);
@@ -81,6 +82,42 @@ void main() {
       expect(find.text('帖子'), findsOneWidget);
     },
   );
+
+  testWidgets('published-content signal refreshes once with current filters', (
+    tester,
+  ) async {
+    final repository = _TrackingRepository();
+    final controller = FeedController(repository);
+    await controller.loadInitial();
+    await controller.selectFilter(FeedFilter.news);
+    await controller.selectTeam(7);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          feedControllerProvider.overrideWith((_) => controller),
+          appConfigProvider.overrideWithValue(
+            AppConfig.fromValues(apiBaseUrl: 'http://localhost:8080'),
+          ),
+        ],
+        child: MaterialApp(theme: AppTheme.light, home: const HomeFeedPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final before = repository.requests.length;
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(HomeFeedPage)),
+    );
+    container.read(feedRefreshRequestProvider.notifier).state =
+        const FeedRefreshRequest(contentId: 88, serial: 1);
+    await tester.pumpAndSettle();
+    expect(repository.requests.length, before + 1);
+    expect(repository.requests.last, (FeedFilter.news, 7, 1));
+    expect(controller.state.filter, FeedFilter.news);
+    expect(controller.state.teamId, 7);
+    expect(container.read(feedRefreshRequestProvider), isNull);
+    await tester.pumpAndSettle();
+    expect(repository.requests.length, before + 1);
+  });
 
   testWidgets('content without hot comment leaves no synthetic comment block', (
     tester,
@@ -202,6 +239,60 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'home renders all full-width matches before the two-column content area',
+    (tester) async {
+      tester.view.physicalSize = const Size(412, 2000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final controller = FeedController(_WidgetRepository());
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            feedControllerProvider.overrideWith((_) => controller),
+            appConfigProvider.overrideWithValue(
+              AppConfig.fromValues(apiBaseUrl: 'http://localhost:8080'),
+            ),
+          ],
+          child: MaterialApp(theme: AppTheme.light, home: const HomeFeedPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('feed_match_section')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('feed_content_section')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('feed_compatibility_section')),
+        findsOneWidget,
+      );
+      expect(find.byType(MatchCard), findsNWidgets(2));
+      expect(find.byType(ContentCard), findsNWidgets(2));
+      final matchBottom = find
+          .byType(MatchCard)
+          .evaluate()
+          .map(
+            (element) =>
+                tester.getBottomRight(find.byWidget(element.widget)).dy,
+          )
+          .reduce((a, b) => a > b ? a : b);
+      final contentTop = find
+          .byType(ContentCard)
+          .evaluate()
+          .map((element) => tester.getTopLeft(find.byWidget(element.widget)).dy)
+          .reduce((a, b) => a < b ? a : b);
+      expect(matchBottom, lessThan(contentTop));
+      expect(
+        tester.getSize(find.byType(MatchCard).first).width,
+        greaterThan(tester.getSize(find.byType(ContentCard).first).width * 1.8),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 Future<void> _pumpWidget(
@@ -228,15 +319,42 @@ final class _WidgetRepository implements FeedRepositoryContract {
   }) async => FeedPage(
     cards: [
       _content('first'),
+      _match(status: 'LIVE', matchId: 9),
       _content('second'),
-      _match(status: 'LIVE'),
+      _match(status: 'FINISHED', matchId: 10),
       const UnknownFeedCard(cardId: 'unknown', rawCardType: 'POLL'),
     ],
-    total: 4,
+    total: 5,
     pageNum: 1,
     pageSize: 10,
     pages: 1,
   );
+
+  @override
+  Future<List<FollowedTeam>> loadFollowedTeams() async => const [
+    FollowedTeam(teamId: 7, teamName: '主队'),
+  ];
+}
+
+final class _TrackingRepository implements FeedRepositoryContract {
+  final requests = <(FeedFilter, int?, int)>[];
+
+  @override
+  Future<FeedPage> loadFeed({
+    required FeedFilter filter,
+    required int pageNum,
+    required int pageSize,
+    int? teamId,
+  }) async {
+    requests.add((filter, teamId, pageNum));
+    return FeedPage(
+      cards: [_content('tracked-$pageNum')],
+      total: 1,
+      pageNum: 1,
+      pageSize: pageSize,
+      pages: 1,
+    );
+  }
 
   @override
   Future<List<FollowedTeam>> loadFollowedTeams() async => const [
@@ -255,16 +373,17 @@ ContentFeedCard _content(String id, {String? title}) => ContentFeedCard(
   commentCount: 1,
 );
 
-MatchFeedCard _match({required String status}) => MatchFeedCard(
-  cardId: 'match-$status',
-  rawCardType: 'MATCH',
-  matchId: 9,
-  leagueName: '测试联赛',
-  homeTeam: const FeedTeam(teamId: 1, teamName: '主队'),
-  awayTeam: const FeedTeam(teamId: 2, teamName: '客队'),
-  matchStatus: status,
-  matchTime: DateTime(2026, 7, 17, 20),
-);
+MatchFeedCard _match({required String status, int matchId = 9}) =>
+    MatchFeedCard(
+      cardId: 'match-$matchId-$status',
+      rawCardType: 'MATCH',
+      matchId: matchId,
+      leagueName: '测试联赛',
+      homeTeam: const FeedTeam(teamId: 1, teamName: '主队'),
+      awayTeam: const FeedTeam(teamId: 2, teamName: '客队'),
+      matchStatus: status,
+      matchTime: DateTime(2026, 7, 17, 20),
+    );
 
 class _BranchPage extends StatefulWidget {
   const _BranchPage({required this.index});
