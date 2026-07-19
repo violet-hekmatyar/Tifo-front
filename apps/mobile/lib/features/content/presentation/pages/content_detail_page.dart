@@ -110,24 +110,30 @@ class _DetailBody extends ConsumerWidget {
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            AppEntityAvatar(
-              identity: 'user:${d.author.userId ?? d.author.nickname}',
-              semanticLabel: '${d.author.nickname}头像',
-              fallbackIcon: Icons.person_outline_rounded,
-              fallbackText: d.author.nickname.characters.first,
-              imageUrl: resolveMediaUrl(config, d.author.avatarUrl),
-              size: 40,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                '${d.author.nickname}${d.author.verified ? ' · 已认证' : ''}',
+        InkWell(
+          onTap: d.author.userId == null
+              ? null
+              : () => context.push('/users/${d.author.userId}'),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          child: Row(
+            children: [
+              AppEntityAvatar(
+                identity: 'user:${d.author.userId ?? d.author.nickname}',
+                semanticLabel: '${d.author.nickname}头像',
+                fallbackIcon: Icons.person_outline_rounded,
+                fallbackText: d.author.nickname.characters.first,
+                imageUrl: resolveMediaUrl(config, d.author.avatarUrl),
+                size: 40,
               ),
-            ),
-            Text('${d.viewCount} 阅读'),
-          ],
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  '${d.author.nickname}${d.author.verified ? ' · 已认证' : ''}',
+                ),
+              ),
+              Text('${d.viewCount} 阅读'),
+            ],
+          ),
         ),
         const SizedBox(height: AppSpacing.lg),
         if (d.contentFormat == 'POST_FORMAT') ...[

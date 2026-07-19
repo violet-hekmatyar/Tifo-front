@@ -1,12 +1,22 @@
 # 南看台前端 / Tifo Frontend
 
+## F07 用户中心、关注与消息基础
+
+Flutter “我的”已接通真实个人摘要、我的发布/收藏/评论、公开用户主页、关注与粉丝分页，以及球队/球员关注管理；内容作者可进入用户主页。我的发布使用专用 `/api/app/users/me/contents`，不依赖推荐 Feed。当前后端没有“我的点赞”列表及消息/通知接口，对应页面明确显示能力暂不可用，不生成假记录。
+
+F07 使用加速检查链，不递归运行 F01–F06 聚合脚本：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f07.ps1
+```
+
 ## F06 人工阻塞修正
 
 正式 `/matches/`、`/teams/`、`/players/` 已加入认证路由白名单并使用根 Navigator，详情覆盖主框架且返回来源页。比赛展示统一按“进行中 → 即将开始 → 已结束 → 其他状态”排序；未开始按时间升序，已结束按时间降序，前端不修改后端状态。真实数据不足时由 Mock 多页测试验证自动分页，不向生产环境写假比赛。
 
 南看台前端包含面向普通用户的 Flutter 原生移动 App，以及仅供内部管理员使用的 Vue 3 + TypeScript 管理后台。当前不建设面向用户的 H5、PWA 或小程序。
 
-- 当前阶段：F06（Flutter 足球数据中心与球队/球员/比赛详情）
+- 当前阶段：F07（Flutter 用户中心、关注与消息基础）
 - Flutter：`apps/mobile`
 - Vue 管理后台：`apps/admin`
 - 文档入口：[docs/00_DOCUMENT_MAP.md](docs/00_DOCUMENT_MAP.md)

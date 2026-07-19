@@ -1,5 +1,13 @@
 # 南看台前端验证与 Smoke 指南
 
+## F07 加速检查链
+
+- `check-mobile-f07.ps1`：一次执行 pub get、全目录格式检查、一次 analyze、一次全量 Flutter 测试和一次 Android Debug APK；
+- `smoke-mobile-user-follow-message-f07.ps1`：两个唯一测试账号验证专用我的发布、公开主页、关注/粉丝列表、following Feed、收藏与评论记录；不打印凭据、不重置数据库；
+- `check-f07.ps1`：仅聚合 repo、ensure、F07 mobile、F07 smoke、status 与文档存在性，不调用 F01–F06 聚合脚本。
+
+消息接口不存在由源码审计和客户端正式不可用页验证，不以假接口 smoke。自动检查不能替代 Pixel 8、140% 字体、长列表、返回与失败回滚的人工观察。
+
 ## F06 人工阻塞回归
 
 新增真实 `createAppRouter` Widget 回归，覆盖数据页卡片进入 root MatchDetailPage、详情逐层球队/球员跳转、非法 ID 不回首页；排序纯函数覆盖分组、升降序、稳定性、空时间和不按比分推断；多页 Widget 覆盖滚动加载、失败 Footer、点击重试、去重与到底。真实 smoke 从列表提取 matchId/teamId，并在事件含 playerId 时查询该球员。

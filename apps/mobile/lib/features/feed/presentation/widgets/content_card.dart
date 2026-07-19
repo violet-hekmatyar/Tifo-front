@@ -9,6 +9,7 @@ class ContentCard extends StatelessWidget {
   const ContentCard({
     required this.card,
     required this.onTap,
+    this.onAuthorTap,
     this.coverUrl,
     this.authorAvatarUrl,
     super.key,
@@ -16,6 +17,7 @@ class ContentCard extends StatelessWidget {
 
   final ContentFeedCard card;
   final VoidCallback onTap;
+  final VoidCallback? onAuthorTap;
   final String? coverUrl;
   final String? authorAvatarUrl;
 
@@ -76,26 +78,32 @@ class ContentCard extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    children: [
-                      AppEntityAvatar(
-                        identity: 'user:${card.author?.userId ?? card.cardId}',
-                        semanticLabel: '${card.author?.nickname ?? '南看台用户'}头像',
-                        fallbackIcon: Icons.person_outline_rounded,
-                        fallbackText: _initial(card.author?.nickname),
-                        imageUrl: authorAvatarUrl,
-                        size: 28,
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      Expanded(
-                        child: Text(
-                          card.author?.nickname ?? '南看台用户',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall,
+                  InkWell(
+                    onTap: onAuthorTap,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: Row(
+                      children: [
+                        AppEntityAvatar(
+                          identity:
+                              'user:${card.author?.userId ?? card.cardId}',
+                          semanticLabel:
+                              '${card.author?.nickname ?? '南看台用户'}头像',
+                          fallbackIcon: Icons.person_outline_rounded,
+                          fallbackText: _initial(card.author?.nickname),
+                          imageUrl: authorAvatarUrl,
+                          size: 28,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(
+                          child: Text(
+                            card.author?.nickname ?? '南看台用户',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Row(

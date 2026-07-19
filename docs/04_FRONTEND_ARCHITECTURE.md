@@ -1,5 +1,9 @@
 # 南看台前端架构
 
+## F07 User Center
+
+`features/user_center` 采用 `Page → Controller/Provider → UserCenterRepository → UserCenterApi → ApiClient`，JSON 只在 data 层映射。个人摘要使用 FutureProvider；多类分页列表复用带请求类型的 ChangeNotifier；公开主页控制器负责关注乐观状态、重复保护和失败回滚。`features/message` 仅承载正式能力缺口页，因为后端没有消息契约。用户与列表详情通过 root Navigator 覆盖主壳并保留底部 Tab 实例。
+
 ## F06 路由与展示排序修正
 
 详情 GoRoute 通过 `parentNavigatorKey: rootNavigatorKey` 覆盖 StatefulShellRoute，push 后保留来源分支。认证 redirect 明确认可 matches/teams/players。纯函数 `domain/match_display_sort.dart` 在 Controller 首屏和分页合并后集中排序；Widget 只按已排序集合建立日期组。

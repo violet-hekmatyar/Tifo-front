@@ -1,5 +1,9 @@
 # 南看台前端鉴权、路由与安全
 
+## F07 用户路由与隐私
+
+`/users/me/*`、`/users/:userId`、`/messages` 均进入认证路由白名单；详情使用 root Navigator，返回保留主壳分支。公开用户 VO 只消费 userId、用户名、昵称、头像、简介、主队、统计与关系状态，不展示 phone/email。关注与实体 toggle 复用统一 Bearer 注入；40101/40102 清会话，403 只回滚操作并保留 Token。客户端显式阻止自关注，但后端仍是最终约束。
+
 ## F06 Football 路由与鉴权
 
 `/app/data`、`/teams/:teamId`、`/players/:playerId`、`/matches/:matchId` 位于登录后 App 路由体系；后端 leagues/matches/team/player GET 实际为公开接口，关注球队比赛要求认证。请求包络返回 `40101/40102` 时 ApiClient 删除 Access Token 并通知 AuthController 回到未登录；`403/40301` 只展示无权访问，不清 Token。旧 `/match/:matchId` 仅重定向至复数规范路径。

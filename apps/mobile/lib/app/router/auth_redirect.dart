@@ -11,7 +11,9 @@ String? authRedirect(AuthStatus status, String location) {
       location.startsWith('/match/') ||
       location.startsWith('/matches/') ||
       location.startsWith('/teams/') ||
-      location.startsWith('/players/');
+      location.startsWith('/players/') ||
+      location.startsWith('/users/') ||
+      location == '/messages';
   return switch (status) {
     AuthStatus.bootstrapping ||
     AuthStatus.failure => location == '/bootstrap' ? null : '/bootstrap',

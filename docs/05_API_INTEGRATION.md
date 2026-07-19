@@ -1,5 +1,15 @@
 # 南看台前端 API 接入规范
 
+## F07 用户与关注真实契约
+
+- 当前用户：`GET /api/app/users/me/summary|stand|contents|favorites|comments`，`PUT /api/app/users/me/profile`；
+- 公开用户：`GET /api/app/users/{userId}/profile|contents|followings|followers`；
+- 用户关注：`POST|DELETE /api/app/users/{userId}/follow`；
+- 球队/球员关注：`POST /api/app/follows/toggle`，body 为 `followType/targetId`；
+- following Feed：继续使用 `GET /api/app/feed?tab=following`，服务端按关注用户、球队和球员关系筛选。
+
+当前 Java 没有“我的点赞”分页接口，也没有消息/通知列表、未读数或标记已读接口。前端不得用点赞 toggle、本地缓存或假消息补造查询能力。我的发布必须使用 `/users/me/contents`；公开发布使用 `/users/{id}/contents`。
+
 ## F06 展示排序边界
 
 后端重要/关注/联赛列表的分页结果保持原字段与状态。前端仅为产品展示对已加载且去重后的集合排序：进行中、即将开始、已结束、异常/未知；未开始时间升序，已结束时间降序，进行中和其他组保持后端相对顺序。不得按比分推断状态或回写后端。当前真实枚举为 `LIVE/SCHEDULED/FINISHED`，同时安全兼容同义和异常状态。
