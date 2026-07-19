@@ -1,5 +1,11 @@
 # 南看台前端鉴权、路由与安全
 
+## F08 Vue 管理员边界
+
+Token key 集中定义并只写 sessionStorage，不保存密码或完整登录响应。登录 Token 先暂存在内存，`/auth/me` 返回 ADMIN 后才提交；USER 不可进入 `/admin/**`。全局守卫对无 Token、ADMIN、USER、网络失败分别路由到 login、目标页、403、session-error；redirect 只接受以 `/admin/` 开头且非 `//` 的站内路径。
+
+Axios 使用唯一 F02 实例。40101/40102/HTTP 401 清 Store 与 Token；并发失效只执行一次导航。40301/HTTP 403 不清 Token。前端菜单隐藏不是权限控制，后端 `.hasRole("ADMIN")` 始终是最终边界。后端没有 logout/refresh，退出为本地清理。
+
 ## F07 用户路由与隐私
 
 `/users/me/*`、`/users/:userId`、`/messages` 均进入认证路由白名单；详情使用 root Navigator，返回保留主壳分支。公开用户 VO 只消费 userId、用户名、昵称、头像、简介、主队、统计与关系状态，不展示 phone/email。关注与实体 toggle 复用统一 Bearer 注入；40101/40102 清会话，403 只回滚操作并保留 Token。客户端显式阻止自关注，但后端仍是最终约束。

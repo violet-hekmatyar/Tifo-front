@@ -1,5 +1,9 @@
 # 南看台前端架构
 
+## F08 Vue Admin Auth Shell
+
+后台调用链为 `View → Pinia Auth Store → AuthApi → ApiClient → Axios`。`auth-storage` 仅使用 sessionStorage，候选 Token 在 `/auth/me` 确认 ADMIN 前只存在内存；统一 runtime 注入 Bearer 和认证错误观察器。Router meta 守卫负责 `/admin/**`，AdminLayout 组合 Sidebar、Topbar、用户菜单与 RouterView。业务模块只复用统一占位页，不提前建立 F09 数据层。
+
 ## F07 User Center
 
 `features/user_center` 采用 `Page → Controller/Provider → UserCenterRepository → UserCenterApi → ApiClient`，JSON 只在 data 层映射。个人摘要使用 FutureProvider；多类分页列表复用带请求类型的 ChangeNotifier；公开主页控制器负责关注乐观状态、重复保护和失败回滚。`features/message` 仅承载正式能力缺口页，因为后端没有消息契约。用户与列表详情通过 root Navigator 覆盖主壳并保留底部 Tab 实例。

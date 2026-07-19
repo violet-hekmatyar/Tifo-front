@@ -1,5 +1,13 @@
 # 南看台前端 / Tifo Frontend
 
+## F08 Vue 管理员认证与后台框架
+
+Vue 管理后台已接通真实 `/api/auth/login` 与 `/api/auth/me`，仅允许 `roleType=ADMIN` 进入 `/admin/**`。Access Token 集中保存在 `sessionStorage`，Axios 统一注入 Bearer；普通 USER 进入 403。后台包含登录页、可折叠侧栏、顶部管理员菜单、工作台及后续业务模块占位，不展示假统计。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f08.ps1
+```
+
 ## F07 用户中心、关注与消息基础
 
 Flutter “我的”已接通真实个人摘要、我的发布/收藏/评论、公开用户主页、关注与粉丝分页，以及球队/球员关注管理；内容作者可进入用户主页。我的发布使用专用 `/api/app/users/me/contents`，不依赖推荐 Feed。当前后端没有“我的点赞”列表及消息/通知接口，对应页面明确显示能力暂不可用，不生成假记录。
@@ -16,7 +24,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f07.
 
 南看台前端包含面向普通用户的 Flutter 原生移动 App，以及仅供内部管理员使用的 Vue 3 + TypeScript 管理后台。当前不建设面向用户的 H5、PWA 或小程序。
 
-- 当前阶段：F07（Flutter 用户中心、关注与消息基础）
+- 当前阶段：F08（Vue 管理员认证与后台框架）
 - Flutter：`apps/mobile`
 - Vue 管理后台：`apps/admin`
 - 文档入口：[docs/00_DOCUMENT_MAP.md](docs/00_DOCUMENT_MAP.md)

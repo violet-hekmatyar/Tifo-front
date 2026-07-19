@@ -1,5 +1,9 @@
 # 南看台前端构建与部署指南
 
+## F08 Vue 构建与预览
+
+先确保本地后端，再在 `apps/admin` 设置未跟踪环境或进程级 `VITE_APP_ENV=development`、`VITE_API_BASE_URL=http://localhost:8080`，运行 `npm run dev`。生产构建使用 `npm run build-only`，产物为 `apps/admin/dist/index.html`。`check-f08.ps1` 执行 lint/type-check、全量 Vitest、一次 production build 和真实管理员 smoke，不运行 Flutter。
+
 ## F06 修正验收
 
 `check-f06.ps1` 同时检查认证详情白名单、root Navigator、集中排序、分页 Footer、真实路由测试和增强 football smoke，再复跑 F05、全量测试与 Debug APK。真实数据少不影响分页自动测试，生产运行不增加 fixture。

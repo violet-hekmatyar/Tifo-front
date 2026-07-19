@@ -1,5 +1,11 @@
 # 南看台前端 API 接入规范
 
+## F08 管理员认证契约
+
+`POST /api/auth/login` 返回 `accessToken/tokenType/expiresIn/user`；前端随后必须调用 `GET /api/auth/me`，只有真实 `roleType=ADMIN` 才持久化候选 Token。普通 `USER` 清除候选 Token 并进入 403。无副作用管理员核验使用 `GET /api/admin/health`。
+
+后端只有 Access Token，没有 refresh/logout。业务包络 40101/40102 与 HTTP 401 均清会话且并发只导航一次；40301/HTTP 403 保留 Token并进入 403；网络/超时保留 Token并允许 bootstrap 重试。登录请求无 Token 时不发送空 Bearer。
+
 ## F07 用户与关注真实契约
 
 - 当前用户：`GET /api/app/users/me/summary|stand|contents|favorites|comments`，`PUT /api/app/users/me/profile`；

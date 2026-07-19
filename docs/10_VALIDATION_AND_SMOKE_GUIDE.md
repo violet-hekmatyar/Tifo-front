@@ -1,5 +1,13 @@
 # 南看台前端验证与 Smoke 指南
 
+## F08 加速检查链
+
+- `check-admin-f08.ps1`：npm ci、Prettier check、lint、type-check、一次全量 Vitest、一次 Vite production build；
+- `smoke-admin-auth-f08.ps1`：复用后端既有 seed 管理员 smoke 机制，不复制凭据，验证管理员 login/me/admin health、普通 USER 403 与无 Token 401；
+- `check-f08.ps1`：只聚合 repo、ensure、F08 admin、F08 smoke、status 与文档，不调用 F01–F07，也不运行 Flutter。
+
+自动检查不替代浏览器中的错误密码、刷新子路由、侧栏折叠、控制台敏感信息和桌面布局人工验收。
+
 ## F07 加速检查链
 
 - `check-mobile-f07.ps1`：一次执行 pub get、全目录格式检查、一次 analyze、一次全量 Flutter 测试和一次 Android Debug APK；

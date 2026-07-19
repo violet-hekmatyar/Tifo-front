@@ -2,6 +2,9 @@ import type { AxiosInstance } from 'axios'
 import { requireApiBaseUrl } from '@/config/env'
 import type { AppEnvConfig } from '@/config/env.types'
 import { decodeApiResponse, type DataDecoder } from './response'
+import { AppError } from './errors'
+
+export type ApiErrorObserver = (error: AppError) => void
 
 export interface RequestOptions<T> {
   readonly params?: Readonly<Record<string, unknown>>
@@ -13,6 +16,7 @@ export class ApiClient {
   constructor(
     private readonly config: AppEnvConfig,
     private readonly http: AxiosInstance,
+    private readonly errorObserver?: ApiErrorObserver,
   ) {}
 
   get<T>(path: string, options: RequestOptions<T>): Promise<T> {
@@ -41,12 +45,17 @@ export class ApiClient {
     options: RequestOptions<T>,
   ): Promise<T> {
     requireApiBaseUrl(this.config)
-    const response = await this.http.request<unknown>({
-      method,
-      url: path,
-      params: options.params,
-      data: options.body,
-    })
-    return decodeApiResponse(response.data, options.decode).data
+    try {
+      const response = await this.http.request<unknown>({
+        method,
+        url: path,
+        params: options.params,
+        data: options.body,
+      })
+      return decodeApiResponse(response.data, options.decode).data
+    } catch (error) {
+      if (error instanceof AppError) this.errorObserver?.(error)
+      throw error
+    }
   }
 }
