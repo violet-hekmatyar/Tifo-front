@@ -9,7 +9,9 @@ import 'package:tifo/app/theme/app_theme.dart';
 import 'package:tifo/core/network/network_exceptions.dart';
 import 'package:tifo/core/network/network_providers.dart';
 import 'package:tifo/features/football/data/football_repository.dart';
+import 'package:tifo/features/football/data/team_detail_repository.dart';
 import 'package:tifo/features/football/domain/football_models.dart';
+import 'package:tifo/features/football/domain/team_detail_models.dart';
 import 'package:tifo/features/football/presentation/controllers/football_data_controller.dart';
 import 'package:tifo/features/football/presentation/pages/football_data_page.dart';
 import 'package:tifo/features/football/presentation/pages/match_detail_page.dart';
@@ -143,15 +145,15 @@ void main() {
     expect(find.text('测试球队'), findsOneWidget);
     expect(find.text('测试球场'), findsOneWidget);
     expect(find.text('虚构荣誉'), findsNothing);
-    await tester.tap(find.text('阵容'));
+    await tester.tap(find.text('球员'));
     await tester.pump();
-    expect(find.text('暂无球队阵容'), findsOneWidget);
+    expect(find.text('测试球员'), findsOneWidget);
     await tester.tap(find.text('数据'));
     await tester.pump();
-    expect(find.text('暂无球队统计'), findsOneWidget);
-    await tester.tap(find.text('阵容'));
+    expect(find.text('当前排名'), findsWidgets);
+    await tester.tap(find.text('球员'));
     await tester.pump();
-    expect(find.text('暂无球队阵容'), findsOneWidget);
+    expect(find.text('测试球员'), findsOneWidget);
   });
 
   testWidgets('player detail shows retirement and navigates to current team', (
@@ -242,6 +244,7 @@ Future<void> _pumpRouter(
       overrides: [
         _configOverride,
         footballRepositoryProvider.overrideWithValue(repository),
+        teamDetailRepositoryProvider.overrideWithValue(repository),
       ],
       child: MaterialApp.router(
         theme: AppTheme.light,
@@ -258,7 +261,8 @@ Future<void> _pumpRouter(
   await tester.pumpAndSettle();
 }
 
-final class _WidgetFootballRepository implements FootballRepositoryContract {
+final class _WidgetFootballRepository
+    implements FootballRepositoryContract, TeamDetailRepositoryContract {
   _WidgetFootballRepository({this.pendingImportant, this.detailError});
   final Completer<FootballPage<FootballMatch>>? pendingImportant;
   final AppNetworkException? detailError;
@@ -349,6 +353,58 @@ final class _WidgetFootballRepository implements FootballRepositoryContract {
       team: PlayerTeam(id: 30001, name: '测试球队'),
     );
   }
+
+  @override
+  Future<TeamOverview> overview(int teamId, {int? seasonId}) async =>
+      const TeamOverview(
+        teamId: 30001,
+        teamName: '测试球队',
+        leagueName: '测试联赛',
+        seasonName: '测试赛季',
+        stadium: '测试球场',
+        standing: TeamStandingSummary(rank: 1, points: 20),
+      );
+
+  @override
+  Future<FootballPage<TeamRosterPlayer>> players(
+    int teamId,
+    int page,
+    int size, {
+    int? seasonId,
+  }) async => const FootballPage(
+    records: [
+      TeamRosterPlayer(
+        id: 40001,
+        name: '测试球员',
+        position: 'FORWARD',
+        squadRole: 'FIRST_TEAM',
+      ),
+    ],
+    pageNum: 1,
+    pages: 1,
+    total: 1,
+  );
+
+  @override
+  Future<TeamStats> stats(int teamId, {int? seasonId, int? stageId}) async =>
+      const TeamStats(standingRank: 1, points: 20, played: 10);
+
+  @override
+  Future<List<TeamHonor>> honors(int teamId) async => const [];
+
+  @override
+  Future<FootballPage<FootballMatch>> matches(
+    int teamId,
+    int page,
+    int size,
+  ) async => _page([_match()]);
+
+  @override
+  Future<FootballPage<TeamContentSummary>> contents(
+    int teamId,
+    int page,
+    int size,
+  ) async => const FootballPage(records: [], pageNum: 1, pages: 1, total: 0);
 }
 
 final class _PagedWidgetRepository implements FootballRepositoryContract {
