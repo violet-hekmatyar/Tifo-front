@@ -7,8 +7,13 @@ import '../../../../core/network/network_providers.dart';
 import '../../../../shared/widgets/app_state_view.dart';
 import '../../../../shared/widgets/app_team_logo.dart';
 import '../../domain/football_models.dart';
+import '../../domain/football_ranking_models.dart';
 import '../controllers/football_data_controller.dart';
+import '../controllers/football_rankings_controller.dart';
 import '../widgets/football_widgets.dart';
+import '../widgets/football_rankings_widgets.dart';
+
+enum _DataSection { schedule, standings, players, teams }
 
 class FootballDataPage extends ConsumerStatefulWidget {
   const FootballDataPage({super.key});
@@ -18,6 +23,7 @@ class FootballDataPage extends ConsumerStatefulWidget {
 
 class _FootballDataPageState extends ConsumerState<FootballDataPage> {
   final _scrollController = ScrollController();
+  _DataSection _section = _DataSection.schedule;
 
   @override
   void initState() {
@@ -46,52 +52,147 @@ class _FootballDataPageState extends ConsumerState<FootballDataPage> {
   Widget build(BuildContext context) {
     final controller = ref.watch(footballDataControllerProvider);
     final state = controller.state;
+    final rankings = ref.watch(footballRankingsControllerProvider);
+    final rankingState = rankings.state;
     return Scaffold(
       appBar: AppBar(title: const Text('数据')),
       body: Column(
         children: [
-          _SourceBar(state: state, onSelected: controller.selectSource),
+          _SectionBar(section: _section, onSelected: _selectSection),
+          if (_section == _DataSection.schedule)
+            _SourceBar(state: state, onSelected: controller.selectSource)
+          else
+            FootballRankingFilters(state: rankingState, controller: rankings),
           Expanded(
-            child: switch (state.status) {
-              FootballDataStatus.loading => const AppStateView(
-                kind: AppStateKind.loading,
-                title: '正在加载赛程',
-                message: '正在读取联赛与比赛数据…',
-              ),
-              FootballDataStatus.failure => AppStateView(
-                kind: AppStateKind.error,
-                title: '赛程加载失败',
-                message: state.message ?? '请检查网络后重试。',
-                onRetry: controller.loadInitial,
-              ),
-              FootballDataStatus.empty => RefreshIndicator(
-                onRefresh: controller.refresh,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  children: const [
-                    SizedBox(
-                      height: 420,
-                      child: AppStateView(
-                        kind: AppStateKind.empty,
-                        title: '暂无比赛',
-                        message: '当前范围还没有可展示的赛程，稍后再来看看。',
+            child: _section == _DataSection.schedule
+                ? switch (state.status) {
+                    FootballDataStatus.loading => const AppStateView(
+                      kind: AppStateKind.loading,
+                      title: '正在加载赛程',
+                      message: '正在读取联赛与比赛数据…',
+                    ),
+                    FootballDataStatus.failure => AppStateView(
+                      kind: AppStateKind.error,
+                      title: '赛程加载失败',
+                      message: state.message ?? '请检查网络后重试。',
+                      onRetry: controller.loadInitial,
+                    ),
+                    FootballDataStatus.empty => RefreshIndicator(
+                      onRefresh: controller.refresh,
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: const [
+                          SizedBox(
+                            height: 420,
+                            child: AppStateView(
+                              kind: AppStateKind.empty,
+                              title: '暂无比赛',
+                              message: '当前范围还没有可展示的赛程，稍后再来看看。',
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              FootballDataStatus.ready => _MatchList(
-                state: state,
-                controller: _scrollController,
-                onRefresh: controller.refresh,
-                onLoadMore: controller.loadMore,
-              ),
-            },
+                    FootballDataStatus.ready => _MatchList(
+                      state: state,
+                      controller: _scrollController,
+                      onRefresh: controller.refresh,
+                      onLoadMore: controller.loadMore,
+                    ),
+                  }
+                : _rankingBody(rankingState, rankings),
           ),
         ],
       ),
     );
   }
+
+  void _selectSection(_DataSection section) {
+    if (section == _section) return;
+    setState(() => _section = section);
+    final view = switch (section) {
+      _DataSection.standings => FootballRankingView.standings,
+      _DataSection.players => FootballRankingView.players,
+      _DataSection.teams => FootballRankingView.teams,
+      _DataSection.schedule => null,
+    };
+    if (view != null) {
+      ref.read(footballRankingsControllerProvider).selectView(view);
+    }
+  }
+
+  Widget _rankingBody(
+    FootballRankingsState state,
+    FootballRankingsController controller,
+  ) => switch (state.status) {
+    FootballRankingsStatus.idle ||
+    FootballRankingsStatus.loading => const AppStateView(
+      kind: AppStateKind.loading,
+      title: '正在加载榜单',
+      message: '正在读取赛季、阶段与排名数据…',
+    ),
+    FootballRankingsStatus.failure => AppStateView(
+      kind: AppStateKind.error,
+      title: '榜单加载失败',
+      message: state.message ?? '请检查网络后重试。',
+      onRetry: controller.retry,
+    ),
+    FootballRankingsStatus.empty => AppStateView(
+      kind: AppStateKind.empty,
+      title: '暂无榜单数据',
+      message: '当前赛事、赛季或阶段暂无可展示的排名。',
+      onRetry: controller.retry,
+    ),
+    FootballRankingsStatus.ready => switch (state.view) {
+      FootballRankingView.standings => StandingsList(table: state.standings!),
+      FootballRankingView.players => PlayerRankingList(
+        state: state,
+        onLoadMore: controller.loadMore,
+      ),
+      FootballRankingView.teams => TeamRankingList(
+        state: state,
+        onLoadMore: controller.loadMore,
+      ),
+    },
+  };
+}
+
+class _SectionBar extends StatelessWidget {
+  const _SectionBar({required this.section, required this.onSelected});
+  final _DataSection section;
+  final ValueChanged<_DataSection> onSelected;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: AppColors.surface,
+    child: SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.md,
+        0,
+      ),
+      child: Row(
+        children: [
+          for (final entry in const {
+            _DataSection.schedule: '赛程',
+            _DataSection.standings: '积分榜',
+            _DataSection.players: '球员榜',
+            _DataSection.teams: '球队榜',
+          }.entries) ...[
+            ChoiceChip(
+              key: ValueKey('data_section_${entry.key.name}'),
+              label: Text(entry.value),
+              selected: section == entry.key,
+              onSelected: (_) => onSelected(entry.key),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+          ],
+        ],
+      ),
+    ),
+  );
 }
 
 class _SourceBar extends StatelessWidget {

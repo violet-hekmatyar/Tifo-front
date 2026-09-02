@@ -1,7 +1,9 @@
 import '../../../core/network/api_client.dart';
+import '../../../core/network/json_value.dart';
 import '../../../core/network/network_exceptions.dart';
 import '../../../core/network/page_result.dart';
 import '../domain/football_models.dart';
+import '../domain/football_ranking_models.dart';
 
 final class FootballApi {
   const FootballApi(this._client);
@@ -10,6 +12,72 @@ final class FootballApi {
   Future<List<League>> leagues() => _client.get(
     '/api/app/football/leagues',
     decode: (raw) => _list(raw, _league),
+  );
+
+  Future<List<FootballSeason>> seasons(int leagueId) => _client.get(
+    '/api/app/football/leagues/$leagueId/seasons',
+    decode: (raw) => jsonList(raw, _season),
+  );
+
+  Future<List<FootballStage>> stages(int leagueId, int seasonId) => _client.get(
+    '/api/app/football/leagues/$leagueId/seasons/$seasonId/stages',
+    decode: (raw) => jsonList(raw, _stage),
+  );
+
+  Future<StandingTable> standings({
+    required int leagueId,
+    required int seasonId,
+    int? stageId,
+    String? groupCode,
+  }) => _client.get(
+    '/api/app/football/standings',
+    queryParameters: {
+      'leagueId': leagueId,
+      'seasonId': seasonId,
+      ..._optional('stageId', stageId),
+      ..._optional('groupCode', groupCode),
+    },
+    decode: _standingTable,
+  );
+
+  Future<FootballPage<PlayerRankRecord>> playerRanks({
+    required int leagueId,
+    required int seasonId,
+    required PlayerRankType rankType,
+    required int pageNum,
+    required int pageSize,
+    int? stageId,
+  }) => _client.get(
+    '/api/app/football/player-ranks',
+    queryParameters: {
+      'leagueId': leagueId,
+      'seasonId': seasonId,
+      ..._optional('stageId', stageId),
+      'rankType': rankType.wireValue,
+      'pageNum': pageNum,
+      'pageSize': pageSize,
+    },
+    decode: (raw) => _rankingPage(raw, _playerRank),
+  );
+
+  Future<FootballPage<TeamRankRecord>> teamRanks({
+    required int leagueId,
+    required int seasonId,
+    required TeamRankType rankType,
+    required int pageNum,
+    required int pageSize,
+    int? stageId,
+  }) => _client.get(
+    '/api/app/football/team-ranks',
+    queryParameters: {
+      'leagueId': leagueId,
+      'seasonId': seasonId,
+      ..._optional('stageId', stageId),
+      'rankType': rankType.wireValue,
+      'pageNum': pageNum,
+      'pageSize': pageSize,
+    },
+    decode: (raw) => _rankingPage(raw, _teamRank),
   );
 
   Future<FootballPage<FootballMatch>> importantMatches({
@@ -80,6 +148,16 @@ final class FootballApi {
       _client.get('/api/app/football/players/$id', decode: _playerDetail);
 }
 
+FootballPage<T> _rankingPage<T>(Object? raw, T Function(Object?) decode) {
+  final page = PageResult.fromRaw(raw, decode);
+  return FootballPage(
+    records: page.records,
+    pageNum: page.pageNum,
+    pages: page.pages,
+    total: page.total,
+  );
+}
+
 List<T> _list<T>(Object? raw, T Function(Object?) decode) {
   if (raw is! List) throw const ParseException('List data is invalid.');
   return raw.map(decode).toList(growable: false);
@@ -114,6 +192,120 @@ String _date(DateTime value) =>
     '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 Map<String, dynamic> _optional(String key, Object? value) =>
     value == null ? const {} : {key: value};
+
+FootballSeason? _season(Object? raw) {
+  final m = jsonMap(raw);
+  final id = jsonInt(m?['seasonId']);
+  final leagueId = jsonInt(m?['leagueId']);
+  if (id == null || leagueId == null) return null;
+  return FootballSeason(
+    id: id,
+    leagueId: leagueId,
+    code: jsonString(m?['seasonCode']),
+    name:
+        jsonString(m?['seasonName']) ??
+        jsonString(m?['seasonCode']) ??
+        '赛季 $id',
+    startDate: jsonIsoDateTime(m?['startDate']),
+    endDate: jsonIsoDateTime(m?['endDate']),
+    current: m?['current'] == true,
+    status: jsonString(m?['status']),
+  );
+}
+
+FootballStage? _stage(Object? raw) {
+  final m = jsonMap(raw);
+  final id = jsonInt(m?['stageId']);
+  if (id == null) return null;
+  return FootballStage(
+    id: id,
+    name: jsonString(m?['stageName']) ?? '阶段 $id',
+    rawType: jsonString(m?['stageType']),
+    groupCode: jsonString(m?['groupCode']),
+    sortOrder: jsonInt(m?['sortOrder']),
+  );
+}
+
+StandingTable _standingTable(Object? raw) {
+  final m = jsonMap(raw);
+  if (m == null) throw const ParseException('Standing table is invalid.');
+  return StandingTable(
+    leagueId: jsonInt(m['leagueId']),
+    leagueName: jsonString(m['leagueName']),
+    seasonId: jsonInt(m['seasonId']),
+    seasonName: jsonString(m['seasonName']),
+    stageId: jsonInt(m['stageId']),
+    stageName: jsonString(m['stageName']),
+    groupCode: jsonString(m['groupCode']),
+    source: jsonString(m['source']),
+    updatedAt: jsonIsoDateTime(m['updatedAt']),
+    records: jsonList(m['records'], _standingRecord),
+  );
+}
+
+StandingRecord? _standingRecord(Object? raw) {
+  final m = jsonMap(raw);
+  final teamId = jsonInt(m?['teamId']);
+  if (m == null || teamId == null) return null;
+  return StandingRecord(
+    rank: jsonInt(m['rank']) ?? 0,
+    teamId: teamId,
+    teamName: jsonString(m['teamName']) ?? '球队 $teamId',
+    teamLogoUrl: jsonString(m['teamLogoUrl']),
+    played: jsonInt(m['played']) ?? 0,
+    won: jsonInt(m['won']) ?? 0,
+    drawn: jsonInt(m['drawn']) ?? 0,
+    lost: jsonInt(m['lost']) ?? 0,
+    goalsFor: jsonInt(m['goalsFor']) ?? 0,
+    goalsAgainst: jsonInt(m['goalsAgainst']) ?? 0,
+    goalDifference: jsonInt(m['goalDifference']) ?? 0,
+    points: jsonInt(m['points']) ?? 0,
+    deductionPoints: jsonInt(m['deductionPoints']) ?? 0,
+    form: jsonString(m['form']),
+  );
+}
+
+PlayerRankRecord _playerRank(Object? raw) {
+  final m = jsonMap(raw);
+  final playerId = jsonInt(m?['playerId']);
+  if (m == null || playerId == null) {
+    throw const ParseException('Player rank record is invalid.');
+  }
+  return PlayerRankRecord(
+    rank: jsonInt(m['rank']) ?? 0,
+    playerId: playerId,
+    playerName: jsonString(m['playerName']) ?? '球员 $playerId',
+    playerAvatarUrl: jsonString(m['playerAvatarUrl']),
+    teamId: jsonInt(m['teamId']),
+    teamName: jsonString(m['teamName']),
+    teamLogoUrl: jsonString(m['teamLogoUrl']),
+    value: jsonDouble(m['value']),
+    displayValue: jsonString(m['displayValue']),
+    appearances: jsonInt(m['appearances']),
+    starts: jsonInt(m['starts']),
+    minutes: jsonInt(m['minutes']),
+    updatedAt: jsonIsoDateTime(m['updatedAt']),
+  );
+}
+
+TeamRankRecord _teamRank(Object? raw) {
+  final m = jsonMap(raw);
+  final teamId = jsonInt(m?['teamId']);
+  if (m == null || teamId == null) {
+    throw const ParseException('Team rank record is invalid.');
+  }
+  return TeamRankRecord(
+    rank: jsonInt(m['rank']) ?? 0,
+    teamId: teamId,
+    teamName: jsonString(m['teamName']) ?? '球队 $teamId',
+    teamLogoUrl: jsonString(m['teamLogoUrl']),
+    value: jsonDouble(m['value']),
+    displayValue: jsonString(m['displayValue']),
+    played: jsonInt(m['played']),
+    sortDirection: jsonString(m['sortDirection']),
+    updatedAt: jsonIsoDateTime(m['updatedAt']),
+  );
+}
 
 League _league(Object? raw) {
   final m = _map(raw);
