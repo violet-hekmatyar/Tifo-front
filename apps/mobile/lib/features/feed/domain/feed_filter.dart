@@ -1,10 +1,12 @@
-enum FeedFilter {
-  recommend('推荐', 'recommend'),
-  news('资讯', 'news'),
-  following('关注', 'following');
+import '../../../core/network/backend_v1_contract.dart';
 
-  const FeedFilter(this.label, this.backendTab);
+enum FeedFilter {
+  recommend('推荐', FeedTab.recommend),
+  news('资讯', FeedTab.news),
+  following('关注', FeedTab.following);
+
+  const FeedFilter(this.label, this.tab);
 
   final String label;
-  final String backendTab;
+  final FeedTab tab;
 }

@@ -181,6 +181,14 @@ final class _ContentRepo implements ContentRepositoryContract {
     lastMedia = mediaFileIds;
     return CreatedPost(contentId: 7, title: title);
   }
+
+  @override
+  Future<CreatedPost> createArticle(ArticleRequest request) async =>
+      CreatedPost(contentId: 8, title: request.title);
+
+  @override
+  Future<ContentDetail> updateArticle(int id, ArticleRequest request) async =>
+      _detail;
 }
 
 final class _Interactions implements InteractionRepositoryContract {
@@ -254,6 +262,9 @@ final class _Files implements FileUploadRepositoryContract {
     if (fail) throw const NetworkException('fail');
     return const UploadedFile(fileId: 11, url: '/api/public/files/11');
   }
+
+  @override
+  Future<UploadedFile> copyRemoteImage(String url) => upload(url, 'copy.jpg');
 
   @override
   Future<void> delete(int id) async {

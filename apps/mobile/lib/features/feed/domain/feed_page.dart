@@ -1,4 +1,5 @@
 import 'feed_card.dart';
+import '../../../core/network/backend_v1_contract.dart';
 
 final class FeedPage {
   const FeedPage({
@@ -7,6 +8,8 @@ final class FeedPage {
     required this.pageNum,
     required this.pageSize,
     required this.pages,
+    this.nextCursor,
+    this.attribution = const RecommendationAttribution(),
   });
 
   final List<FeedCard> cards;
@@ -14,6 +17,8 @@ final class FeedPage {
   final int pageNum;
   final int pageSize;
   final int pages;
+  final String? nextCursor;
+  final RecommendationAttribution attribution;
 
   bool get hasMore => pageNum < pages;
 }

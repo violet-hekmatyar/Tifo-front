@@ -11,10 +11,13 @@ import '../../features/football/presentation/pages/match_detail_page.dart';
 import '../../features/football/presentation/pages/player_detail_page.dart';
 import '../../features/football/presentation/pages/team_detail_page.dart';
 import '../../features/content/presentation/pages/content_detail_page.dart';
+import '../../features/content/presentation/pages/article_editor_page.dart';
+import '../../features/content/presentation/pages/publish_entry_page.dart';
 import '../../features/content/presentation/pages/publish_post_page.dart';
-import '../../features/main_shell/presentation/feature_placeholder_page.dart';
 import '../../features/main_shell/presentation/main_shell_page.dart';
 import '../../features/message/presentation/messages_unavailable_page.dart';
+import '../../features/search/presentation/pages/global_search_page.dart';
+import '../../features/search/domain/search_models.dart';
 import '../../features/user_center/presentation/controllers/user_center_controllers.dart';
 import '../../features/user_center/domain/user_center_models.dart';
 import '../../features/user_center/presentation/pages/edit_profile_page.dart';
@@ -227,16 +230,31 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
     GoRoute(
       path: '/search',
       name: RouteNames.search,
-      builder: (context, state) => const FeaturePlaceholderPage(
-        title: '搜索',
-        message: '搜索入口已建立',
-        detail: '内容、球队和用户搜索将在后续阶段接入。',
-      ),
+      builder: (context, state) => const GlobalSearchPage(),
+    ),
+    GoRoute(
+      path: '/publish',
+      name: RouteNames.publish,
+      builder: (context, state) => const PublishEntryPage(),
     ),
     GoRoute(
       path: '/publish/post',
       name: RouteNames.publishPost,
       builder: (context, state) => const PublishPostPage(),
+    ),
+    GoRoute(
+      path: '/publish/article',
+      name: RouteNames.publishArticle,
+      builder: (context, state) => const ArticleEditorPage(),
+    ),
+    GoRoute(
+      path: '/relations/select',
+      builder: (context, state) => GlobalSearchPage(
+        selectionMode: true,
+        initialSelection: state.extra is List
+            ? (state.extra as List).whereType<SearchEntity>().toList()
+            : const [],
+      ),
     ),
     GoRoute(
       path: '/contents/:contentId',
@@ -245,6 +263,16 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
         contentId: int.tryParse(state.pathParameters['contentId'] ?? '') ?? -1,
         refreshFeedOnExit: state.extra is PublishedContentNavigation,
       ),
+      routes: [
+        GoRoute(
+          path: 'edit',
+          name: RouteNames.editArticle,
+          builder: (context, state) => ArticleEditorPage(
+            contentId:
+                int.tryParse(state.pathParameters['contentId'] ?? '') ?? -1,
+          ),
+        ),
+      ],
     ),
     GoRoute(
       path: '/matches/:matchId',

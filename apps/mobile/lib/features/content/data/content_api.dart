@@ -1,4 +1,5 @@
 import '../../../core/network/api_client.dart';
+import '../../../core/network/json_value.dart';
 import '../../../core/network/network_exceptions.dart';
 import '../domain/content_detail.dart';
 
@@ -29,6 +30,29 @@ final class ContentApi {
       );
     },
   );
+
+  Future<CreatedPost> createArticle(ArticleRequest request) => _client.post(
+    '/api/app/contents/articles',
+    body: request.toJson(),
+    decode: _createdContent,
+  );
+
+  Future<ContentDetail> updateArticle(int id, ArticleRequest request) =>
+      _client.put(
+        '/api/app/contents/$id/articles',
+        body: request.toJson(),
+        decode: _detail,
+      );
+}
+
+CreatedPost _createdContent(Object? raw) {
+  final map = jsonMap(raw);
+  final contentId = jsonInt(map?['contentId']);
+  final title = jsonString(map?['title']);
+  if (contentId == null || title == null) {
+    throw const ParseException('Invalid create article response.');
+  }
+  return CreatedPost(contentId: contentId, title: title);
 }
 
 ContentDetail _detail(Object? raw) {
@@ -40,6 +64,27 @@ ContentDetail _detail(Object? raw) {
   final relations = raw['relationList'] is List
       ? raw['relationList'] as List
       : const [];
+  final rawBlocks = raw['blocks'] is List ? raw['blocks'] as List : const [];
+  final indexedBlocks = <({int index, ArticleBlock block})>[];
+  for (var index = 0; index < rawBlocks.length; index++) {
+    final item = jsonMap(rawBlocks[index]);
+    if (item == null) continue;
+    indexedBlocks.add((
+      index: index,
+      block: ArticleBlock(
+        blockId: jsonInt(item['blockId']),
+        rawType: jsonString(item['blockType']) ?? 'UNKNOWN',
+        text: jsonString(item['text']),
+        mediaFileId: jsonInt(item['mediaFileId']),
+        mediaUrl: jsonString(item['mediaUrl']),
+        sortOrder: jsonInt(item['sortOrder']) ?? index,
+      ),
+    ));
+  }
+  indexedBlocks.sort((a, b) {
+    final byOrder = a.block.sortOrder.compareTo(b.block.sortOrder);
+    return byOrder == 0 ? a.index.compareTo(b.index) : byOrder;
+  });
   return ContentDetail(
     contentId: (raw['contentId'] as num).toInt(),
     contentType: _text(raw['contentType']) ?? 'UNKNOWN',
@@ -72,6 +117,7 @@ ContentDetail _detail(Object? raw) {
         })
         .whereType<ContentMedia>()
         .toList(growable: false),
+    blocks: indexedBlocks.map((item) => item.block).toList(growable: false),
     relations: relations
         .whereType<Map>()
         .map((item) {

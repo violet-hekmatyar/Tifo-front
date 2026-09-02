@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/backend_v1_contract.dart';
 import '../../../core/network/network_providers.dart';
 import '../domain/feed_filter.dart';
 import '../domain/feed_page.dart';
@@ -32,7 +33,7 @@ final class FeedRepository implements FeedRepositoryContract {
     required int pageSize,
     int? teamId,
   }) => _api.feed(
-    tab: teamId == null ? filter.backendTab : 'team',
+    tab: teamId == null ? filter.tab : FeedTab.team,
     pageNum: pageNum,
     pageSize: pageSize,
     teamId: teamId,

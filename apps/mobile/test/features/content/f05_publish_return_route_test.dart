@@ -155,6 +155,10 @@ class _HomeMarkerState extends ConsumerState<_HomeMarker> {
 
 final class _Contents implements ContentRepositoryContract {
   @override
+  Future<CreatedPost> createArticle(ArticleRequest request) async =>
+      CreatedPost(contentId: 8, title: request.title);
+
+  @override
   Future<CreatedPost> createPost({
     required String title,
     required String body,
@@ -164,6 +168,10 @@ final class _Contents implements ContentRepositoryContract {
   @override
   Future<ContentDetail> detail(int id) =>
       throw const BusinessException('not needed', code: 40401);
+
+  @override
+  Future<ContentDetail> updateArticle(int id, ArticleRequest request) =>
+      throw const BusinessException('not needed', code: 40401);
 }
 
 final class _Interactions implements InteractionRepositoryContract {
@@ -172,6 +180,10 @@ final class _Interactions implements InteractionRepositoryContract {
 }
 
 final class _Files implements FileUploadRepositoryContract {
+  @override
+  Future<UploadedFile> copyRemoteImage(String url) =>
+      throw UnimplementedError();
+
   @override
   Future<void> delete(int id) async {}
 

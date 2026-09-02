@@ -42,22 +42,85 @@ class _ContentMediaGalleryState extends State<ContentMediaGallery> {
 }
 
 class ArticleBody extends StatelessWidget {
-  const ArticleBody({required this.detail, required this.mediaUrls, super.key});
+  const ArticleBody({
+    required this.detail,
+    required this.mediaUrls,
+    this.blockMediaUrls = const {},
+    super.key,
+  });
   final ContentDetail detail;
   final List<String> mediaUrls;
+  final Map<ArticleBlock, String> blockMediaUrls;
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      if (detail.body.isNotEmpty)
-        Text(
-          detail.body,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.8),
-        ),
-      for (final url in mediaUrls) ...[
-        const SizedBox(height: AppSpacing.md),
-        AppContentImage(imageUrl: url),
+  Widget build(BuildContext context) {
+    if (detail.blocks.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (detail.body.isNotEmpty)
+            Text(
+              detail.body,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(height: 1.8),
+            ),
+          for (final url in mediaUrls) ...[
+            const SizedBox(height: AppSpacing.md),
+            AppContentImage(imageUrl: url),
+          ],
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final block in _orderedBlocks(detail.blocks)) ...[
+          if (block.type == ArticleBlockType.text && block.text != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: Text(
+                block.text!,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(height: 1.8),
+              ),
+            )
+          else if (block.type == ArticleBlockType.image &&
+              block.mediaUrl != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: AppContentImage(
+                imageUrl: blockMediaUrls[block] ?? block.mediaUrl,
+              ),
+            )
+          else if (block.type == ArticleBlockType.unknown)
+            Container(
+              key: ValueKey(
+                'unknown_article_block_${block.blockId ?? block.sortOrder}',
+              ),
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: AppSpacing.md),
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Text(
+                block.text ?? '暂不支持的内容段：${block.rawType}',
+                style: const TextStyle(color: AppColors.inkMuted),
+              ),
+            ),
+        ],
       ],
-    ],
-  );
+    );
+  }
+}
+
+List<ArticleBlock> _orderedBlocks(List<ArticleBlock> blocks) {
+  final indexed = blocks.indexed.toList();
+  indexed.sort((a, b) {
+    final byOrder = a.$2.sortOrder.compareTo(b.$2.sortOrder);
+    return byOrder == 0 ? a.$1.compareTo(b.$1) : byOrder;
+  });
+  return indexed.map((item) => item.$2).toList(growable: false);
 }

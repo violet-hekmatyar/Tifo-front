@@ -1,9 +1,9 @@
+import '../../../core/network/backend_v1_contract.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/json_value.dart';
 import '../../../core/network/network_exceptions.dart';
-import '../../../core/network/page_result.dart';
-import '../domain/feed_card.dart';
 import '../domain/feed_page.dart';
-import 'dto/feed_card_dto.dart';
+import 'dto/feed_page_dto.dart';
 
 final class FeedApi {
   const FeedApi(this._client);
@@ -11,30 +11,20 @@ final class FeedApi {
   final ApiClient _client;
 
   Future<FeedPage> feed({
-    required String tab,
+    required FeedTab tab,
     required int pageNum,
     required int pageSize,
     int? teamId,
   }) async {
-    final page = await _client.get<PageResult<FeedCard>>(
+    return _client.get<FeedPage>(
       '/api/app/feed',
       queryParameters: {
-        'tab': tab,
+        'tab': tab.wireValue,
         'pageNum': pageNum,
         'pageSize': pageSize,
         'teamId': ?teamId,
       },
-      decode: (raw) => PageResult<FeedCard>.fromRaw(
-        raw,
-        (item) => FeedCardDto.fromRaw(item).toDomain(),
-      ),
-    );
-    return FeedPage(
-      cards: page.records,
-      total: page.total,
-      pageNum: page.pageNum,
-      pageSize: page.pageSize,
-      pages: page.pages,
+      decode: (raw) => FeedPageDto.fromRaw(raw).toDomain(),
     );
   }
 
@@ -56,13 +46,15 @@ final class FeedApi {
   );
 
   static FollowedTeam? _team(Object? raw) {
-    if (raw is! Map || raw['teamId'] is! num || raw['teamName'] is! String) {
+    if (raw is! Map ||
+        jsonInt(raw['teamId']) == null ||
+        jsonString(raw['teamName']) == null) {
       return null;
     }
     return FollowedTeam(
-      teamId: (raw['teamId'] as num).toInt(),
-      teamName: raw['teamName'] as String,
-      logoUrl: raw['logoUrl'] as String?,
+      teamId: jsonInt(raw['teamId'])!,
+      teamName: jsonString(raw['teamName'])!,
+      logoUrl: jsonString(raw['logoUrl']),
     );
   }
 }

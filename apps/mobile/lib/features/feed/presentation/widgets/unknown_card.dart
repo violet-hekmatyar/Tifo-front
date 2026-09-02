@@ -6,7 +6,7 @@ import '../../domain/feed_card.dart';
 class UnknownCard extends StatelessWidget {
   const UnknownCard({required this.card, super.key});
 
-  final UnknownFeedCard card;
+  final FeedCard card;
 
   @override
   Widget build(BuildContext context) {

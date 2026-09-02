@@ -1,0 +1,69 @@
+﻿{
+    "generatedAt":  "2026-07-19T14:18:56.3785237+08:00",
+    "tool":  "Git + PowerShell custom line classifier",
+    "gitVersion":  "git version 2.54.0.windows.1",
+    "frontend":  {
+                     "branch":  "main",
+                     "head":  "92c42f6"
+                 },
+    "backend":  {
+                    "branch":  "main",
+                    "head":  "98ca87f"
+                },
+    "counts":  {
+                   "flutterPages":  25,
+                   "vueViews":  7,
+                   "frontendApiWrappers":  16,
+                   "backendControllers":  21,
+                   "backendServices":  22,
+                   "frontendRepositories":  8,
+                   "vueStores":  2,
+                   "testFiles":  49,
+                   "scriptFiles":  62,
+                   "documentFiles":  72
+               },
+    "history":  {
+                    "frontend":  {
+                                     "Repository":  "Frontend",
+                                     "Author":  "hekmatyar_hj",
+                                     "EmailMasked":  "1935***@163.com",
+                                     "Commits":  10,
+                                     "NonMergeCommits":  10,
+                                     "MergeCommits":  0,
+                                     "Additions":  32305,
+                                     "Deletions":  1039,
+                                     "Net":  31266,
+                                     "UniqueFiles":  331,
+                                     "FileModifications":  495,
+                                     "FirstCommit":  "2026-07-16T12:06:49.0000000+08:00",
+                                     "LastCommit":  "2026-07-19T11:13:34.0000000+08:00",
+                                     "ActiveDays":  4,
+                                     "AverageAdditions":  3230.5,
+                                     "AverageDeletions":  103.9,
+                                     "MaxCommit":  "dd1c3a5",
+                                     "MaxCommitSubject":  "chore: initialize frontend repository and documentation set",
+                                     "MaxCommitChurn":  8293
+                                 },
+                    "backend":  {
+                                    "Repository":  "Backend",
+                                    "Author":  "hekmatyar_hj",
+                                    "EmailMasked":  "1935***@163.com",
+                                    "Commits":  13,
+                                    "NonMergeCommits":  13,
+                                    "MergeCommits":  0,
+                                    "Additions":  25373,
+                                    "Deletions":  293,
+                                    "Net":  25080,
+                                    "UniqueFiles":  262,
+                                    "FileModifications":  398,
+                                    "FirstCommit":  "2026-07-02T21:49:47.0000000+08:00",
+                                    "LastCommit":  "2026-07-04T22:22:55.0000000+08:00",
+                                    "ActiveDays":  3,
+                                    "AverageAdditions":  1951.8,
+                                    "AverageDeletions":  22.5,
+                                    "MaxCommit":  "5db2a76",
+                                    "MaxCommitSubject":  "chore: add common infrastructure and project documents",
+                                    "MaxCommitChurn":  4557
+                                }
+                }
+}

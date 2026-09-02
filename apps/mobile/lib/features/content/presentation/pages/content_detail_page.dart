@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_state_view.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../interaction/presentation/widgets/comment_section.dart';
 import '../../../feed/presentation/controllers/feed_refresh_coordinator.dart';
+import '../../domain/content_detail.dart';
 import '../controllers/content_detail_controller.dart';
 import '../widgets/content_media_gallery.dart';
 
@@ -59,6 +60,30 @@ class _ContentDetailPageState extends ConsumerState<ContentDetailPage> {
             icon: const Icon(Icons.arrow_back_rounded),
           ),
           title: const Text('内容详情'),
+          actions: [
+            if (s.detail case final detail?
+                when s.status == DetailStatus.ready &&
+                    detail.contentType == 'ARTICLE' &&
+                    (detail.author.userId ==
+                            ref.watch(authControllerProvider).state.user?.id ||
+                        ref
+                                .watch(authControllerProvider)
+                                .state
+                                .user
+                                ?.roleType ==
+                            'ADMIN'))
+              IconButton(
+                key: const ValueKey('article_edit'),
+                tooltip: '编辑文章',
+                onPressed: () async {
+                  final updated = await context.push<bool>(
+                    '/contents/${detail.contentId}/edit',
+                  );
+                  if (updated == true) await c.load();
+                },
+                icon: const Icon(Icons.edit_outlined),
+              ),
+          ],
         ),
         body: switch (s.status) {
           DetailStatus.loading => const AppStateView(
@@ -100,6 +125,11 @@ class _DetailBody extends ConsumerWidget {
         .map((m) => resolveMediaUrl(config, m.mediaUrl))
         .whereType<String>()
         .toList();
+    final blockMediaUrls = <ArticleBlock, String>{};
+    for (final block in d.blocks) {
+      final url = resolveMediaUrl(config, block.mediaUrl);
+      if (url != null) blockMediaUrls[block] = url;
+    }
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
@@ -136,7 +166,7 @@ class _DetailBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        if (d.contentFormat == 'POST_FORMAT') ...[
+        if (d.contentType != 'ARTICLE') ...[
           if (d.body.isNotEmpty)
             Text(
               d.body,
@@ -147,7 +177,11 @@ class _DetailBody extends ConsumerWidget {
           const SizedBox(height: AppSpacing.md),
           ContentMediaGallery(mediaUrls: urls),
         ] else
-          ArticleBody(detail: d, mediaUrls: urls),
+          ArticleBody(
+            detail: d,
+            mediaUrls: urls,
+            blockMediaUrls: blockMediaUrls,
+          ),
         if (d.relations.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
           Wrap(

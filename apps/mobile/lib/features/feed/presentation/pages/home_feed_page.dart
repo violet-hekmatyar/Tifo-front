@@ -64,7 +64,7 @@ class _HomeFeedPageState extends ConsumerState<HomeFeedPage> {
           children: [
             _HomeHeader(
               onSearch: () => context.push('/search'),
-              onPublish: () => context.push('/publish/post'),
+              onPublish: () => context.push('/publish'),
             ),
             const SizedBox(height: AppSpacing.sm),
             FeedFilterBar(
@@ -247,24 +247,23 @@ SliverPadding _contentSection(List<ContentFeedCard> cards) => SliverPadding(
   ),
 );
 
-SliverPadding _compatibilitySection(List<UnknownFeedCard> cards) =>
-    SliverPadding(
-      key: const ValueKey('feed_compatibility_section'),
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        0,
-      ),
-      sliver: SliverList.separated(
-        itemCount: cards.length,
-        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-        itemBuilder: (context, index) {
-          final card = cards[index];
-          return FeedCardRenderer(key: ValueKey(card.cardId), card: card);
-        },
-      ),
-    );
+SliverPadding _compatibilitySection(List<FeedCard> cards) => SliverPadding(
+  key: const ValueKey('feed_compatibility_section'),
+  padding: const EdgeInsets.fromLTRB(
+    AppSpacing.lg,
+    AppSpacing.sm,
+    AppSpacing.lg,
+    0,
+  ),
+  sliver: SliverList.separated(
+    itemCount: cards.length,
+    separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+    itemBuilder: (context, index) {
+      final card = cards[index];
+      return FeedCardRenderer(key: ValueKey(card.cardId), card: card);
+    },
+  ),
+);
 
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader({required this.onSearch, required this.onPublish});

@@ -14,7 +14,7 @@ final class FeedDisplaySections {
   factory FeedDisplaySections.fromCards(Iterable<FeedCard> cards) {
     final matches = <MatchFeedCard>[];
     final contents = <ContentFeedCard>[];
-    final compatibility = <UnknownFeedCard>[];
+    final compatibility = <FeedCard>[];
     final seen = <String>{};
     for (final card in cards) {
       if (!seen.add(feedCardStableKey(card))) continue;
@@ -23,6 +23,14 @@ final class FeedDisplaySections {
           matches.add(card);
         case ContentFeedCard card:
           contents.add(card);
+        case HotCommentFeedCard card:
+          compatibility.add(card);
+        case DiscussionFeedCard card:
+          compatibility.add(card);
+        case RankingFeedCard card:
+          compatibility.add(card);
+        case PlayerRatingFeedCard card:
+          compatibility.add(card);
         case UnknownFeedCard card:
           compatibility.add(card);
       }
@@ -36,7 +44,7 @@ final class FeedDisplaySections {
 
   final List<MatchFeedCard> matches;
   final List<ContentFeedCard> contents;
-  final List<UnknownFeedCard> compatibility;
+  final List<FeedCard> compatibility;
 
   int get cardCount => matches.length + contents.length + compatibility.length;
 }

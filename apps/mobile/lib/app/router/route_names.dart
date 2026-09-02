@@ -15,5 +15,7 @@ abstract final class RouteNames {
   static const teamDetail = 'team-detail';
   static const playerDetail = 'player-detail';
   static const publishPost = 'publish-post';
+  static const publishArticle = 'publish-article';
+  static const editArticle = 'edit-article';
   static const publicUser = 'public-user';
 }

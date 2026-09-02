@@ -1,4 +1,5 @@
 import 'api_response.dart';
+import 'json_value.dart';
 import 'network_exceptions.dart';
 
 final class PageResult<T> {
@@ -15,24 +16,24 @@ final class PageResult<T> {
       throw const ParseException('Page data must be a JSON object.');
     }
     final records = raw['records'];
-    final total = raw['total'];
-    final pageNum = raw['pageNum'];
-    final pageSize = raw['pageSize'];
-    final pages = raw['pages'];
+    final total = jsonInt(raw['total']);
+    final pageNum = jsonInt(raw['pageNum']);
+    final pageSize = jsonInt(raw['pageSize']);
+    final pages = jsonInt(raw['pages']);
     if (records is! List ||
-        total is! num ||
-        pageNum is! num ||
-        pageSize is! num ||
-        pages is! num) {
+        total == null ||
+        pageNum == null ||
+        pageSize == null ||
+        pages == null) {
       throw const ParseException('Page data has invalid fields.');
     }
     try {
       return PageResult<T>(
         records: records.map(decodeItem).toList(growable: false),
-        total: total.toInt(),
-        pageNum: pageNum.toInt(),
-        pageSize: pageSize.toInt(),
-        pages: pages.toInt(),
+        total: total,
+        pageNum: pageNum,
+        pageSize: pageSize,
+        pages: pages,
       );
     } on AppNetworkException {
       rethrow;

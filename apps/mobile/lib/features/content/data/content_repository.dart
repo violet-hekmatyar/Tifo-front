@@ -10,6 +10,8 @@ abstract interface class ContentRepositoryContract {
     required String body,
     required List<int> mediaFileIds,
   });
+  Future<CreatedPost> createArticle(ArticleRequest request);
+  Future<ContentDetail> updateArticle(int id, ArticleRequest request);
 }
 
 final contentRepositoryProvider = Provider<ContentRepositoryContract>(
@@ -27,4 +29,12 @@ final class ContentRepository implements ContentRepositoryContract {
     required String body,
     required List<int> mediaFileIds,
   }) => api.createPost(title: title, body: body, mediaFileIds: mediaFileIds);
+
+  @override
+  Future<CreatedPost> createArticle(ArticleRequest request) =>
+      api.createArticle(request);
+
+  @override
+  Future<ContentDetail> updateArticle(int id, ArticleRequest request) =>
+      api.updateArticle(id, request);
 }
