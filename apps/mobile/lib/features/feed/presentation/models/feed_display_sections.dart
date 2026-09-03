@@ -1,50 +1,73 @@
 import '../../domain/feed_card.dart';
 
-/// A presentation-only grouping of the original paged feed cards.
-///
-/// Cross-type order intentionally becomes MATCH -> CONTENT -> compatibility,
-/// while the backend arrival order inside each group stays unchanged.
+sealed class FeedDisplayEntry {
+  const FeedDisplayEntry();
+}
+
+final class FeedSingleEntry extends FeedDisplayEntry {
+  const FeedSingleEntry(this.card);
+  final FeedCard card;
+}
+
+final class FeedContentRowEntry extends FeedDisplayEntry {
+  const FeedContentRowEntry(this.left, [this.right]);
+  final ContentFeedCard left;
+  final ContentFeedCard? right;
+}
+
+/// Builds visual rows without changing the backend/page arrival order.
 final class FeedDisplaySections {
-  FeedDisplaySections._({
-    required this.matches,
-    required this.contents,
-    required this.compatibility,
-  });
+  FeedDisplaySections._(this.entries);
 
   factory FeedDisplaySections.fromCards(Iterable<FeedCard> cards) {
-    final matches = <MatchFeedCard>[];
-    final contents = <ContentFeedCard>[];
-    final compatibility = <FeedCard>[];
+    final unique = <FeedCard>[];
     final seen = <String>{};
     for (final card in cards) {
       if (!seen.add(feedCardStableKey(card))) continue;
-      switch (card) {
-        case MatchFeedCard card:
-          matches.add(card);
-        case ContentFeedCard card:
-          contents.add(card);
-        case HotCommentFeedCard card:
-          compatibility.add(card);
-        case DiscussionFeedCard card:
-          compatibility.add(card);
-        case RankingFeedCard card:
-          compatibility.add(card);
-        case PlayerRatingFeedCard card:
-          compatibility.add(card);
-        case UnknownFeedCard card:
-          compatibility.add(card);
+      unique.add(card);
+    }
+    final entries = <FeedDisplayEntry>[];
+    for (var index = 0; index < unique.length; index++) {
+      final card = unique[index];
+      if (card is ContentFeedCard) {
+        final next = index + 1 < unique.length ? unique[index + 1] : null;
+        if (next is ContentFeedCard) {
+          entries.add(FeedContentRowEntry(card, next));
+          index++;
+        } else {
+          entries.add(FeedContentRowEntry(card));
+        }
+      } else {
+        entries.add(FeedSingleEntry(card));
       }
     }
-    return FeedDisplaySections._(
-      matches: List.unmodifiable(matches),
-      contents: List.unmodifiable(contents),
-      compatibility: List.unmodifiable(compatibility),
-    );
+    return FeedDisplaySections._(List.unmodifiable(entries));
   }
 
-  final List<MatchFeedCard> matches;
-  final List<ContentFeedCard> contents;
-  final List<FeedCard> compatibility;
-
-  int get cardCount => matches.length + contents.length + compatibility.length;
+  final List<FeedDisplayEntry> entries;
+  List<MatchFeedCard> get matches => List.unmodifiable(
+    entries
+        .whereType<FeedSingleEntry>()
+        .map((entry) => entry.card)
+        .whereType<MatchFeedCard>(),
+  );
+  List<ContentFeedCard> get contents => List.unmodifiable(
+    entries.expand((entry) sync* {
+      if (entry is FeedContentRowEntry) {
+        yield entry.left;
+        if (entry.right case final right?) yield right;
+      }
+    }),
+  );
+  List<FeedCard> get compatibility => List.unmodifiable(
+    entries
+        .whereType<FeedSingleEntry>()
+        .map((entry) => entry.card)
+        .where((card) => card is! MatchFeedCard),
+  );
+  int get cardCount => entries.fold(
+    0,
+    (count, entry) =>
+        count + (entry is FeedContentRowEntry && entry.right != null ? 2 : 1),
+  );
 }

@@ -61,22 +61,28 @@ class ContentCard extends StatelessWidget {
                       height: 1.35,
                     ),
                   ),
-                  if (card.hotComment case final comment?) ...[
-                    const SizedBox(height: AppSpacing.xs),
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.xs),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceMuted,
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                      ),
-                      child: Text(
-                        comment.content,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  ],
+                  const SizedBox(height: AppSpacing.xs),
+                  SizedBox(
+                    key: const ValueKey('content_comment_slot'),
+                    height: 52,
+                    child: card.hotComment == null
+                        ? null
+                        : Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(AppSpacing.xs),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceMuted,
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                            child: Text(
+                              card.hotComment!.content,
+                              key: const ValueKey('content_comment_summary'),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                  ),
                   const SizedBox(height: AppSpacing.sm),
                   InkWell(
                     onTap: onAuthorTap,

@@ -14,6 +14,15 @@ void main() {
     expect(sections.matches.map((card) => card.cardId), ['m1', 'm2', 'm3']);
     expect(sections.contents.map((card) => card.cardId), ['c1', 'c2']);
     expect(sections.cardCount, 5);
+    expect(
+      sections.entries.map(
+        (entry) => switch (entry) {
+          FeedSingleEntry(:final card) => card.cardId,
+          FeedContentRowEntry(:final left) => left.cardId,
+        },
+      ),
+      ['m1', 'c1', 'm2', 'c2', 'm3'],
+    );
   });
 
   test('later pages merge into the same match and content sections', () {

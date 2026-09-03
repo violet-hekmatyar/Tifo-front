@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -25,6 +26,9 @@ class HomeFeedPage extends ConsumerStatefulWidget {
 
 class _HomeFeedPageState extends ConsumerState<HomeFeedPage> {
   final _scrollController = ScrollController();
+  final _scrollViewKey = GlobalKey();
+  final Map<String, GlobalKey> _cardKeys = {};
+  bool _showBackToTop = false;
 
   @override
   void initState() {
@@ -33,7 +37,7 @@ class _HomeFeedPageState extends ConsumerState<HomeFeedPage> {
     ref.listenManual(feedRefreshRequestProvider, (previous, next) {
       if (next == null) return;
       ref.read(feedRefreshRequestProvider.notifier).state = null;
-      unawaited(ref.read(feedControllerProvider).refresh());
+      unawaited(_refreshPreservingAnchor());
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(ref.read(feedControllerProvider).loadInitial());
@@ -49,16 +53,88 @@ class _HomeFeedPageState extends ConsumerState<HomeFeedPage> {
   }
 
   void _onScroll() {
+    final direction = _scrollController.position.userScrollDirection;
+    final shouldShow =
+        _scrollController.offset > 240 && direction == ScrollDirection.forward;
+    final shouldHide =
+        _scrollController.offset <= 240 || direction == ScrollDirection.reverse;
+    if (shouldShow && !_showBackToTop) {
+      setState(() => _showBackToTop = true);
+    } else if (shouldHide && _showBackToTop) {
+      setState(() => _showBackToTop = false);
+    }
     if (_scrollController.position.extentAfter < 500) {
       unawaited(ref.read(feedControllerProvider).loadMore());
     }
   }
+
+  Future<void> _refreshPreservingAnchor() async {
+    final anchor = _captureAnchor();
+    await ref.read(feedControllerProvider).refresh();
+    if (!mounted || anchor == null) return;
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted || !_scrollController.hasClients) return;
+    final context = _cardKeys[anchor.key]?.currentContext;
+    final box = context?.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached) return;
+    final currentY = box.localToGlobal(Offset.zero).dy;
+    final target = (_scrollController.offset + currentY - anchor.screenY).clamp(
+      _scrollController.position.minScrollExtent,
+      _scrollController.position.maxScrollExtent,
+    );
+    _scrollController.jumpTo(target);
+  }
+
+  ({String key, double screenY})? _captureAnchor() {
+    if (!_scrollController.hasClients) return null;
+    final viewport =
+        _scrollViewKey.currentContext?.findRenderObject() as RenderBox?;
+    if (viewport == null || !viewport.attached) return null;
+    final top = viewport.localToGlobal(Offset.zero).dy;
+    ({String key, double screenY})? result;
+    for (final entry in _cardKeys.entries) {
+      final box = entry.value.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null || !box.attached) continue;
+      final y = box.localToGlobal(Offset.zero).dy;
+      if (y + box.size.height < top) continue;
+      if (result == null || y < result.screenY) {
+        result = (key: entry.key, screenY: y);
+      }
+    }
+    return result;
+  }
+
+  GlobalKey _cardKey(FeedCard card) =>
+      _cardKeys.putIfAbsent(feedCardStableKey(card), GlobalKey.new);
 
   @override
   Widget build(BuildContext context) {
     final controller = ref.watch(feedControllerProvider);
     final state = controller.state;
     return Scaffold(
+      floatingActionButton: IgnorePointer(
+        ignoring: !_showBackToTop,
+        child: AnimatedScale(
+          scale: _showBackToTop ? 1 : 0.82,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          child: AnimatedOpacity(
+            key: const ValueKey('feed_back_to_top_visibility'),
+            opacity: _showBackToTop ? 1 : 0,
+            duration: const Duration(milliseconds: 180),
+            child: FloatingActionButton.small(
+              key: const ValueKey('feed_back_to_top'),
+              tooltip: '返回顶部',
+              onPressed: () => _scrollController.animateTo(
+                0,
+                duration: const Duration(milliseconds: 360),
+                curve: Curves.easeOutCubic,
+              ),
+              child: const Icon(Icons.vertical_align_top_rounded),
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -108,10 +184,12 @@ class _HomeFeedPageState extends ConsumerState<HomeFeedPage> {
         onRetry: controller.loadInitial,
       ),
       FeedLoadStatus.ready => RefreshIndicator(
-        onRefresh: controller.refresh,
+        onRefresh: _refreshPreservingAnchor,
         child: _ReadyFeed(
           cards: state.cards,
           controller: _scrollController,
+          scrollViewKey: _scrollViewKey,
+          cardKey: _cardKey,
           refreshMessage: state.message,
           onRetryRefresh: controller.refresh,
           loadMore: FeedLoadMore(
@@ -130,6 +208,8 @@ class _ReadyFeed extends StatelessWidget {
   const _ReadyFeed({
     required this.cards,
     required this.controller,
+    required this.scrollViewKey,
+    required this.cardKey,
     required this.refreshMessage,
     required this.onRetryRefresh,
     required this.loadMore,
@@ -137,6 +217,8 @@ class _ReadyFeed extends StatelessWidget {
 
   final List<FeedCard> cards;
   final ScrollController controller;
+  final GlobalKey scrollViewKey;
+  final GlobalKey Function(FeedCard card) cardKey;
   final String? refreshMessage;
   final Future<void> Function() onRetryRefresh;
   final Widget loadMore;
@@ -145,7 +227,7 @@ class _ReadyFeed extends StatelessWidget {
   Widget build(BuildContext context) {
     final sections = FeedDisplaySections.fromCards(cards);
     return CustomScrollView(
-      key: const PageStorageKey('home_feed_scroll'),
+      key: scrollViewKey,
       controller: controller,
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
@@ -173,10 +255,21 @@ class _ReadyFeed extends StatelessWidget {
               ),
             ),
           ),
-        if (sections.matches.isNotEmpty) _matchSection(sections.matches),
-        if (sections.contents.isNotEmpty) _contentSection(sections.contents),
-        if (sections.compatibility.isNotEmpty)
-          _compatibilitySection(sections.compatibility),
+        SliverPadding(
+          key: const ValueKey('feed_ordered_section'),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.sm,
+            AppSpacing.lg,
+            0,
+          ),
+          sliver: SliverList.separated(
+            itemCount: sections.entries.length,
+            separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+            itemBuilder: (context, index) =>
+                _entry(sections.entries[index], cardKey),
+          ),
+        ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.lg,
@@ -191,79 +284,31 @@ class _ReadyFeed extends StatelessWidget {
   }
 }
 
-SliverPadding _matchSection(List<MatchFeedCard> cards) => SliverPadding(
-  key: const ValueKey('feed_match_section'),
-  padding: const EdgeInsets.fromLTRB(
-    AppSpacing.lg,
-    AppSpacing.sm,
-    AppSpacing.lg,
-    0,
+Widget _entry(
+  FeedDisplayEntry entry,
+  GlobalKey Function(FeedCard card) cardKey,
+) => switch (entry) {
+  FeedSingleEntry(:final card) => FeedCardRenderer(
+    key: cardKey(card),
+    card: card,
   ),
-  sliver: SliverList.separated(
-    itemCount: cards.length,
-    separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-    itemBuilder: (context, index) {
-      final card = cards[index];
-      return FeedCardRenderer(key: ValueKey(card.cardId), card: card);
-    },
-  ),
-);
-
-SliverPadding _contentSection(List<ContentFeedCard> cards) => SliverPadding(
-  key: const ValueKey('feed_content_section'),
-  padding: const EdgeInsets.fromLTRB(
-    AppSpacing.lg,
-    AppSpacing.sm,
-    AppSpacing.lg,
-    0,
-  ),
-  sliver: SliverList.separated(
-    itemCount: (cards.length + 1) ~/ 2,
-    separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-    itemBuilder: (context, rowIndex) {
-      final left = cards[rowIndex * 2];
-      final rightIndex = rowIndex * 2 + 1;
-      final right = rightIndex < cards.length ? cards[rightIndex] : null;
-      return Row(
-        key: ValueKey(
-          right == null
-              ? 'feed_row_${left.cardId}'
-              : 'feed_row_${left.cardId}_${right.cardId}',
+  FeedContentRowEntry(:final left, :final right) => IntrinsicHeight(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: FeedCardRenderer(key: cardKey(left), card: left),
         ),
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: FeedCardRenderer(key: ValueKey(left.cardId), card: left),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: right == null
-                ? const SizedBox()
-                : FeedCardRenderer(key: ValueKey(right.cardId), card: right),
-          ),
-        ],
-      );
-    },
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: right == null
+              ? const SizedBox()
+              : FeedCardRenderer(key: cardKey(right), card: right),
+        ),
+      ],
+    ),
   ),
-);
-
-SliverPadding _compatibilitySection(List<FeedCard> cards) => SliverPadding(
-  key: const ValueKey('feed_compatibility_section'),
-  padding: const EdgeInsets.fromLTRB(
-    AppSpacing.lg,
-    AppSpacing.sm,
-    AppSpacing.lg,
-    0,
-  ),
-  sliver: SliverList.separated(
-    itemCount: cards.length,
-    separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-    itemBuilder: (context, index) {
-      final card = cards[index];
-      return FeedCardRenderer(key: ValueKey(card.cardId), card: card);
-    },
-  ),
-);
+};
 
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader({required this.onSearch, required this.onPublish});

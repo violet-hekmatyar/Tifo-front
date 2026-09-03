@@ -7,6 +7,7 @@ import '../../../../core/network/backend_v1_contract.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../shared/design_system/app_design_tokens.dart';
 import '../../../../shared/widgets/app_state_view.dart';
+import '../../../../shared/widgets/app_player_avatar.dart';
 import '../../../../shared/widgets/app_team_logo.dart';
 import '../../../recommendation/domain/recommendation_behavior.dart';
 import '../../../recommendation/presentation/recommendation_behavior_dispatcher.dart';
@@ -170,21 +171,52 @@ class _LineupsTab extends ConsumerWidget {
       );
 }
 
-class _TeamLineupCard extends StatelessWidget {
+class _TeamLineupCard extends ConsumerWidget {
   const _TeamLineupCard({required this.team});
   final MatchTeamLineup team;
   @override
-  Widget build(BuildContext context) => Card(
+  Widget build(BuildContext context, WidgetRef ref) => Card(
     margin: const EdgeInsets.only(bottom: AppSpacing.md),
     child: Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(team.teamName, style: Theme.of(context).textTheme.titleLarge),
-          Text(
-            [team.formation, team.coachName].whereType<String>().join(' · '),
-            style: const TextStyle(color: AppColors.inkMuted),
+          Row(
+            children: [
+              AppTeamLogo(
+                identity: 'team:${team.teamId}',
+                name: team.teamName,
+                imageUrl: resolveMediaUrl(
+                  ref.watch(appConfigProvider),
+                  team.teamLogoUrl,
+                ),
+                size: 42,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      team.teamName,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    if ([
+                      team.formation,
+                      team.coachName,
+                    ].whereType<String>().isNotEmpty)
+                      Text(
+                        [
+                          team.formation,
+                          team.coachName,
+                        ].whereType<String>().join(' · '),
+                        style: const TextStyle(color: AppColors.inkMuted),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
           if (team.starters.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
@@ -192,11 +224,16 @@ class _TeamLineupCard extends StatelessWidget {
             for (final player in team.starters)
               _LineupPlayerTile(player: player),
           ],
-          if (team.substitutes.isNotEmpty || team.bench.isNotEmpty) ...[
+          if (team.substitutes.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             const Text('替补', style: TextStyle(fontWeight: FontWeight.w800)),
-            for (final player in [...team.substitutes, ...team.bench])
+            for (final player in team.substitutes)
               _LineupPlayerTile(player: player),
+          ],
+          if (team.bench.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            const Text('替补席', style: TextStyle(fontWeight: FontWeight.w800)),
+            for (final player in team.bench) _LineupPlayerTile(player: player),
           ],
         ],
       ),
@@ -204,19 +241,25 @@ class _TeamLineupCard extends StatelessWidget {
   );
 }
 
-class _LineupPlayerTile extends StatelessWidget {
+class _LineupPlayerTile extends ConsumerWidget {
   const _LineupPlayerTile({required this.player});
   final MatchLineupPlayer player;
   @override
-  Widget build(BuildContext context) => ListTile(
+  Widget build(BuildContext context, WidgetRef ref) => ListTile(
     key: ValueKey('lineup_player_${player.playerId}'),
     contentPadding: EdgeInsets.zero,
     onTap: () => context.push('/players/${player.playerId}'),
-    leading: CircleAvatar(child: Text(player.shirtNumber?.toString() ?? '—')),
+    leading: AppPlayerAvatar(
+      identity: 'player:${player.playerId}',
+      name: player.playerName,
+      imageUrl: resolveMediaUrl(ref.watch(appConfigProvider), player.avatarUrl),
+      size: 42,
+    ),
     title: Text('${player.playerName}${player.captain ? '（队长）' : ''}'),
     subtitle: Text(
       [
-        player.position,
+        if (player.shirtNumber != null) '${player.shirtNumber} 号',
+        _position(player.position),
         if (player.substitutedInMinute != null)
           '${player.substitutedInMinute}′ 替补登场',
         if (player.substitutedOutMinute != null)
@@ -226,6 +269,15 @@ class _LineupPlayerTile extends StatelessWidget {
     trailing: const Icon(Icons.chevron_right_rounded),
   );
 }
+
+String? _position(String? value) => switch (value) {
+  'GOALKEEPER' => '门将',
+  'DEFENDER' => '后卫',
+  'MIDFIELDER' => '中场',
+  'FORWARD' => '前锋',
+  final value? when value.trim().isNotEmpty => value,
+  _ => null,
+};
 
 class _RankingTab extends ConsumerWidget {
   const _RankingTab({required this.matchId});

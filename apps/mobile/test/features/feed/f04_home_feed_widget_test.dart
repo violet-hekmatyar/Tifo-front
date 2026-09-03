@@ -55,11 +55,11 @@ void main() {
       expect(find.text(label), findsOneWidget);
     }
     expect(find.byKey(const ValueKey('followed_team_7')), findsOneWidget);
-    expect(find.byType(MatchCard), findsWidgets);
-    expect(find.byType(ContentCard), findsNWidgets(2));
+    expect(find.byType(ContentCard), findsWidgets);
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -500));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -350));
+    expect(find.byType(MatchCard), findsWidgets);
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -1200));
     await tester.pumpAndSettle();
     expect(find.byType(UnknownCard), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -204,7 +204,9 @@ void main() {
       ],
     );
     addTearDown(router.dispose);
-    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpWidget(
+      ProviderScope(child: MaterialApp.router(routerConfig: router)),
+    );
     for (final label in ['首页', '数据', '消息', '我的']) {
       expect(find.text(label), findsOneWidget);
     }
@@ -241,7 +243,7 @@ void main() {
   });
 
   testWidgets(
-    'home renders all full-width matches before the two-column content area',
+    'home preserves backend order with full-width non-content cards',
     (tester) async {
       tester.view.physicalSize = const Size(412, 2000);
       tester.view.devicePixelRatio = 1;
@@ -261,31 +263,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const ValueKey('feed_match_section')), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('feed_content_section')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('feed_compatibility_section')),
+        find.byKey(const ValueKey('feed_ordered_section')),
         findsOneWidget,
       );
       expect(find.byType(MatchCard), findsNWidgets(2));
       expect(find.byType(ContentCard), findsNWidgets(2));
-      final matchBottom = find
-          .byType(MatchCard)
-          .evaluate()
-          .map(
-            (element) =>
-                tester.getBottomRight(find.byWidget(element.widget)).dy,
-          )
-          .reduce((a, b) => a > b ? a : b);
-      final contentTop = find
-          .byType(ContentCard)
-          .evaluate()
-          .map((element) => tester.getTopLeft(find.byWidget(element.widget)).dy)
-          .reduce((a, b) => a < b ? a : b);
-      expect(matchBottom, lessThan(contentTop));
+      final firstContentTop = tester
+          .getTopLeft(find.byType(ContentCard).first)
+          .dy;
+      final firstMatchTop = tester.getTopLeft(find.byType(MatchCard).first).dy;
+      expect(firstContentTop, lessThan(firstMatchTop));
       expect(
         tester.getSize(find.byType(MatchCard).first).width,
         greaterThan(tester.getSize(find.byType(ContentCard).first).width * 1.8),

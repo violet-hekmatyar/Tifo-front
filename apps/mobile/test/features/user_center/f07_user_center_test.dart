@@ -1,8 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tifo/features/message/presentation/messages_unavailable_page.dart';
 import 'package:tifo/features/user_center/data/user_center_repository.dart';
 import 'package:tifo/features/user_center/domain/user_center_models.dart';
 import 'package:tifo/features/user_center/presentation/controllers/user_center_controllers.dart';
@@ -47,15 +45,6 @@ void main() {
     await controller.load();
     await controller.toggleFollow();
     expect(repository.followCalls, 0);
-  });
-
-  testWidgets('message center explains backend gap without fake messages', (
-    tester,
-  ) async {
-    await tester.pumpWidget(const MaterialApp(home: MessagesUnavailablePage()));
-    expect(find.text('消息能力暂不可用'), findsOneWidget);
-    expect(find.textContaining('不会展示虚构消息'), findsOneWidget);
-    expect(find.byType(ListTile), findsNothing);
   });
 }
 

@@ -112,7 +112,7 @@ void main() {
     repository.pages[1] = _page(1, [_content('fresh')]);
     await controller.refresh();
     expect(controller.state.teamId, 7);
-    expect(controller.state.cards.single.cardId, 'fresh');
+    expect(controller.state.cards.map((card) => card.cardId), ['fresh', 'a']);
   });
 
   test(
@@ -148,8 +148,42 @@ void main() {
     await controller.loadInitial();
     await controller.loadMore();
     expect(controller.state.cards, hasLength(1));
-    expect(controller.state.cards.single.cardId, 'card-b');
+    expect(controller.state.cards.single.cardId, 'card-a');
   });
+
+  test(
+    'pagination only appends and refresh keeps loaded unique cards',
+    () async {
+      final repository = _FakeFeedRepository(
+        pages: {
+          1: _page(1, [_content('a'), _content('b')], pages: 2),
+          2: _page(2, [_content('c')], pages: 2),
+        },
+      );
+      final controller = FeedController(repository);
+      await controller.loadInitial();
+      await controller.loadMore();
+      expect(controller.state.cards.map((card) => card.cardId), [
+        'a',
+        'b',
+        'c',
+      ]);
+
+      repository.pages[1] = _page(1, [
+        _content('fresh'),
+        _content('a'),
+      ], pages: 2);
+      await controller.refresh();
+      expect(controller.state.cards.map((card) => card.cardId), [
+        'fresh',
+        'a',
+        'b',
+        'c',
+      ]);
+      expect(controller.state.pageNum, 2);
+      expect(controller.state.hasMore, isFalse);
+    },
+  );
 }
 
 final class _FakeFeedRepository implements FeedRepositoryContract {

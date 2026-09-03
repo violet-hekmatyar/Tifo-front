@@ -15,7 +15,7 @@ import '../../features/content/presentation/pages/article_editor_page.dart';
 import '../../features/content/presentation/pages/publish_entry_page.dart';
 import '../../features/content/presentation/pages/publish_post_page.dart';
 import '../../features/main_shell/presentation/main_shell_page.dart';
-import '../../features/message/presentation/messages_unavailable_page.dart';
+import '../../features/notification/presentation/notifications_page.dart';
 import '../../features/search/presentation/pages/global_search_page.dart';
 import '../../features/search/domain/search_models.dart';
 import '../../features/recommendation/domain/recommendation_behavior.dart';
@@ -92,7 +92,7 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
             GoRoute(
               path: '/app/messages',
               name: RouteNames.messages,
-              builder: (context, state) => const MessagesUnavailablePage(),
+              builder: (context, state) => const NotificationsPage(),
             ),
           ],
         ),
@@ -187,7 +187,7 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
     GoRoute(
       path: '/messages',
       parentNavigatorKey: rootNavigatorKey,
-      builder: (context, state) => const MessagesUnavailablePage(),
+      builder: (context, state) => const NotificationsPage(),
     ),
     GoRoute(
       path: '/users/:userId',

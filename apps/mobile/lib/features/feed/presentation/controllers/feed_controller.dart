@@ -136,7 +136,7 @@ final class FeedController extends ChangeNotifier {
         for (final card in _state.cards) feedCardStableKey(card): card,
       };
       for (final card in page.cards) {
-        byId[feedCardStableKey(card)] = card;
+        byId.putIfAbsent(feedCardStableKey(card), () => card);
       }
       _setState(
         FeedState(
@@ -163,19 +163,33 @@ final class FeedController extends ChangeNotifier {
   );
 
   void _setPage(FeedPage page, {required List<FollowedTeam> teams}) {
+    final preservingLoadedPages =
+        _state.isRefreshing && _state.cards.isNotEmpty;
+    final cards = preservingLoadedPages
+        ? _mergeRefreshedCards(page.cards)
+        : page.cards;
     _setState(
       FeedState(
-        status: page.cards.isEmpty
-            ? FeedLoadStatus.empty
-            : FeedLoadStatus.ready,
-        cards: page.cards,
+        status: cards.isEmpty ? FeedLoadStatus.empty : FeedLoadStatus.ready,
+        cards: cards,
         followedTeams: teams,
         filter: _state.filter,
         teamId: _state.teamId,
-        pageNum: page.pageNum,
-        hasMore: page.hasMore,
+        pageNum: preservingLoadedPages ? _state.pageNum : page.pageNum,
+        hasMore: preservingLoadedPages ? _state.hasMore : page.hasMore,
       ),
     );
+  }
+
+  List<FeedCard> _mergeRefreshedCards(List<FeedCard> refreshed) {
+    final refreshedKeys = {
+      for (final card in refreshed) feedCardStableKey(card),
+    };
+    return List.unmodifiable([
+      ...refreshed,
+      for (final card in _state.cards)
+        if (!refreshedKeys.contains(feedCardStableKey(card))) card,
+    ]);
   }
 
   void _copy({
