@@ -17,6 +17,8 @@ final class UserBrief {
 
   bool get followed =>
       relationStatus == 'FOLLOWING' || relationStatus == 'MUTUAL';
+
+  String get relationLabel => userRelationLabel(relationStatus);
 }
 
 final class UserProfile {
@@ -51,6 +53,9 @@ final class UserProfile {
   bool get followed =>
       relationStatus == 'FOLLOWING' || relationStatus == 'MUTUAL';
 
+  bool get isSelf => currentUser || relationStatus == 'SELF';
+  String get relationLabel => userRelationLabel(relationStatus);
+
   UserProfile copyWith({
     int? followingCount,
     int? followerCount,
@@ -69,6 +74,20 @@ final class UserProfile {
     relationStatus: relationStatus ?? this.relationStatus,
     currentUser: currentUser,
   );
+}
+
+String userRelationLabel(String status) => switch (status) {
+  'SELF' => '本人',
+  'FOLLOWING' => '已关注',
+  'FOLLOWED_BY' => '关注了你',
+  'MUTUAL' => '互相关注',
+  'NONE' => '未关注',
+  _ => status,
+};
+
+String relationAfterLocalAction(String status, {required bool follow}) {
+  if (follow) return status == 'FOLLOWED_BY' ? 'MUTUAL' : 'FOLLOWING';
+  return status == 'MUTUAL' ? 'FOLLOWED_BY' : 'NONE';
 }
 
 final class MySummary {
@@ -152,6 +171,39 @@ final class UserFavoriteItem {
   final String? summary;
   final String? coverUrl;
   final DateTime? favoriteTime;
+}
+
+final class UserLikeItem {
+  const UserLikeItem({
+    required this.contentId,
+    required this.contentType,
+    required this.title,
+    required this.visible,
+    required this.likeCount,
+    required this.commentCount,
+    required this.favoriteCount,
+    this.summary,
+    this.coverUrl,
+    this.authorId,
+    this.authorNickname,
+    this.authorAvatarUrl,
+    this.likedAt,
+    this.contentStatus,
+  });
+  final int contentId;
+  final String contentType;
+  final String title;
+  final String? summary;
+  final String? coverUrl;
+  final int? authorId;
+  final String? authorNickname;
+  final String? authorAvatarUrl;
+  final DateTime? likedAt;
+  final String? contentStatus;
+  final bool visible;
+  final int likeCount;
+  final int commentCount;
+  final int favoriteCount;
 }
 
 final class UserCommentItem {

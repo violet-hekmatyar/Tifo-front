@@ -57,6 +57,12 @@ class _UserListPageState extends ConsumerState<UserListPage> {
           message: s.message ?? '请稍后重试。',
           onRetry: c.retry,
         ),
+        UserListStatus.restricted => AppStateView(
+          kind: AppStateKind.error,
+          title: '该列表不可查看',
+          message: s.message ?? '该列表受隐私保护。',
+          onRetry: c.retry,
+        ),
         UserListStatus.empty => RefreshIndicator(
           onRefresh: c.refresh,
           child: ListView(
@@ -106,6 +112,26 @@ class _UserListPageState extends ConsumerState<UserListPage> {
         trailing: const Icon(Icons.chevron_right_rounded),
       ),
     ),
+    UserLikeItem item => Card(
+      child: ListTile(
+        key: ValueKey('user-like-${item.contentId}'),
+        leading: const Icon(Icons.favorite_rounded, color: AppColors.error),
+        title: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          [
+            item.authorNickname,
+            '${item.likeCount} 赞 · ${item.commentCount} 评论',
+            if (!item.visible) '内容当前不可见',
+          ].whereType<String>().join(' · '),
+        ),
+        onTap: item.visible
+            ? () => context.push('/contents/${item.contentId}')
+            : null,
+        trailing: item.visible
+            ? const Icon(Icons.chevron_right_rounded)
+            : const Icon(Icons.visibility_off_outlined),
+      ),
+    ),
     UserFavoriteItem item => Card(
       child: ListTile(
         leading: const Icon(Icons.bookmark_rounded),
@@ -114,11 +140,13 @@ class _UserListPageState extends ConsumerState<UserListPage> {
             ? null
             : Text(item.summary!, maxLines: 2, overflow: TextOverflow.ellipsis),
         onTap: () => context.push('/contents/${item.contentId}'),
-        trailing: IconButton(
-          tooltip: '取消收藏',
-          onPressed: () => controller.removeItem(item),
-          icon: const Icon(Icons.bookmark_remove_outlined),
-        ),
+        trailing: widget.request.kind == UserListKind.myFavorites
+            ? IconButton(
+                tooltip: '取消收藏',
+                onPressed: () => controller.removeItem(item),
+                icon: const Icon(Icons.bookmark_remove_outlined),
+              )
+            : const Icon(Icons.chevron_right_rounded),
       ),
     ),
     UserCommentItem item => Card(
@@ -127,11 +155,13 @@ class _UserListPageState extends ConsumerState<UserListPage> {
         title: Text(item.content, maxLines: 3, overflow: TextOverflow.ellipsis),
         subtitle: item.contentTitle == null ? null : Text(item.contentTitle!),
         onTap: () => context.push('/contents/${item.contentId}'),
-        trailing: IconButton(
-          tooltip: '删除评论',
-          onPressed: () => controller.removeItem(item),
-          icon: const Icon(Icons.delete_outline_rounded),
-        ),
+        trailing: widget.request.kind == UserListKind.myComments
+            ? IconButton(
+                tooltip: '删除评论',
+                onPressed: () => controller.removeItem(item),
+                icon: const Icon(Icons.delete_outline_rounded),
+              )
+            : const Icon(Icons.chevron_right_rounded),
       ),
     ),
     UserBrief item => Card(

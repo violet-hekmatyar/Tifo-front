@@ -130,9 +130,9 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
     GoRoute(
       path: '/users/me/likes',
       parentNavigatorKey: rootNavigatorKey,
-      builder: (context, state) => const UnavailablePage(
+      builder: (context, state) => const UserListPage(
         title: '我的点赞',
-        message: '当前后端只提供点赞切换，没有“我的点赞”分页查询接口。',
+        request: UserListRequest(UserListKind.myLikes),
       ),
     ),
     GoRoute(
@@ -222,6 +222,26 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
             return UserListPage(
               title: '粉丝',
               request: UserListRequest(UserListKind.followers, userId: id),
+            );
+          },
+        ),
+        GoRoute(
+          path: 'favorites',
+          builder: (context, state) {
+            final id = int.tryParse(state.pathParameters['userId'] ?? '') ?? -1;
+            return UserListPage(
+              title: '用户收藏',
+              request: UserListRequest(UserListKind.userFavorites, userId: id),
+            );
+          },
+        ),
+        GoRoute(
+          path: 'comments',
+          builder: (context, state) {
+            final id = int.tryParse(state.pathParameters['userId'] ?? '') ?? -1;
+            return UserListPage(
+              title: '用户评论',
+              request: UserListRequest(UserListKind.userComments, userId: id),
             );
           },
         ),

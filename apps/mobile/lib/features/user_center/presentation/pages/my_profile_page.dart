@@ -49,6 +49,7 @@ class _ProfileBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(appConfigProvider);
+    final avatar = ref.watch(avatarUpdateControllerProvider);
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
@@ -62,7 +63,10 @@ class _ProfileBody extends ConsumerWidget {
                   semanticLabel: '${summary.nickname}头像',
                   fallbackIcon: Icons.person_outline_rounded,
                   fallbackText: summary.nickname.characters.first,
-                  imageUrl: resolveMediaUrl(config, summary.avatarUrl),
+                  imageUrl: resolveMediaUrl(
+                    config,
+                    avatar.state.avatarUrl ?? summary.avatarUrl,
+                  ),
                   size: 68,
                 ),
                 const SizedBox(width: AppSpacing.md),
@@ -97,6 +101,27 @@ class _ProfileBody extends ConsumerWidget {
           icon: const Icon(Icons.edit_outlined),
           label: const Text('编辑资料'),
         ),
+        const SizedBox(height: AppSpacing.sm),
+        OutlinedButton.icon(
+          key: const ValueKey('change_avatar'),
+          onPressed: avatar.state.busy ? null : avatar.chooseAndUpload,
+          icon: avatar.state.busy
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.add_a_photo_outlined),
+          label: Text(avatar.state.busy ? '头像上传中' : '更换头像'),
+        ),
+        if (avatar.state.message case final message?)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
+            child: Text(
+              message,
+              style: const TextStyle(color: AppColors.error),
+              textAlign: TextAlign.center,
+            ),
+          ),
         const SizedBox(height: AppSpacing.md),
         _Section(
           title: '内容与互动',
@@ -110,7 +135,6 @@ class _ProfileBody extends ConsumerWidget {
             _Entry(
               icon: Icons.favorite_border_rounded,
               label: '我的点赞',
-              subtitle: '后端暂未提供列表接口',
               onTap: () => context.push('/users/me/likes'),
             ),
             _Entry(
@@ -245,19 +269,16 @@ class _Entry extends StatelessWidget {
     required this.icon,
     required this.label,
     this.count,
-    this.subtitle,
     this.onTap,
   });
   final IconData icon;
   final String label;
   final int? count;
-  final String? subtitle;
   final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) => ListTile(
     leading: Icon(icon, color: AppColors.brand),
     title: Text(label),
-    subtitle: subtitle == null ? null : Text(subtitle!),
     trailing: onTap == null
         ? null
         : Row(

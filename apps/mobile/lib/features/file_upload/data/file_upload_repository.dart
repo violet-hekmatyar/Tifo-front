@@ -14,6 +14,19 @@ abstract interface class FileUploadRepositoryContract {
   Future<void> delete(int id);
 }
 
+abstract interface class AvatarFileUploadRepositoryContract {
+  Future<UploadedFile> uploadAvatar(String path, String name);
+  Future<void> delete(int id);
+}
+
+final avatarFileUploadRepositoryProvider =
+    Provider<AvatarFileUploadRepositoryContract>(
+      (ref) => FileUploadRepository(
+        ref.watch(apiClientProvider),
+        config: ref.watch(appConfigProvider),
+      ),
+    );
+
 final fileUploadRepositoryProvider = Provider<FileUploadRepositoryContract>(
   (ref) => FileUploadRepository(
     ref.watch(apiClientProvider),
@@ -21,26 +34,37 @@ final fileUploadRepositoryProvider = Provider<FileUploadRepositoryContract>(
   ),
 );
 
-final class FileUploadRepository implements FileUploadRepositoryContract {
+final class FileUploadRepository
+    implements
+        FileUploadRepositoryContract,
+        AvatarFileUploadRepositoryContract {
   const FileUploadRepository(this.client, {this.config});
   final ApiClient client;
   final AppConfig? config;
   @override
-  Future<UploadedFile> upload(String path, String name) => client.postMultipart(
-    '/api/app/files/upload',
-    filePath: path,
-    fileName: name,
-    fields: {'bizType': 'CONTENT_IMAGE'},
-    decode: (raw) {
-      if (raw is! Map || raw['fileId'] is! num || raw['url'] is! String) {
-        throw const ParseException('Invalid upload response.');
-      }
-      return UploadedFile(
-        fileId: (raw['fileId'] as num).toInt(),
-        url: raw['url'] as String,
+  Future<UploadedFile> upload(String path, String name) =>
+      _upload(path, name, 'CONTENT_IMAGE');
+
+  @override
+  Future<UploadedFile> uploadAvatar(String path, String name) =>
+      _upload(path, name, 'AVATAR');
+
+  Future<UploadedFile> _upload(String path, String name, String bizType) =>
+      client.postMultipart(
+        '/api/app/files/upload',
+        filePath: path,
+        fileName: name,
+        fields: {'bizType': bizType},
+        decode: (raw) {
+          if (raw is! Map || raw['fileId'] is! num || raw['url'] is! String) {
+            throw const ParseException('Invalid upload response.');
+          }
+          return UploadedFile(
+            fileId: (raw['fileId'] as num).toInt(),
+            url: raw['url'] as String,
+          );
+        },
       );
-    },
-  );
 
   @override
   Future<UploadedFile> copyRemoteImage(String url) async {

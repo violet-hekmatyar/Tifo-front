@@ -22,9 +22,7 @@ void main() {
     expect(find.text('消息能力暂不可用'), findsOneWidget);
   });
 
-  testWidgets('F07 my likes route states missing backend contract', (
-    tester,
-  ) async {
+  testWidgets('my likes route uses the real paged page', (tester) async {
     final auth = AuthController(_ReadyAuthRepository());
     await auth.initialize();
     final router = createAppRouter(auth)..go('/users/me/likes');
@@ -33,8 +31,8 @@ void main() {
       ProviderScope(child: MaterialApp.router(routerConfig: router)),
     );
     await tester.pumpAndSettle();
-    expect(find.text('我的点赞暂不可用'), findsOneWidget);
-    expect(find.textContaining('没有“我的点赞”分页查询接口'), findsOneWidget);
+    expect(find.text('我的点赞'), findsOneWidget);
+    expect(find.textContaining('没有“我的点赞”分页查询接口'), findsNothing);
   });
 }
 

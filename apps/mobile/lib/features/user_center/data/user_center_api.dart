@@ -23,6 +23,8 @@ final class UserCenterApi {
       _page('/api/app/users/me/contents', page, size, _content);
   Future<UserPage<UserFavoriteItem>> myFavorites(int page, int size) =>
       _page('/api/app/users/me/favorites', page, size, _favorite);
+  Future<UserPage<UserLikeItem>> myLikes(int page, int size) =>
+      _page('/api/app/users/me/likes', page, size, _like);
   Future<UserPage<UserCommentItem>> myComments(int page, int size) =>
       _page('/api/app/users/me/comments', page, size, _comment);
   Future<UserPage<UserContentItem>> userContents(
@@ -30,6 +32,16 @@ final class UserCenterApi {
     int page,
     int size,
   ) => _page('/api/app/users/$userId/contents', page, size, _content);
+  Future<UserPage<UserFavoriteItem>> userFavorites(
+    int userId,
+    int page,
+    int size,
+  ) => _page('/api/app/users/$userId/favorites', page, size, _favorite);
+  Future<UserPage<UserCommentItem>> userComments(
+    int userId,
+    int page,
+    int size,
+  ) => _page('/api/app/users/$userId/comments', page, size, _comment);
   Future<UserPage<UserBrief>> followings(int userId, int page, int size) =>
       _page('/api/app/users/$userId/followings', page, size, _userBrief);
   Future<UserPage<UserBrief>> followers(int userId, int page, int size) =>
@@ -52,6 +64,16 @@ final class UserCenterApi {
       relationStatus: _text(raw['relationStatus']) ?? profile.relationStatus,
     );
   }
+
+  Future<String> bindAvatar(int fileId) => _client.post(
+    '/api/app/users/me/avatar',
+    body: {'fileId': fileId},
+    decode: (raw) {
+      final map = _map(raw);
+      return _text(map['avatarUrl']) ??
+          (throw const ParseException('Invalid avatar response.'));
+    },
+  );
 
   Future<bool> toggleEntity(String type, int id) => _client.post(
     '/api/app/follows/toggle',
@@ -182,6 +204,26 @@ UserFavoriteItem _favorite(Object? raw) {
     summary: _text(map['summary']),
     coverUrl: _text(map['coverUrl']),
     favoriteTime: DateTime.tryParse(_text(map['favoriteTime']) ?? ''),
+  );
+}
+
+UserLikeItem _like(Object? raw) {
+  final map = _map(raw);
+  return UserLikeItem(
+    contentId: _requiredInt(map, 'contentId'),
+    contentType: _text(map['contentType']) ?? 'UNKNOWN',
+    title: _text(map['title']) ?? '未命名内容',
+    summary: _text(map['summary']),
+    coverUrl: _text(map['coverUrl']),
+    authorId: map['authorId'] is num ? (map['authorId'] as num).toInt() : null,
+    authorNickname: _text(map['authorNickname']),
+    authorAvatarUrl: _text(map['authorAvatarUrl']),
+    likedAt: DateTime.tryParse(_text(map['likedAt']) ?? ''),
+    contentStatus: _text(map['contentStatus']),
+    visible: map['visible'] == true,
+    likeCount: _integer(map['likeCount']),
+    commentCount: _integer(map['commentCount']),
+    favoriteCount: _integer(map['favoriteCount']),
   );
 }
 

@@ -7,6 +7,7 @@ import '../../../../core/network/network_providers.dart';
 import '../../../../shared/design_system/app_design_tokens.dart';
 import '../../../../shared/widgets/app_entity_avatar.dart';
 import '../../../../shared/widgets/app_state_view.dart';
+import '../../domain/user_center_models.dart';
 import '../controllers/user_center_controllers.dart';
 
 class PublicUserPage extends ConsumerStatefulWidget {
@@ -83,6 +84,10 @@ class _Body extends ConsumerWidget {
                   '@${p.username}',
                   style: const TextStyle(color: AppColors.inkMuted),
                 ),
+                Text(
+                  p.relationLabel,
+                  style: const TextStyle(color: AppColors.brand),
+                ),
                 if (p.bio case final bio?) ...[
                   const SizedBox(height: AppSpacing.sm),
                   Text(bio, textAlign: TextAlign.center),
@@ -102,7 +107,7 @@ class _Body extends ConsumerWidget {
                     _Stat('${p.likeReceivedCount}', '获赞'),
                   ],
                 ),
-                if (!p.currentUser) ...[
+                if (!p.isSelf) ...[
                   const SizedBox(height: AppSpacing.lg),
                   SizedBox(
                     width: double.infinity,
@@ -110,7 +115,7 @@ class _Body extends ConsumerWidget {
                       key: const ValueKey('public_user_follow'),
                       onPressed: controller.state.followBusy
                           ? null
-                          : controller.toggleFollow,
+                          : () => _confirmFollow(context, controller, p),
                       icon: Icon(
                         p.followed
                             ? Icons.person_remove_outlined
@@ -152,12 +157,52 @@ class _Body extends ConsumerWidget {
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => context.push('/users/${p.userId}/followers'),
               ),
+              ListTile(
+                title: const Text('收藏内容'),
+                subtitle: const Text('仅本人可查看；无权限时显示隐私提示'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.push('/users/${p.userId}/favorites'),
+              ),
+              ListTile(
+                title: const Text('评论记录'),
+                subtitle: const Text('仅本人可查看；无权限时显示隐私提示'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.push('/users/${p.userId}/comments'),
+              ),
             ],
           ),
         ),
       ],
     );
   }
+}
+
+Future<void> _confirmFollow(
+  BuildContext context,
+  PublicProfileController controller,
+  UserProfile profile,
+) async {
+  final follow = !profile.followed;
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(follow ? '确认关注' : '确认取消关注'),
+      content: Text(
+        follow ? '确认关注 ${profile.nickname}？' : '确认取消关注 ${profile.nickname}？',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('确认'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed == true) await controller.toggleFollow();
 }
 
 class _Stat extends StatelessWidget {

@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/network/network_exceptions.dart';
+import '../../../file_upload/data/file_upload_repository.dart';
+import '../../../file_upload/domain/uploaded_file.dart';
 import '../../data/user_center_repository.dart';
 import '../../domain/user_center_models.dart';
 
@@ -15,9 +18,12 @@ final myStandProvider = FutureProvider.autoDispose<UserStand>(
 
 enum UserListKind {
   myContents,
+  myLikes,
   myFavorites,
   myComments,
   userContents,
+  userFavorites,
+  userComments,
   followings,
   followers,
 }
@@ -33,7 +39,7 @@ final class UserListRequest {
   int get hashCode => Object.hash(kind, userId);
 }
 
-enum UserListStatus { loading, ready, empty, failure }
+enum UserListStatus { loading, ready, empty, restricted, failure }
 
 final class UserListState {
   const UserListState({
@@ -83,7 +89,9 @@ final class UserListController extends ChangeNotifier {
     } on AppNetworkException catch (error) {
       _set(
         UserListState(
-          status: UserListStatus.failure,
+          status: error is BusinessException && error.code == 40301
+              ? UserListStatus.restricted
+              : UserListStatus.failure,
           message: userCenterError(error),
         ),
       );
@@ -96,7 +104,11 @@ final class UserListController extends ChangeNotifier {
     try {
       _setPage(await _load(1), replace: true);
     } on AppNetworkException catch (error) {
-      _copy(refreshing: false, message: userCenterError(error));
+      if (_restricted(error)) {
+        _set(_restrictedState(error));
+      } else {
+        _copy(refreshing: false, message: userCenterError(error));
+      }
     }
   }
 
@@ -106,7 +118,11 @@ final class UserListController extends ChangeNotifier {
     try {
       _setPage(await _load(state.page + 1), replace: false);
     } on AppNetworkException catch (error) {
-      _copy(loadingMore: false, appendMessage: userCenterError(error));
+      if (_restricted(error)) {
+        _set(_restrictedState(error));
+      } else {
+        _copy(loadingMore: false, appendMessage: userCenterError(error));
+      }
     }
   }
 
@@ -150,9 +166,20 @@ final class UserListController extends ChangeNotifier {
     final id = request.userId;
     final result = switch (request.kind) {
       UserListKind.myContents => await _repository.myContents(page, pageSize),
+      UserListKind.myLikes => await _repository.myLikes(page, pageSize),
       UserListKind.myFavorites => await _repository.myFavorites(page, pageSize),
       UserListKind.myComments => await _repository.myComments(page, pageSize),
       UserListKind.userContents => await _repository.userContents(
+        id!,
+        page,
+        pageSize,
+      ),
+      UserListKind.userFavorites => await _repository.userFavorites(
+        id!,
+        page,
+        pageSize,
+      ),
+      UserListKind.userComments => await _repository.userComments(
         id!,
         page,
         pageSize,
@@ -177,9 +204,14 @@ final class UserListController extends ChangeNotifier {
   }
 
   void _setPage(UserPage<Object> page, {required bool replace}) {
-    final values = replace
+    final merged = replace
         ? page.records
         : <Object>[...state.items, ...page.records];
+    final values = <Object>[];
+    final seen = <String>{};
+    for (final item in merged) {
+      if (seen.add(_itemKey(item))) values.add(item);
+    }
     _set(
       UserListState(
         status: values.isEmpty ? UserListStatus.empty : UserListStatus.ready,
@@ -215,6 +247,23 @@ final class UserListController extends ChangeNotifier {
     notifyListeners();
   }
 }
+
+bool _restricted(AppNetworkException error) =>
+    error is BusinessException && error.code == 40301;
+
+UserListState _restrictedState(AppNetworkException error) => UserListState(
+  status: UserListStatus.restricted,
+  message: userCenterError(error),
+);
+
+String _itemKey(Object item) => switch (item) {
+  UserContentItem value => 'content:${value.contentId}',
+  UserLikeItem value => 'like:${value.contentId}',
+  UserFavoriteItem value => 'favorite:${value.contentId}',
+  UserCommentItem value => 'comment:${value.commentId}',
+  UserBrief value => 'user:${value.userId}',
+  _ => '${item.runtimeType}:${item.hashCode}',
+};
 
 enum PublicProfileStatus { loading, ready, notFound, failure }
 
@@ -273,7 +322,7 @@ final class PublicProfileController extends ChangeNotifier {
 
   Future<void> toggleFollow() async {
     final previous = state.profile;
-    if (previous == null || previous.currentUser || state.followBusy) return;
+    if (previous == null || previous.isSelf || state.followBusy) return;
     final nextFollowed = !previous.followed;
     state = PublicProfileState(
       status: PublicProfileStatus.ready,
@@ -282,7 +331,10 @@ final class PublicProfileController extends ChangeNotifier {
           0,
           1 << 30,
         ),
-        relationStatus: nextFollowed ? 'FOLLOWING' : 'NONE',
+        relationStatus: relationAfterLocalAction(
+          previous.relationStatus,
+          follow: nextFollowed,
+        ),
       ),
       followBusy: true,
     );
@@ -308,8 +360,111 @@ String userCenterError(AppNetworkException error) => switch (error) {
   TimeoutException() => '请求超时，请稍后重试。',
   BusinessException(code: 40401) => '用户或内容不存在。',
   BusinessException(code: 40001) => error.message,
+  BusinessException(code: 40301) => '该列表受隐私保护，仅用户本人可以查看。',
   BusinessException() => error.message,
   HttpException(statusCode: 403) => '当前账号无权执行此操作。',
   ParseException() => '数据格式异常，请稍后重试。',
   _ => '加载失败，请稍后重试。',
 };
+
+abstract interface class AvatarPickerContract {
+  Future<XFile?> pick();
+}
+
+final class DeviceAvatarPicker implements AvatarPickerContract {
+  @override
+  Future<XFile?> pick() =>
+      ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 90);
+}
+
+final class AvatarUpdateState {
+  const AvatarUpdateState({this.busy = false, this.avatarUrl, this.message});
+  final bool busy;
+  final String? avatarUrl;
+  final String? message;
+}
+
+final avatarUpdateControllerProvider = ChangeNotifierProvider.autoDispose(
+  (ref) => AvatarUpdateController(
+    ref.watch(userCenterRepositoryProvider),
+    ref.watch(avatarFileUploadRepositoryProvider),
+    DeviceAvatarPicker(),
+    onBound: () => ref.invalidate(mySummaryProvider),
+  ),
+);
+
+final class AvatarUpdateController extends ChangeNotifier {
+  AvatarUpdateController(
+    this._users,
+    this._files,
+    this._picker, {
+    this.onBound,
+  });
+  final UserCenterRepositoryContract _users;
+  final AvatarFileUploadRepositoryContract _files;
+  final AvatarPickerContract _picker;
+  final VoidCallback? onBound;
+  AvatarUpdateState state = const AvatarUpdateState();
+
+  Future<void> chooseAndUpload() async {
+    if (state.busy) return;
+    XFile? picked;
+    try {
+      picked = await _picker.pick();
+    } catch (_) {
+      state = const AvatarUpdateState(message: '无法读取所选图片，请重新选择。');
+      notifyListeners();
+      return;
+    }
+    if (picked == null) return;
+    state = const AvatarUpdateState(busy: true);
+    notifyListeners();
+    try {
+      final uploaded = await _files.uploadAvatar(picked.path, picked.name);
+      try {
+        final url = await _users.bindAvatar(uploaded.fileId);
+        _complete(url);
+      } on BusinessException catch (error) {
+        await _safeDelete(uploaded.fileId);
+        state = AvatarUpdateState(message: userCenterError(error));
+      } on AppNetworkException catch (error) {
+        await _reconcile(uploaded, error);
+      } catch (_) {
+        state = const AvatarUpdateState(message: '头像绑定结果暂时无法确认，请刷新个人主页。');
+      }
+    } on AppNetworkException catch (error) {
+      state = AvatarUpdateState(message: userCenterError(error));
+    } catch (_) {
+      state = const AvatarUpdateState(message: '头像上传失败，原头像已保留。');
+    }
+    notifyListeners();
+  }
+
+  Future<void> _reconcile(
+    UploadedFile uploaded,
+    AppNetworkException error,
+  ) async {
+    try {
+      final summary = await _users.summary();
+      if (summary.avatarUrl == uploaded.url) {
+        _complete(uploaded.url);
+        return;
+      }
+      await _safeDelete(uploaded.fileId);
+    } catch (_) {
+      // The bind outcome is ambiguous, so the uploaded file must be retained.
+    }
+    state = AvatarUpdateState(message: userCenterError(error));
+  }
+
+  Future<void> _safeDelete(int fileId) async {
+    try {
+      await _files.delete(fileId);
+    } catch (_) {}
+  }
+
+  void _complete(String url) {
+    state = AvatarUpdateState(avatarUrl: url);
+    onBound?.call();
+  }
+}

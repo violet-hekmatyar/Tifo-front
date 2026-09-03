@@ -15,12 +15,24 @@ abstract interface class UserCenterRepositoryContract {
   Future<void> deleteComment(int commentId);
   Future<UserPage<UserContentItem>> myContents(int page, int size);
   Future<UserPage<UserFavoriteItem>> myFavorites(int page, int size);
+  Future<UserPage<UserLikeItem>> myLikes(int page, int size);
   Future<UserPage<UserCommentItem>> myComments(int page, int size);
   Future<UserPage<UserContentItem>> userContents(
     int userId,
     int page,
     int size,
   );
+  Future<UserPage<UserFavoriteItem>> userFavorites(
+    int userId,
+    int page,
+    int size,
+  );
+  Future<UserPage<UserCommentItem>> userComments(
+    int userId,
+    int page,
+    int size,
+  );
+  Future<String> bindAvatar(int fileId);
   Future<UserPage<UserBrief>> followings(int userId, int page, int size);
   Future<UserPage<UserBrief>> followers(int userId, int page, int size);
 }
@@ -57,6 +69,9 @@ final class UserCenterRepository implements UserCenterRepositoryContract {
   Future<UserPage<UserFavoriteItem>> myFavorites(int page, int size) =>
       _api.myFavorites(page, size);
   @override
+  Future<UserPage<UserLikeItem>> myLikes(int page, int size) =>
+      _api.myLikes(page, size);
+  @override
   Future<UserPage<UserCommentItem>> myComments(int page, int size) =>
       _api.myComments(page, size);
   @override
@@ -65,6 +80,20 @@ final class UserCenterRepository implements UserCenterRepositoryContract {
     int page,
     int size,
   ) => _api.userContents(userId, page, size);
+  @override
+  Future<UserPage<UserFavoriteItem>> userFavorites(
+    int userId,
+    int page,
+    int size,
+  ) => _api.userFavorites(userId, page, size);
+  @override
+  Future<UserPage<UserCommentItem>> userComments(
+    int userId,
+    int page,
+    int size,
+  ) => _api.userComments(userId, page, size);
+  @override
+  Future<String> bindAvatar(int fileId) => _api.bindAvatar(fileId);
   @override
   Future<UserPage<UserBrief>> followings(int userId, int page, int size) =>
       _api.followings(userId, page, size);

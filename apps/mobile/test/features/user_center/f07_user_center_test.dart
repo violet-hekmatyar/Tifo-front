@@ -128,6 +128,9 @@ final class _FakeRepository implements UserCenterRepositoryContract {
   Future<UserPage<UserFavoriteItem>> myFavorites(int page, int size) =>
       throw UnimplementedError();
   @override
+  Future<UserPage<UserLikeItem>> myLikes(int page, int size) =>
+      throw UnimplementedError();
+  @override
   Future<UserPage<UserCommentItem>> myComments(int page, int size) =>
       throw UnimplementedError();
   @override
@@ -136,6 +139,20 @@ final class _FakeRepository implements UserCenterRepositoryContract {
     int page,
     int size,
   ) => throw UnimplementedError();
+  @override
+  Future<UserPage<UserFavoriteItem>> userFavorites(
+    int userId,
+    int page,
+    int size,
+  ) => throw UnimplementedError();
+  @override
+  Future<UserPage<UserCommentItem>> userComments(
+    int userId,
+    int page,
+    int size,
+  ) => throw UnimplementedError();
+  @override
+  Future<String> bindAvatar(int fileId) => throw UnimplementedError();
   @override
   Future<UserPage<UserBrief>> followings(int userId, int page, int size) =>
       throw UnimplementedError();
