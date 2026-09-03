@@ -10,9 +10,17 @@ final class FeedPageDto {
 
   factory FeedPageDto.fromRaw(Object? raw) {
     final map = jsonMap(raw);
+    final attribution = RecommendationAttribution(
+      algorithmVersion: jsonString(map?['algorithmVersion']),
+      modelVersion: jsonString(map?['modelVersion']),
+      experimentId: jsonString(map?['experimentId']),
+      experimentBucket: jsonString(map?['experimentBucket']),
+      requestId: jsonString(map?['requestId']),
+    );
     final page = PageResult<FeedCard>.fromRaw(
       raw,
-      (item) => FeedCardDto.fromRaw(item).toDomain(),
+      (item) =>
+          FeedCardDto.fromRaw(item, pageAttribution: attribution).toDomain(),
     );
     return FeedPageDto(
       FeedPage(
@@ -22,13 +30,7 @@ final class FeedPageDto {
         pageSize: page.pageSize,
         pages: page.pages,
         nextCursor: jsonString(map?['nextCursor']),
-        attribution: RecommendationAttribution(
-          algorithmVersion: jsonString(map?['algorithmVersion']),
-          modelVersion: jsonString(map?['modelVersion']),
-          experimentId: jsonString(map?['experimentId']),
-          experimentBucket: jsonString(map?['experimentBucket']),
-          requestId: jsonString(map?['requestId']),
-        ),
+        attribution: attribution,
       ),
     );
   }

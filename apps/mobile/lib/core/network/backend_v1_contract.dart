@@ -152,4 +152,17 @@ final class RecommendationAttribution {
   final int? position;
   final String? reasonCode;
   final String? reason;
+
+  RecommendationAttribution withFallback(RecommendationAttribution fallback) =>
+      RecommendationAttribution(
+        algorithmVersion: algorithmVersion ?? fallback.algorithmVersion,
+        modelVersion: modelVersion ?? fallback.modelVersion,
+        experimentId: experimentId ?? fallback.experimentId,
+        experimentBucket: experimentBucket ?? fallback.experimentBucket,
+        requestId: requestId ?? fallback.requestId,
+        impressionId: impressionId ?? fallback.impressionId,
+        position: position ?? fallback.position,
+        reasonCode: reasonCode ?? fallback.reasonCode,
+        reason: reason ?? fallback.reason,
+      );
 }

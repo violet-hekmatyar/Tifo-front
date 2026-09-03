@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/network/media_url_resolver.dart';
+import '../../../../core/network/backend_v1_contract.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../shared/design_system/app_design_tokens.dart';
 import '../../../../shared/widgets/app_entity_avatar.dart';
@@ -9,6 +10,8 @@ import '../../../../shared/widgets/app_state_view.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../interaction/presentation/widgets/comment_section.dart';
 import '../../../feed/presentation/controllers/feed_refresh_coordinator.dart';
+import '../../../recommendation/domain/recommendation_behavior.dart';
+import '../../../recommendation/presentation/recommendation_behavior_dispatcher.dart';
 import '../../domain/content_detail.dart';
 import '../controllers/content_detail_controller.dart';
 import '../widgets/content_media_gallery.dart';
@@ -17,10 +20,12 @@ class ContentDetailPage extends ConsumerStatefulWidget {
   const ContentDetailPage({
     required this.contentId,
     this.refreshFeedOnExit = false,
+    this.recommendationSource,
     super.key,
   });
   final int contentId;
   final bool refreshFeedOnExit;
+  final RecommendationSourceContext? recommendationSource;
 
   @override
   ConsumerState<ContentDetailPage> createState() => _ContentDetailPageState();
@@ -28,6 +33,11 @@ class ContentDetailPage extends ConsumerStatefulWidget {
 
 class _ContentDetailPageState extends ConsumerState<ContentDetailPage> {
   bool _returning = false;
+  bool _detailReported = false;
+
+  void _report(RecommendationBehaviorType behavior) => ref
+      .read(recommendationBehaviorDispatcherProvider)
+      .record(behavior, widget.recommendationSource);
 
   void _returnToPreviousPage() {
     if (_returning) return;
@@ -46,6 +56,12 @@ class _ContentDetailPageState extends ConsumerState<ContentDetailPage> {
   Widget build(BuildContext context) {
     final c = ref.watch(contentDetailControllerProvider(widget.contentId));
     final s = c.state;
+    if (s.status == DetailStatus.ready && !_detailReported) {
+      _detailReported = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _report(RecommendationBehaviorType.detail);
+      });
+    }
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -105,6 +121,7 @@ class _ContentDetailPageState extends ConsumerState<ContentDetailPage> {
           DetailStatus.ready => _DetailBody(
             controller: c,
             currentUserId: ref.watch(authControllerProvider).state.user?.id,
+            recommendationSource: widget.recommendationSource,
           ),
         },
       ),
@@ -113,9 +130,14 @@ class _ContentDetailPageState extends ConsumerState<ContentDetailPage> {
 }
 
 class _DetailBody extends ConsumerWidget {
-  const _DetailBody({required this.controller, required this.currentUserId});
+  const _DetailBody({
+    required this.controller,
+    required this.currentUserId,
+    required this.recommendationSource,
+  });
   final ContentDetailController controller;
   final int? currentUserId;
+  final RecommendationSourceContext? recommendationSource;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final d = controller.state.detail!;
@@ -207,7 +229,16 @@ class _DetailBody extends ConsumerWidget {
               child: FilledButton.tonalIcon(
                 onPressed: controller.state.likeBusy
                     ? null
-                    : controller.toggleLike,
+                    : () async {
+                        if (await controller.toggleLike()) {
+                          ref
+                              .read(recommendationBehaviorDispatcherProvider)
+                              .record(
+                                RecommendationBehaviorType.like,
+                                recommendationSource,
+                              );
+                        }
+                      },
                 icon: Icon(d.liked ? Icons.favorite : Icons.favorite_border),
                 label: Text('${d.likeCount} 点赞'),
               ),
@@ -217,7 +248,16 @@ class _DetailBody extends ConsumerWidget {
               child: FilledButton.tonalIcon(
                 onPressed: controller.state.favoriteBusy
                     ? null
-                    : controller.toggleFavorite,
+                    : () async {
+                        if (await controller.toggleFavorite()) {
+                          ref
+                              .read(recommendationBehaviorDispatcherProvider)
+                              .record(
+                                RecommendationBehaviorType.favorite,
+                                recommendationSource,
+                              );
+                        }
+                      },
                 icon: Icon(
                   d.favorited ? Icons.bookmark : Icons.bookmark_border,
                 ),
@@ -232,7 +272,13 @@ class _DetailBody extends ConsumerWidget {
             style: const TextStyle(color: AppColors.error),
           ),
         const SizedBox(height: AppSpacing.xl),
-        CommentSection(contentId: d.contentId, currentUserId: currentUserId),
+        CommentSection(
+          contentId: d.contentId,
+          currentUserId: currentUserId,
+          onCommentCreated: () => ref
+              .read(recommendationBehaviorDispatcherProvider)
+              .record(RecommendationBehaviorType.comment, recommendationSource),
+        ),
       ],
     );
   }

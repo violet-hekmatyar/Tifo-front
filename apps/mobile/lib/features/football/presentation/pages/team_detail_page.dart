@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/network/media_url_resolver.dart';
+import '../../../../core/network/backend_v1_contract.dart';
 import '../../../../core/network/network_exceptions.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../shared/design_system/app_design_tokens.dart';
@@ -10,6 +11,8 @@ import '../../../../shared/widgets/app_content_image.dart';
 import '../../../../shared/widgets/app_state_view.dart';
 import '../../../../shared/widgets/app_team_logo.dart';
 import '../../../user_center/data/user_center_repository.dart';
+import '../../../recommendation/domain/recommendation_behavior.dart';
+import '../../../recommendation/presentation/recommendation_behavior_dispatcher.dart';
 import '../../domain/football_models.dart';
 import '../../domain/team_detail_models.dart';
 import '../controllers/football_data_controller.dart';
@@ -19,8 +22,13 @@ import '../controllers/team_detail_controllers.dart';
 import '../widgets/football_widgets.dart';
 
 class TeamDetailPage extends ConsumerStatefulWidget {
-  const TeamDetailPage({required this.teamId, super.key});
+  const TeamDetailPage({
+    required this.teamId,
+    this.recommendationSource,
+    super.key,
+  });
   final int teamId;
+  final RecommendationSourceContext? recommendationSource;
   @override
   ConsumerState<TeamDetailPage> createState() => _TeamDetailPageState();
 }
@@ -28,6 +36,7 @@ class TeamDetailPage extends ConsumerStatefulWidget {
 class _TeamDetailPageState extends ConsumerState<TeamDetailPage> {
   int _tab = 0;
   late final TeamDetailContext _request;
+  bool _detailReported = false;
 
   @override
   void initState() {
@@ -43,6 +52,19 @@ class _TeamDetailPageState extends ConsumerState<TeamDetailPage> {
   @override
   Widget build(BuildContext context) {
     final detail = ref.watch(teamDetailProvider(widget.teamId));
+    if (detail.hasValue && !_detailReported) {
+      _detailReported = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref
+              .read(recommendationBehaviorDispatcherProvider)
+              .record(
+                RecommendationBehaviorType.detail,
+                widget.recommendationSource,
+              );
+        }
+      });
+    }
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(

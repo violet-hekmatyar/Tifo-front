@@ -76,9 +76,9 @@ final class ContentDetailController extends ChangeNotifier {
     }
   }
 
-  Future<void> toggleLike() async {
+  Future<bool> toggleLike() async {
     final d = state.detail;
-    if (d == null || state.likeBusy) return;
+    if (d == null || state.likeBusy) return false;
     state = ContentDetailState(
       status: state.status,
       detail: d.interactionCopy(
@@ -91,22 +91,24 @@ final class ContentDetailController extends ChangeNotifier {
     );
     notifyListeners();
     try {
-      await interactions.toggleLike(id);
+      final result = await interactions.toggleLike(id);
       await load();
+      return result.active;
     } on AppNetworkException catch (e) {
-      if (_disposed) return;
+      if (_disposed) return false;
       state = ContentDetailState(
         status: DetailStatus.ready,
         detail: d,
         message: e.message,
       );
       notifyListeners();
+      return false;
     }
   }
 
-  Future<void> toggleFavorite() async {
+  Future<bool> toggleFavorite() async {
     final d = state.detail;
-    if (d == null || state.favoriteBusy) return;
+    if (d == null || state.favoriteBusy) return false;
     state = ContentDetailState(
       status: state.status,
       detail: d.interactionCopy(
@@ -122,16 +124,18 @@ final class ContentDetailController extends ChangeNotifier {
     );
     notifyListeners();
     try {
-      await interactions.toggleFavorite(id);
+      final result = await interactions.toggleFavorite(id);
       await load();
+      return result.active;
     } on AppNetworkException catch (e) {
-      if (_disposed) return;
+      if (_disposed) return false;
       state = ContentDetailState(
         status: DetailStatus.ready,
         detail: d,
         message: e.message,
       );
       notifyListeners();
+      return false;
     }
   }
 

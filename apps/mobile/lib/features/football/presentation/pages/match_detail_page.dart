@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/network/media_url_resolver.dart';
+import '../../../../core/network/backend_v1_contract.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../shared/design_system/app_design_tokens.dart';
 import '../../../../shared/widgets/app_state_view.dart';
 import '../../../../shared/widgets/app_team_logo.dart';
+import '../../../recommendation/domain/recommendation_behavior.dart';
+import '../../../recommendation/presentation/recommendation_behavior_dispatcher.dart';
 import '../../domain/football_models.dart';
 import '../../domain/match_detail_models.dart';
 import '../controllers/football_detail_providers.dart';
@@ -16,14 +19,20 @@ import '../widgets/football_widgets.dart';
 import 'team_detail_page.dart';
 
 class MatchDetailPage extends ConsumerStatefulWidget {
-  const MatchDetailPage({required this.matchId, super.key});
+  const MatchDetailPage({
+    required this.matchId,
+    this.recommendationSource,
+    super.key,
+  });
   final int matchId;
+  final RecommendationSourceContext? recommendationSource;
   @override
   ConsumerState<MatchDetailPage> createState() => _MatchDetailPageState();
 }
 
 class _MatchDetailPageState extends ConsumerState<MatchDetailPage> {
   int _tab = 0;
+  bool _detailReported = false;
   @override
   Widget build(BuildContext context) {
     if (widget.matchId <= 0) {
@@ -45,6 +54,19 @@ class _MatchDetailPageState extends ConsumerState<MatchDetailPage> {
       );
     }
     final async = ref.watch(matchDetailProvider(widget.matchId));
+    if (async.hasValue && !_detailReported) {
+      _detailReported = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref
+              .read(recommendationBehaviorDispatcherProvider)
+              .record(
+                RecommendationBehaviorType.detail,
+                widget.recommendationSource,
+              );
+        }
+      });
+    }
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(

@@ -18,6 +18,7 @@ import '../../features/main_shell/presentation/main_shell_page.dart';
 import '../../features/message/presentation/messages_unavailable_page.dart';
 import '../../features/search/presentation/pages/global_search_page.dart';
 import '../../features/search/domain/search_models.dart';
+import '../../features/recommendation/domain/recommendation_behavior.dart';
 import '../../features/user_center/presentation/controllers/user_center_controllers.dart';
 import '../../features/user_center/domain/user_center_models.dart';
 import '../../features/user_center/presentation/pages/edit_profile_page.dart';
@@ -282,6 +283,9 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
       builder: (context, state) => ContentDetailPage(
         contentId: int.tryParse(state.pathParameters['contentId'] ?? '') ?? -1,
         refreshFeedOnExit: state.extra is PublishedContentNavigation,
+        recommendationSource: state.extra is RecommendationNavigationData
+            ? (state.extra as RecommendationNavigationData).source
+            : null,
       ),
       routes: [
         GoRoute(
@@ -300,6 +304,9 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => MatchDetailPage(
         matchId: int.tryParse(state.pathParameters['matchId'] ?? '') ?? -1,
+        recommendationSource: state.extra is RecommendationNavigationData
+            ? (state.extra as RecommendationNavigationData).source
+            : null,
       ),
     ),
     GoRoute(
@@ -314,6 +321,9 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => TeamDetailPage(
         teamId: int.tryParse(state.pathParameters['teamId'] ?? '') ?? -1,
+        recommendationSource: state.extra is RecommendationNavigationData
+            ? (state.extra as RecommendationNavigationData).source
+            : null,
       ),
     ),
     GoRoute(
@@ -322,6 +332,9 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => PlayerDetailPage(
         playerId: int.tryParse(state.pathParameters['playerId'] ?? '') ?? -1,
+        recommendationSource: state.extra is RecommendationNavigationData
+            ? (state.extra as RecommendationNavigationData).source
+            : null,
       ),
     ),
   ],

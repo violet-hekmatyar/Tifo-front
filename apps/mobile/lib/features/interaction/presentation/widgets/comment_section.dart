@@ -10,10 +10,12 @@ class CommentSection extends ConsumerStatefulWidget {
   const CommentSection({
     required this.contentId,
     required this.currentUserId,
+    this.onCommentCreated,
     super.key,
   });
   final int contentId;
   final int? currentUserId;
+  final VoidCallback? onCommentCreated;
   @override
   ConsumerState<CommentSection> createState() => _CommentSectionState();
 }
@@ -104,6 +106,7 @@ class _CommentSectionState extends ConsumerState<CommentSection> {
                   : () async {
                       final ok = await c.submit(input.text, replyTo: replyTo);
                       if (ok && mounted) {
+                        widget.onCommentCreated?.call();
                         input.clear();
                         setState(() => replyTo = null);
                       }

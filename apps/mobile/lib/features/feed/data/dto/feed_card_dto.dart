@@ -5,7 +5,11 @@ import '../../domain/feed_card.dart';
 final class FeedCardDto {
   const FeedCardDto(this.card);
 
-  factory FeedCardDto.fromRaw(Object? raw) {
+  factory FeedCardDto.fromRaw(
+    Object? raw, {
+    RecommendationAttribution pageAttribution =
+        const RecommendationAttribution(),
+  }) {
     final map = jsonMap(raw);
     if (map == null) {
       return const FeedCardDto(
@@ -21,7 +25,7 @@ final class FeedCardDto {
         jsonString(map['cardKey']) ??
         '${rawType}_${jsonInt(map['contentId']) ?? jsonInt(map['matchId']) ?? jsonInt(payload?['commentId']) ?? 'UNKNOWN'}';
     final cardKey = jsonString(map['cardKey']);
-    final attribution = _attribution(map);
+    final attribution = _attribution(map).withFallback(pageAttribution);
 
     try {
       final card = switch (type) {
@@ -278,6 +282,10 @@ PlayerRatingFeedCard? _playerRating(
 RecommendationAttribution _attribution(Map<Object?, Object?> map) =>
     RecommendationAttribution(
       algorithmVersion: jsonString(map['algorithmVersion']),
+      modelVersion: jsonString(map['modelVersion']),
+      experimentId: jsonString(map['experimentId']),
+      experimentBucket: jsonString(map['experimentBucket']),
+      requestId: jsonString(map['requestId']),
       impressionId: jsonString(map['impressionId']),
       position: jsonInt(map['position']),
       reasonCode: jsonString(map['reasonCode']),
