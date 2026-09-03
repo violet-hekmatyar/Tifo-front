@@ -11,7 +11,6 @@ import 'package:tifo/core/network/network_exceptions.dart';
 import 'package:tifo/features/auth/data/auth_repository.dart';
 import 'package:tifo/features/auth/domain/auth_user.dart';
 import 'package:tifo/features/auth/presentation/controllers/auth_controller.dart';
-import 'package:tifo/features/auth/presentation/pages/authenticated_placeholder_page.dart';
 import 'package:tifo/features/auth/presentation/pages/login_page.dart';
 import 'package:tifo/features/auth/presentation/pages/register_page.dart';
 import 'package:tifo/features/onboarding/data/onboarding_repository.dart';
@@ -189,16 +188,6 @@ void main() {
       authRedirect(AuthStatus.authenticatedReady, '/onboarding'),
       '/app/home',
     );
-  });
-
-  testWidgets('temporary completion page contains no F04 fake data', (
-    tester,
-  ) async {
-    await _pumpPage(tester, const AuthenticatedPlaceholderPage());
-    expect(find.text('登录与首次设置已完成'), findsOneWidget);
-    expect(find.text('F04 主框架与首页待开发'), findsOneWidget);
-    expect(find.textContaining('新闻'), findsNothing);
-    expect(find.textContaining('比赛'), findsNothing);
   });
 }
 

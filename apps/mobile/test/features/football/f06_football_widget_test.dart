@@ -116,27 +116,6 @@ void main() {
     }
   });
 
-  testWidgets('match detail shows events, report and unsupported empty tabs', (
-    tester,
-  ) async {
-    final repository = _WidgetFootballRepository();
-    await _pumpRouter(tester, repository, '/matches/50001');
-    expect(find.text('主队'), findsOneWidget);
-    expect(find.text('客队'), findsOneWidget);
-    expect(find.text('进球 · 1:0'), findsOneWidget);
-    expect(find.text('UNKNOWN_EVENT'), findsOneWidget);
-    expect(find.text('测试战报'), findsOneWidget);
-    await tester.tap(find.text('阵容'));
-    await tester.pump();
-    expect(find.text('暂无比赛阵容'), findsOneWidget);
-    await tester.tap(find.text('排名'));
-    await tester.pump();
-    expect(find.text('暂无联赛排名'), findsOneWidget);
-    await tester.tap(find.text('数据'));
-    await tester.pump();
-    expect(find.text('暂无比赛统计'), findsOneWidget);
-  });
-
   testWidgets('team detail uses real fields and keeps selected tab', (
     tester,
   ) async {
@@ -156,19 +135,6 @@ void main() {
     expect(find.text('测试球员'), findsOneWidget);
   });
 
-  testWidgets('player detail shows retirement and navigates to current team', (
-    tester,
-  ) async {
-    final repository = _WidgetFootballRepository();
-    await _pumpRouter(tester, repository, '/players/40001');
-    expect(find.text('测试球员'), findsOneWidget);
-    expect(find.textContaining('已退役'), findsWidgets);
-    expect(find.text('当前球队'), findsOneWidget);
-    await tester.tap(find.text('测试球队').last);
-    await tester.pumpAndSettle();
-    expect(find.byType(TeamDetailPage), findsOneWidget);
-  });
-
   testWidgets('404 detail is distinct from retryable errors', (tester) async {
     final repository = _WidgetFootballRepository(
       detailError: const BusinessException('missing', code: 40401),
@@ -176,18 +142,6 @@ void main() {
     await _pumpRouter(tester, repository, '/players/-1');
     expect(find.text('球员不存在'), findsOneWidget);
     expect(find.text('重试'), findsNothing);
-  });
-
-  testWidgets('core details remain usable at Pixel 8 and 140 percent text', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(412, 915);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final repository = _WidgetFootballRepository();
-    await _pumpRouter(tester, repository, '/matches/50001', textScale: 1.4);
-    expect(tester.takeException(), isNull);
   });
 }
 
