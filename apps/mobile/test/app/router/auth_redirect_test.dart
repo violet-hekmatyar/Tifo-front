@@ -28,6 +28,9 @@ void main() {
     expect(authRedirect(AuthStatus.authenticatedReady, '/app/data'), isNull);
     expect(authRedirect(AuthStatus.authenticatedReady, '/content/42'), isNull);
     for (final location in [
+      '/publish',
+      '/publish/post',
+      '/publish/article',
       '/matches/50001',
       '/teams/30001',
       '/players/40001',

@@ -35,6 +35,7 @@ class FootballRankingFilters extends StatelessWidget {
             children: [
               Expanded(
                 child: DropdownButtonFormField<int>(
+                  isExpanded: true,
                   key: ValueKey(
                     'ranking_league_${state.selectedLeagueId ?? 'none'}',
                   ),
@@ -60,6 +61,7 @@ class FootballRankingFilters extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: DropdownButtonFormField<int>(
+                  isExpanded: true,
                   key: ValueKey(
                     'ranking_season_${state.selectedSeasonId ?? 'none'}',
                   ),
@@ -89,6 +91,7 @@ class FootballRankingFilters extends StatelessWidget {
             children: [
               Expanded(
                 child: DropdownButtonFormField<int>(
+                  isExpanded: true,
                   key: ValueKey(
                     'ranking_stage_${state.selectedStageId ?? 'all'}',
                   ),
@@ -116,6 +119,7 @@ class FootballRankingFilters extends StatelessWidget {
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: DropdownButtonFormField<PlayerRankType>(
+                    isExpanded: true,
                     key: const ValueKey('player_rank_type'),
                     initialValue: state.playerRankType,
                     decoration: const InputDecoration(labelText: '指标'),
@@ -132,6 +136,7 @@ class FootballRankingFilters extends StatelessWidget {
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: DropdownButtonFormField<TeamRankType>(
+                    isExpanded: true,
                     key: const ValueKey('team_rank_type'),
                     initialValue: state.teamRankType,
                     decoration: const InputDecoration(labelText: '指标'),

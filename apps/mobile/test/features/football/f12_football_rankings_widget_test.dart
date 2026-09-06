@@ -4,11 +4,55 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tifo/app/config/app_config.dart';
 import 'package:tifo/core/network/network_providers.dart';
+import 'package:tifo/features/football/data/football_rankings_repository.dart';
+import 'package:tifo/features/football/domain/football_models.dart';
 import 'package:tifo/features/football/domain/football_ranking_models.dart';
 import 'package:tifo/features/football/presentation/controllers/football_rankings_controller.dart';
 import 'package:tifo/features/football/presentation/widgets/football_rankings_widgets.dart';
 
 void main() {
+  testWidgets('ranking filters do not overflow for all ranking views', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(363, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final controller = FootballRankingsController(_NoopRankingsRepository());
+    addTearDown(controller.dispose);
+
+    for (final view in FootballRankingView.values) {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: FootballRankingFilters(
+              state: FootballRankingsState(
+                status: FootballRankingsStatus.ready,
+                view: view,
+                leagues: const [League(id: 1, name: 'Premier League')],
+                seasons: const [
+                  FootballSeason(
+                    id: 2,
+                    leagueId: 1,
+                    name: '2025/26赛季',
+                    current: true,
+                  ),
+                ],
+                stages: const [FootballStage(id: 3, name: '联赛阶段')],
+                selectedLeagueId: 1,
+                selectedSeasonId: 2,
+                selectedStageId: 3,
+              ),
+              controller: controller,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull, reason: '$view overflowed');
+    }
+  });
+
   testWidgets('standing and player rows navigate to entity details', (
     tester,
   ) async {
@@ -77,6 +121,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('球员 50'), findsOneWidget);
   });
+}
+
+final class _NoopRankingsRepository
+    implements FootballRankingsRepositoryContract {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 const _table = StandingTable(

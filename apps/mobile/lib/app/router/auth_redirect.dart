@@ -5,6 +5,7 @@ String? authRedirect(AuthStatus status, String location) {
   final isProtectedLocation =
       location.startsWith('/app') ||
       location == '/search' ||
+      location == '/publish' ||
       location.startsWith('/publish/') ||
       location.startsWith('/contents/') ||
       location.startsWith('/content/') ||
