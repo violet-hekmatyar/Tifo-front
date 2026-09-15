@@ -7,6 +7,7 @@ import '../../../../shared/widgets/app_primary_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/auth_brand_header.dart';
 import '../controllers/auth_controller.dart';
+import '../widgets/auth_agreement.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -22,6 +23,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _password = TextEditingController();
   final _confirmation = TextEditingController();
   bool _obscure = true;
+  bool _agreed = false;
+  Future<bool>? _agreementRequest;
 
   @override
   void dispose() {
@@ -34,6 +37,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!_agreed) {
+      final request = _agreementRequest ??= presentAuthAgreement(context);
+      final accepted = await request;
+      _agreementRequest = null;
+      if (!accepted || !mounted) return;
+      setState(() => _agreed = true);
+    }
     final success = await ref
         .read(authControllerProvider)
         .register(
@@ -54,6 +64,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     final state = ref.watch(authControllerProvider).state;
     return Scaffold(
       body: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Column(
           children: [
             const AuthBrandHeader(
@@ -80,6 +91,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             ),
                             const SizedBox(height: AppSpacing.xl),
                             AppTextField(
+                              key: const ValueKey('register_username'),
                               controller: _username,
                               label: '用户名',
                               helperText: '3-64 位字母、数字或下划线',
@@ -96,6 +108,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             ),
                             const SizedBox(height: AppSpacing.md),
                             AppTextField(
+                              key: const ValueKey('register_phone'),
                               controller: _phone,
                               label: '手机号',
                               prefixIcon: Icons.phone_outlined,
@@ -111,6 +124,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             ),
                             const SizedBox(height: AppSpacing.md),
                             AppTextField(
+                              key: const ValueKey('register_password'),
                               controller: _password,
                               label: '密码',
                               helperText: '6-64 位',
@@ -136,6 +150,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             ),
                             const SizedBox(height: AppSpacing.md),
                             AppTextField(
+                              key: const ValueKey('register_confirmation'),
                               controller: _confirmation,
                               label: '确认密码',
                               prefixIcon: Icons.verified_user_outlined,
@@ -152,14 +167,21 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                 style: const TextStyle(color: AppColors.error),
                               ),
                             ],
+                            AuthAgreement(
+                              value: _agreed,
+                              onChanged: (value) =>
+                                  setState(() => _agreed = value),
+                            ),
                             const SizedBox(height: AppSpacing.lg),
                             AppPrimaryButton(
+                              key: const ValueKey('register_submit'),
                               label: '注册',
                               icon: Icons.person_add_rounded,
                               loading: state.isSubmitting,
                               onPressed: _submit,
                             ),
                             TextButton(
+                              key: const ValueKey('register_to_login'),
                               onPressed: state.isSubmitting
                                   ? null
                                   : () => context.go('/login'),

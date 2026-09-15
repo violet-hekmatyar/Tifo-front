@@ -33,7 +33,7 @@ String footballTime(DateTime? value) {
   'UPCOMING' => (label: '未开始', color: AppColors.success),
   'POSTPONED' => (label: '已延期', color: AppColors.warning),
   'CANCELLED' => (label: '已取消', color: AppColors.inkMuted),
-  _ => (label: raw, color: AppColors.inkMuted),
+  _ => (label: raw.trim().isEmpty ? '状态未知' : raw, color: AppColors.inkMuted),
 };
 
 class ScheduleMatchCard extends ConsumerWidget {
@@ -49,7 +49,7 @@ class ScheduleMatchCard extends ConsumerWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         key: ValueKey('schedule_match_${match.id}'),
-        onTap: () => context.push('/matches/${match.id}'),
+        onTap: match.id > 0 ? () => context.push('/matches/${match.id}') : null,
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
@@ -111,10 +111,10 @@ class ScheduleMatchCard extends ConsumerWidget {
                   ),
                 ],
               ),
-              if (match.eventSummary != null) ...[
+              if (match.eventSummary?.trim().isNotEmpty == true) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  match.eventSummary!,
+                  match.eventSummary!.trim(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall,
@@ -137,7 +137,7 @@ class _Team extends StatelessWidget {
     button: true,
     label: '查看${team.name}球队详情',
     child: InkWell(
-      onTap: () => context.push('/teams/${team.id}'),
+      onTap: team.id > 0 ? () => context.push('/teams/${team.id}') : null,
       borderRadius: BorderRadius.circular(AppRadius.sm),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxs),

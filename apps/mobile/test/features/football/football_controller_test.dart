@@ -9,7 +9,7 @@ import 'package:tifo/features/football/presentation/controllers/football_detail_
 
 void main() {
   test(
-    'loads leagues and important schedule then switches competition',
+    'DAT-05 important following and league sources switch correctly',
     () async {
       final repository = _FootballRepository();
       final controller = FootballDataController(repository);
@@ -24,26 +24,32 @@ void main() {
     },
   );
 
-  test('pagination deduplicates and prevents concurrent loads', () async {
-    final next = Completer<FootballPage<FootballMatch>>();
-    final repository = _FootballRepository(
-      importantPages: {
-        1: _page(1, [_match(1)], pages: 2),
-      },
-      importantDeferred: {2: next},
-    );
-    final controller = FootballDataController(repository);
-    await controller.loadInitial();
-    final first = controller.loadMore();
-    final ignored = controller.loadMore();
-    expect(repository.pageRequests.where((value) => value == 2), hasLength(1));
-    next.complete(_page(2, [_match(1), _match(2)], pages: 2));
-    await Future.wait([first, ignored]);
-    expect(controller.state.matches.map((item) => item.id), [1, 2]);
-    expect(controller.state.hasMore, isFalse);
-  });
+  test(
+    'DAT-11 schedule pagination prevents duplicate loads and deduplicates IDs',
+    () async {
+      final next = Completer<FootballPage<FootballMatch>>();
+      final repository = _FootballRepository(
+        importantPages: {
+          1: _page(1, [_match(1)], pages: 2),
+        },
+        importantDeferred: {2: next},
+      );
+      final controller = FootballDataController(repository);
+      await controller.loadInitial();
+      final first = controller.loadMore();
+      final ignored = controller.loadMore();
+      expect(
+        repository.pageRequests.where((value) => value == 2),
+        hasLength(1),
+      );
+      next.complete(_page(2, [_match(1), _match(2)], pages: 2));
+      await Future.wait([first, ignored]);
+      expect(controller.state.matches.map((item) => item.id), [1, 2]);
+      expect(controller.state.hasMore, isFalse);
+    },
+  );
 
-  test('source change ignores a stale response', () async {
+  test('DAT-05 source change ignores a stale response', () async {
     final stale = Completer<FootballPage<FootballMatch>>();
     final repository = _FootballRepository(importantDeferred: {1: stale});
     final controller = FootballDataController(repository);
@@ -56,27 +62,30 @@ void main() {
     expect(controller.state.matches.single.id, 9);
   });
 
-  test('empty, retryable failure, and append failure preserve state', () async {
-    final repository = _FootballRepository(importantPages: {1: _page(1, [])});
-    final controller = FootballDataController(repository);
-    await controller.loadInitial();
-    expect(controller.state.status, FootballDataStatus.empty);
-    repository
-      ..error = const NetworkException('down')
-      ..importantPages[1] = _page(1, [_match(1)], pages: 2);
-    await controller.loadInitial();
-    expect(controller.state.status, FootballDataStatus.failure);
-    expect(controller.state.message, contains('网络连接失败'));
-    repository.error = null;
-    await controller.loadInitial();
-    repository.error = const TimeoutException('slow');
-    await controller.loadMore();
-    expect(controller.state.matches.single.id, 1);
-    expect(controller.state.appendMessage, contains('请求超时'));
-  });
+  test(
+    'DAT-12 empty retryable failure and append failure preserve state',
+    () async {
+      final repository = _FootballRepository(importantPages: {1: _page(1, [])});
+      final controller = FootballDataController(repository);
+      await controller.loadInitial();
+      expect(controller.state.status, FootballDataStatus.empty);
+      repository
+        ..error = const NetworkException('down')
+        ..importantPages[1] = _page(1, [_match(1)], pages: 2);
+      await controller.loadInitial();
+      expect(controller.state.status, FootballDataStatus.failure);
+      expect(controller.state.message, contains('网络连接失败'));
+      repository.error = null;
+      await controller.loadInitial();
+      repository.error = const TimeoutException('slow');
+      await controller.loadMore();
+      expect(controller.state.matches.single.id, 1);
+      expect(controller.state.appendMessage, contains('请求超时'));
+    },
+  );
 
   test(
-    'team schedule paginates and keeps old data on append failure',
+    'DAT-11 team schedule append failure preserves loaded records',
     () async {
       final repository = _FootballRepository(
         teamPages: {
@@ -93,33 +102,36 @@ void main() {
     },
   );
 
-  test('all sources sort and stale pagination cannot cross filters', () async {
-    final stalePage = Completer<FootballPage<FootballMatch>>();
-    final unsorted = _page(1, [
-      _matchAt(1, 'FINISHED', DateTime(2026, 7, 10)),
-      _matchAt(2, 'SCHEDULED', DateTime(2026, 7, 20)),
-      _matchAt(3, 'LIVE', DateTime(2026, 7, 13)),
-    ], pages: 2);
-    final repository = _FootballRepository(
-      importantPages: {1: unsorted},
-      importantDeferred: {2: stalePage},
-      followingPages: {1: unsorted},
-    );
-    repository.leaguePages[1] = unsorted;
-    final controller = FootballDataController(repository);
-    await controller.loadInitial();
-    expect(controller.state.matches.map((item) => item.id), [3, 2, 1]);
+  test(
+    'DAT-04 all sources sort and stale pagination cannot cross filters',
+    () async {
+      final stalePage = Completer<FootballPage<FootballMatch>>();
+      final unsorted = _page(1, [
+        _matchAt(1, 'FINISHED', DateTime(2026, 7, 10)),
+        _matchAt(2, 'SCHEDULED', DateTime(2026, 7, 20)),
+        _matchAt(3, 'LIVE', DateTime(2026, 7, 13)),
+      ], pages: 2);
+      final repository = _FootballRepository(
+        importantPages: {1: unsorted},
+        importantDeferred: {2: stalePage},
+        followingPages: {1: unsorted},
+      );
+      repository.leaguePages[1] = unsorted;
+      final controller = FootballDataController(repository);
+      await controller.loadInitial();
+      expect(controller.state.matches.map((item) => item.id), [3, 2, 1]);
 
-    final staleLoad = controller.loadMore();
-    await controller.selectSource(const FollowingSource());
-    expect(controller.state.matches.map((item) => item.id), [3, 2, 1]);
-    stalePage.complete(_page(2, [_match(99)], pages: 2));
-    await staleLoad;
-    expect(controller.state.matches.map((item) => item.id), [3, 2, 1]);
+      final staleLoad = controller.loadMore();
+      await controller.selectSource(const FollowingSource());
+      expect(controller.state.matches.map((item) => item.id), [3, 2, 1]);
+      stalePage.complete(_page(2, [_match(99)], pages: 2));
+      await staleLoad;
+      expect(controller.state.matches.map((item) => item.id), [3, 2, 1]);
 
-    await controller.selectSource(const LeagueSource(10));
-    expect(controller.state.matches.map((item) => item.id), [3, 2, 1]);
-  });
+      await controller.selectSource(const LeagueSource(10));
+      expect(controller.state.matches.map((item) => item.id), [3, 2, 1]);
+    },
+  );
 }
 
 final class _FootballRepository implements FootballRepositoryContract {

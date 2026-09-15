@@ -54,7 +54,7 @@ void main() {
   });
 
   testWidgets(
-    'relation picker reuses Search and only returns supported entities',
+    'SEA-08/SEA-09 relation picker limits types and completes the article chip loop',
     (tester) async {
       final router = GoRouter(
         initialLocation: '/host',
@@ -87,6 +87,62 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('relation_selection_done')));
       await tester.pumpAndSettle();
       expect(find.text('已选择 曼城'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'SEA-09 ArticleEditor opens, completes and deletes relation chips',
+    (tester) async {
+      final router = GoRouter(
+        initialLocation: '/article',
+        routes: [
+          GoRoute(
+            path: '/article',
+            builder: (_, _) => const ArticleEditorPage(),
+          ),
+          GoRoute(
+            path: '/relations/select',
+            builder: (_, state) => GlobalSearchPage(
+              selectionMode: true,
+              initialSelection: state.extra is List
+                  ? (state.extra as List).whereType<SearchEntity>().toList()
+                  : const [],
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            contentRepositoryProvider.overrideWithValue(_UnusedContents()),
+            fileUploadRepositoryProvider.overrideWithValue(_UnusedFiles()),
+            searchRepositoryProvider.overrideWithValue(_Search()),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView).first, const Offset(0, -700));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('article_select_relations')).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('global_search_input')),
+        '曼',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('曼城'));
+      await tester.tap(find.byKey(const ValueKey('relation_selection_done')));
+      await tester.pumpAndSettle();
+      expect(find.text('球队 · 曼城'), findsOneWidget);
+      final chip = tester.widget<InputChip>(find.byType(InputChip));
+      chip.onDeleted!.call();
+      await tester.pumpAndSettle();
+      expect(find.text('球队 · 曼城'), findsNothing);
     },
   );
 }

@@ -14,6 +14,7 @@ import '../../../user_center/data/user_center_repository.dart';
 import '../../../recommendation/domain/recommendation_behavior.dart';
 import '../../../recommendation/presentation/recommendation_behavior_dispatcher.dart';
 import '../../domain/football_models.dart';
+import '../../domain/match_display_sort.dart';
 import '../../domain/team_detail_models.dart';
 import '../controllers/football_data_controller.dart';
 import '../controllers/football_detail_providers.dart';
@@ -89,32 +90,9 @@ class _TeamDetailPageState extends ConsumerState<TeamDetailPage> {
         data: (team) => Column(
           children: [
             _TeamHeader(team: team),
-            NavigationBar(
-              height: 64,
+            _TeamTabs(
               selectedIndex: _tab,
-              onDestinationSelected: (value) => setState(() => _tab = value),
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.info_outline),
-                  label: '概览',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.dynamic_feed_outlined),
-                  label: '动态',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.groups_outlined),
-                  label: '球员',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.bar_chart_outlined),
-                  label: '数据',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.calendar_month_outlined),
-                  label: '赛程',
-                ),
-              ],
+              onChanged: (value) => setState(() => _tab = value),
             ),
             Expanded(
               child: IndexedStack(
@@ -135,6 +113,74 @@ class _TeamDetailPageState extends ConsumerState<TeamDetailPage> {
   }
 }
 
+class _TeamTabs extends StatelessWidget {
+  const _TeamTabs({required this.selectedIndex, required this.onChanged});
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+
+  static const _tabs = <(String, String, IconData)>[
+    ('team_tab_overview', '概览', Icons.info_outline),
+    ('team_tab_contents', '动态', Icons.dynamic_feed_outlined),
+    ('team_tab_players', '球员', Icons.groups_outlined),
+    ('team_tab_stats', '数据', Icons.bar_chart_outlined),
+    ('team_tab_matches', '赛程', Icons.calendar_month_outlined),
+  ];
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: const BoxDecoration(
+      color: AppColors.surface,
+      border: Border(bottom: BorderSide(color: AppColors.border)),
+    ),
+    child: SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      child: Row(
+        children: [
+          for (var i = 0; i < _tabs.length; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+              child: InkWell(
+                key: ValueKey(_tabs[i].$1),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                onTap: () => onChanged(i),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _tabs[i].$3,
+                        color: i == selectedIndex
+                            ? AppColors.brand
+                            : AppColors.inkMuted,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _tabs[i].$2,
+                        style: TextStyle(
+                          color: i == selectedIndex
+                              ? AppColors.brand
+                              : AppColors.inkMuted,
+                          fontWeight: i == selectedIndex
+                              ? FontWeight.w800
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
 class _TeamHeader extends ConsumerStatefulWidget {
   const _TeamHeader({required this.team});
   final TeamDetail team;
@@ -147,7 +193,7 @@ class _TeamHeaderState extends ConsumerState<_TeamHeader> {
   bool _busy = false;
 
   Future<void> _toggle() async {
-    if (_busy) return;
+    if (_busy || widget.team.id <= 0) return;
     setState(() => _busy = true);
     try {
       final value = await ref
@@ -190,6 +236,8 @@ class _TeamHeaderState extends ConsumerState<_TeamHeader> {
               children: [
                 Text(
                   widget.team.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -204,12 +252,22 @@ class _TeamHeaderState extends ConsumerState<_TeamHeader> {
                   '${widget.team.followerCount} 人关注',
                   style: const TextStyle(color: Colors.white70),
                 ),
+                if (widget.team.city != null || widget.team.country != null)
+                  Text(
+                    [widget.team.city, widget.team.country]
+                        .whereType<String>()
+                        .where((value) => value.trim().isNotEmpty)
+                        .join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white70),
+                  ),
               ],
             ),
           ),
           FilledButton.tonal(
             key: const ValueKey('team_follow'),
-            onPressed: _busy ? null : _toggle,
+            onPressed: _busy || widget.team.id <= 0 ? null : _toggle,
             child: Text(_followed ? '已关注' : '关注'),
           ),
         ],
@@ -235,58 +293,119 @@ class _OverviewTab extends ConsumerWidget {
           error: error,
           onRetry: () => ref.invalidate(teamOverviewProvider(request)),
         ),
-        data: (overview) => ListView(
+        data: (overview) => SingleChildScrollView(
+          key: const PageStorageKey('team_overview'),
           padding: const EdgeInsets.all(AppSpacing.lg),
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Column(
-                  children: [
-                    DetailFact(label: '赛事', value: overview.leagueName ?? '暂无'),
-                    DetailFact(label: '赛季', value: overview.seasonName ?? '暂无'),
-                    DetailFact(label: '城市', value: overview.city ?? '暂无'),
-                    DetailFact(label: '主场', value: overview.stadium ?? '暂无'),
-                    DetailFact(
-                      label: '成立年份',
-                      value: overview.foundedYear?.toString() ?? '暂无',
-                    ),
-                    if (overview.standing case final standing?) ...[
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Column(
+                    children: [
                       DetailFact(
-                        label: '当前排名',
-                        value: standing.rank == null
-                            ? '暂无'
-                            : '第 ${standing.rank} 名',
+                        label: '赛事',
+                        value: overview.leagueName ?? '暂无',
                       ),
                       DetailFact(
-                        label: '积分',
-                        value: standing.points?.toString() ?? '暂无',
+                        label: '赛季',
+                        value: overview.seasonName ?? '暂无',
                       ),
+                      DetailFact(label: '城市', value: overview.city ?? '暂无'),
+                      DetailFact(label: '主场', value: overview.stadium ?? '暂无'),
+                      DetailFact(
+                        label: '成立年份',
+                        value: overview.foundedYear?.toString() ?? '暂无',
+                      ),
+                      if (overview.standing case final standing?) ...[
+                        DetailFact(
+                          label: '当前排名',
+                          value: standing.rank == null
+                              ? '暂无'
+                              : '第 ${standing.rank} 名',
+                        ),
+                        DetailFact(label: '场次', value: _value(standing.played)),
+                        DetailFact(
+                          label: '战绩',
+                          value:
+                              '${_value(standing.won)}胜 ${_value(standing.drawn)}平 ${_value(standing.lost)}负',
+                        ),
+                        DetailFact(
+                          label: '进失球',
+                          value:
+                              '${_value(standing.goalsFor)} / ${_value(standing.goalsAgainst)}',
+                        ),
+                        DetailFact(
+                          label: '净胜球',
+                          value: _value(standing.goalDifference),
+                        ),
+                        DetailFact(
+                          label: '积分',
+                          value: standing.points?.toString() ?? '暂无',
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-            if (overview.description != null) ...[
-              const SizedBox(height: AppSpacing.md),
-              Text(overview.description!),
-            ],
-            if (overview.nextMatch case final match?) ...[
+              if (overview.description != null) ...[
+                const SizedBox(height: AppSpacing.md),
+                Text(overview.description!),
+              ],
+              if (overview.nextMatch case final match?) ...[
+                const SizedBox(height: AppSpacing.lg),
+                Text('下一场比赛', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: AppSpacing.sm),
+                ScheduleMatchCard(match: match),
+              ],
+              if (overview.recentMatches.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.lg),
+                Text('最近比赛', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: AppSpacing.sm),
+                for (final match in sortMatchesForDisplay(
+                  overview.recentMatches,
+                ))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: ScheduleMatchCard(match: match),
+                  ),
+              ],
+              if (overview.recentContents.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.lg),
+                Text('最新动态', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: AppSpacing.sm),
+                for (final content in overview.recentContents)
+                  _ContentTile(content: content),
+              ],
+              if (overview.topScorers.isNotEmpty ||
+                  overview.topAssists.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.lg),
+                Text('队内榜单', style: Theme.of(context).textTheme.titleLarge),
+                if (overview.topScorers.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  const Text(
+                    '射手榜',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  for (final player in overview.topScorers)
+                    _RosterTile(player: player, metric: '进球'),
+                ],
+                if (overview.topAssists.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  const Text(
+                    '助攻榜',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  for (final player in overview.topAssists)
+                    _RosterTile(player: player, metric: '助攻'),
+                ],
+              ],
               const SizedBox(height: AppSpacing.lg),
-              Text('下一场比赛', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: AppSpacing.sm),
-              ScheduleMatchCard(match: match),
+              Text('球队荣誉', style: Theme.of(context).textTheme.titleLarge),
+              _Honors(teamId: request.teamId),
             ],
-            if (overview.topScorers.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.lg),
-              Text('队内射手', style: Theme.of(context).textTheme.titleLarge),
-              for (final player in overview.topScorers)
-                _RosterTile(player: player),
-            ],
-            const SizedBox(height: AppSpacing.lg),
-            Text('球队荣誉', style: Theme.of(context).textTheme.titleLarge),
-            _Honors(teamId: request.teamId),
-          ],
+          ),
         ),
       );
 }
@@ -359,7 +478,7 @@ class _PlayersTabState extends ConsumerState<_PlayersTab> {
     final state = controller.state;
     String? previous;
     final children = <Widget>[];
-    for (final player in state.records) {
+    for (final player in _sortPlayers(state.records)) {
       final position = _positionLabel(player.position);
       if (position != previous) {
         children.add(
@@ -385,18 +504,20 @@ class _PlayersTabState extends ConsumerState<_PlayersTab> {
       title: '球员',
       onRetry: controller.loadInitial,
       onLoadMore: controller.loadMore,
+      onRefresh: controller.refresh,
       children: children,
     );
   }
 }
 
 class _RosterTile extends ConsumerWidget {
-  const _RosterTile({required this.player});
+  const _RosterTile({required this.player, this.metric});
   final TeamRosterPlayer player;
+  final String? metric;
   @override
   Widget build(BuildContext context, WidgetRef ref) => ListTile(
     key: ValueKey('team_player_${player.id}'),
-    onTap: () => context.push('/players/${player.id}'),
+    onTap: player.id > 0 ? () => context.push('/players/${player.id}') : null,
     leading: AppTeamLogo(
       identity: 'player:${player.id}',
       name: player.name,
@@ -411,12 +532,22 @@ class _RosterTile extends ConsumerWidget {
         _positionLabel(player.position),
         _roleLabel(player.squadRole),
         if (player.captain) '队长',
-        if (player.loan) '租借',
+        if (player.loan)
+          player.loanFromTeamName == null
+              ? '租借'
+              : '租借自 ${player.loanFromTeamName}',
+        if (player.appearances != null) '出场 ${player.appearances}',
+        if (player.goals != null) '进球 ${player.goals}',
+        if (player.assists != null) '助攻 ${player.assists}',
       ].join(' · '),
     ),
-    trailing: player.rating == null
+    trailing: metric == '进球' && player.goals != null
+        ? Text('${player.goals} 球')
+        : metric == '助攻' && player.assists != null
+        ? Text('${player.assists} 次')
+        : player.rating == null
         ? null
-        : Text(player.rating!.toStringAsFixed(1)),
+        : Text(_finiteDouble(player.rating)),
   );
 }
 
@@ -440,7 +571,14 @@ class _StatsTab extends ConsumerWidget {
         data: (stats) => stats.hasData
             ? ListView(
                 padding: const EdgeInsets.all(AppSpacing.lg),
-                children: [_StatGrid(stats: stats)],
+                children: [
+                  const Text(
+                    '赛季数据',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _StatGrid(stats: stats),
+                ],
               )
             : const AppStateView(
                 kind: AppStateKind.empty,
@@ -461,16 +599,17 @@ class _StatGrid extends StatelessWidget {
       ('比赛', _value(stats.played)),
       ('进球', _value(stats.goalsFor)),
       ('失球', _value(stats.goalsAgainst)),
+      ('净胜球', _value(stats.goalDifference)),
       ('助攻', _value(stats.assists)),
       ('射门', _value(stats.shots)),
       ('射正', _value(stats.shotsOnTarget)),
-      ('射正率', stats.shotAccuracy == null ? '—' : '${stats.shotAccuracy}%'),
+      ('射正率', _percent(stats.shotAccuracy)),
       ('角球', _value(stats.corners)),
       ('犯规', _value(stats.fouls)),
       ('黄牌', _value(stats.yellowCards)),
       ('红牌', _value(stats.redCards)),
       ('零封', _value(stats.cleanSheets)),
-      ('平均评分', stats.averageRating?.toStringAsFixed(2) ?? '—'),
+      ('平均评分', _finiteDouble(stats.averageRating, digits: 2)),
     ];
     final width =
         (MediaQuery.sizeOf(context).width - AppSpacing.lg * 2 - AppSpacing.sm) /
@@ -530,18 +669,8 @@ class _MatchesTabState extends ConsumerState<_MatchesTab> {
       title: '赛程',
       onRetry: controller.loadInitial,
       onLoadMore: controller.loadMore,
-      children: [
-        for (final match in state.records)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              AppSpacing.sm,
-              AppSpacing.md,
-              0,
-            ),
-            child: ScheduleMatchCard(match: match),
-          ),
-      ],
+      onRefresh: controller.refresh,
+      children: _matchChildren(state.records),
     );
   }
 }
@@ -572,9 +701,8 @@ class _ContentsTabState extends ConsumerState<_ContentsTab> {
       title: '动态',
       onRetry: controller.loadInitial,
       onLoadMore: controller.loadMore,
-      children: [
-        for (final content in state.records) _ContentTile(content: content),
-      ],
+      onRefresh: controller.refresh,
+      children: _contentChildren(context, state.records),
     );
   }
 }
@@ -593,18 +721,21 @@ class _ContentTile extends ConsumerWidget {
     clipBehavior: Clip.antiAlias,
     child: InkWell(
       key: ValueKey('team_content_${content.id}'),
-      onTap: () => context.push('/contents/${content.id}'),
+      onTap: content.id > 0
+          ? () => context.push('/contents/${content.id}')
+          : null,
       child: Row(
         children: [
-          SizedBox(
-            width: 104,
-            child: AppContentImage(
-              imageUrl: resolveMediaUrl(
-                ref.watch(appConfigProvider),
-                content.coverUrl,
+          if (content.coverUrl?.trim().isNotEmpty == true)
+            SizedBox(
+              width: 104,
+              child: AppContentImage(
+                imageUrl: resolveMediaUrl(
+                  ref.watch(appConfigProvider),
+                  content.coverUrl,
+                ),
               ),
             ),
-          ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.sm),
@@ -617,10 +748,22 @@ class _ContentTile extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
+                  if (content.summary?.trim().isNotEmpty == true)
+                    Text(
+                      content.summary!.trim(),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: AppColors.inkMuted),
+                    ),
                   Text(
-                    '${content.rawType} · ${content.likeCount} 赞 · ${content.commentCount} 评论',
+                    '${_contentTypeLabel(content.rawType)} · ${content.likeCount} 赞 · ${content.commentCount} 评论',
                     style: const TextStyle(color: AppColors.inkMuted),
                   ),
+                  if (content.publishTime != null)
+                    Text(
+                      footballDate(content.publishTime),
+                      style: const TextStyle(color: AppColors.inkMuted),
+                    ),
                 ],
               ),
             ),
@@ -636,6 +779,7 @@ Widget _pagedBody<T>({
   required String title,
   required VoidCallback onRetry,
   required VoidCallback onLoadMore,
+  Future<void> Function()? onRefresh,
   required List<Widget> children,
 }) => switch (state.status) {
   TeamPagedStatus.loading => AppStateView(
@@ -660,28 +804,63 @@ Widget _pagedBody<T>({
       if (notification.metrics.extentAfter < 320) onLoadMore();
       return false;
     },
-    child: ListView(
-      key: PageStorageKey('team_$title'),
-      children: [
-        ...children,
-        SafeArea(
-          top: false,
-          minimum: const EdgeInsets.all(AppSpacing.lg),
-          child: Center(
-            child: state.loadingMore
-                ? const CircularProgressIndicator(strokeWidth: 2)
-                : state.appendMessage != null
-                ? TextButton(
-                    onPressed: onLoadMore,
-                    child: Text('${state.appendMessage} 点击重试'),
-                  )
-                : Text(
-                    state.hasMore ? '继续上滑加载' : '已经到底了',
-                    style: const TextStyle(color: AppColors.inkMuted),
+    child: RefreshIndicator(
+      key: ValueKey('team_refresh_$title'),
+      onRefresh: onRefresh ?? () async {},
+      child: ListView(
+        key: PageStorageKey('team_$title'),
+        children: [
+          if (state.message != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                0,
+              ),
+              child: Material(
+                color: AppColors.error.withValues(alpha: .08),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.xs,
                   ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          state.message!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      TextButton(onPressed: onRefresh, child: const Text('重试')),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ...children,
+          SafeArea(
+            top: false,
+            minimum: const EdgeInsets.all(AppSpacing.lg),
+            child: Center(
+              child: state.loadingMore
+                  ? const CircularProgressIndicator(strokeWidth: 2)
+                  : state.appendMessage != null
+                  ? TextButton(
+                      onPressed: onLoadMore,
+                      child: Text('${state.appendMessage} 点击重试'),
+                    )
+                  : Text(
+                      state.hasMore ? '继续上滑加载' : '已经到底了',
+                      style: const TextStyle(color: AppColors.inkMuted),
+                    ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   ),
 };
@@ -692,7 +871,7 @@ String _positionLabel(String? raw) => switch (raw) {
   'MIDFIELDER' => '中场',
   'FORWARD' => '前锋',
   null => '位置未定',
-  _ => raw,
+  _ => raw.trim().isEmpty ? '位置未定' : '其他位置',
 };
 
 String _roleLabel(String? raw) => switch (raw) {
@@ -701,10 +880,109 @@ String _roleLabel(String? raw) => switch (raw) {
   'RESERVE' => '替补',
   'YOUTH' => '青年队',
   null => '角色未定',
-  _ => raw,
+  _ => raw.trim().isEmpty ? '角色未定' : '其他角色',
 };
 
-String _value(Object? value) => value?.toString() ?? '—';
+String _value(Object? value) =>
+    value is double && !value.isFinite ? '—' : value?.toString() ?? '—';
+
+String _contentTypeLabel(String raw) => switch (raw.trim().toUpperCase()) {
+  'ARTICLE' => '文章',
+  'POST' => '帖子',
+  _ => '动态',
+};
+
+String _finiteDouble(double? value, {int digits = 1}) =>
+    value == null || !value.isFinite ? '—' : value.toStringAsFixed(digits);
+
+String _percent(double? value) {
+  if (value == null || !value.isFinite) return '—';
+  return '${value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1)}%';
+}
+
+List<Widget> _matchChildren(Iterable<FootballMatch> values) {
+  final children = <Widget>[];
+  DateTime? lastDate;
+  var hasDateGroup = false;
+  for (final match in sortMatchesForDisplay(values)) {
+    final date = match.matchTime == null
+        ? null
+        : DateTime(
+            match.matchTime!.year,
+            match.matchTime!.month,
+            match.matchTime!.day,
+          );
+    if (!hasDateGroup || date != lastDate) {
+      children.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
+          child: Text(
+            date == null ? '日期待定' : footballDate(date),
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
+      );
+      lastDate = date;
+      hasDateGroup = true;
+    }
+    children.add(
+      Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          0,
+        ),
+        child: ScheduleMatchCard(match: match),
+      ),
+    );
+  }
+  return children;
+}
+
+List<TeamRosterPlayer> _sortPlayers(Iterable<TeamRosterPlayer> values) {
+  const order = {'门将': 0, '后卫': 1, '中场': 2, '前锋': 3, '位置未定': 4, '其他位置': 5};
+  final indexed = values.indexed.toList(growable: false);
+  indexed.sort((a, b) {
+    final compare = (order[_positionLabel(a.$2.position)] ?? 99).compareTo(
+      order[_positionLabel(b.$2.position)] ?? 99,
+    );
+    return compare == 0 ? a.$1.compareTo(b.$1) : compare;
+  });
+  return List.unmodifiable(indexed.map((entry) => entry.$2));
+}
+
+List<Widget> _contentChildren(
+  BuildContext context,
+  List<TeamContentSummary> values,
+) {
+  if (MediaQuery.sizeOf(context).width < 380) {
+    return [for (final value in values) _ContentTile(content: value)];
+  }
+  final left = <Widget>[];
+  final right = <Widget>[];
+  for (final entry in values.indexed) {
+    (entry.$1.isEven ? left : right).add(_ContentTile(content: entry.$2));
+  }
+  return [
+    Padding(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: Column(children: left)),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(child: Column(children: right)),
+        ],
+      ),
+    ),
+  ];
+}
 
 class FootballDetailError extends StatelessWidget {
   const FootballDetailError({

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../notification/data/notification_repository.dart';
+import '../../../shared/design_system/app_design_tokens.dart';
 import 'shell_destination.dart';
 
 class MainShellPage extends ConsumerWidget {
@@ -15,25 +16,48 @@ class MainShellPage extends ConsumerWidget {
     final unread = ref.watch(notificationUnreadCountProvider).value ?? 0;
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        key: const ValueKey('main_navigation'),
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) => navigationShell.goBranch(
-          index,
-          initialLocation: index == navigationShell.currentIndex,
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.xs,
+          AppSpacing.md,
+          AppSpacing.xs,
         ),
-        destinations: [
-          for (final destination in ShellDestination.values)
-            NavigationDestination(
-              icon: _destinationIcon(destination.icon, destination, unread),
-              selectedIcon: _destinationIcon(
-                destination.selectedIcon,
-                destination,
-                unread,
+        child: Container(
+          key: const ValueKey('main_navigation'),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+            boxShadow: AppShadows.floatingNavigation,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+            child: NavigationBar(
+              height: 68,
+              selectedIndex: navigationShell.currentIndex,
+              onDestinationSelected: (index) => navigationShell.goBranch(
+                index,
+                initialLocation: index == navigationShell.currentIndex,
               ),
-              label: destination.label,
+              destinations: [
+                for (final destination in ShellDestination.values)
+                  NavigationDestination(
+                    icon: _destinationIcon(
+                      destination.icon,
+                      destination,
+                      unread,
+                    ),
+                    selectedIcon: _destinationIcon(
+                      destination.selectedIcon,
+                      destination,
+                      unread,
+                    ),
+                    label: destination.label,
+                  ),
+              ],
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
@@ -44,5 +68,5 @@ Widget _destinationIcon(
   ShellDestination destination,
   int unread,
 ) => destination == ShellDestination.messages && unread > 0
-    ? Badge.count(count: unread, child: Icon(icon))
+    ? Badge(label: Text(unread > 99 ? '99+' : '$unread'), child: Icon(icon))
     : Icon(icon);

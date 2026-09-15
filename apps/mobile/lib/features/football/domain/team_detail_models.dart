@@ -85,8 +85,17 @@ final class TeamStats {
       played != null ||
       goalsFor != null ||
       goalsAgainst != null ||
+      goalDifference != null ||
       assists != null ||
       shots != null ||
+      shotsOnTarget != null ||
+      shotAccuracy != null ||
+      corners != null ||
+      fouls != null ||
+      yellowCards != null ||
+      redCards != null ||
+      cleanSheets != null ||
+      averageRating != null ||
       standingRank != null ||
       points != null;
 }

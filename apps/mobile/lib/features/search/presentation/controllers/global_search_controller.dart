@@ -5,6 +5,7 @@ import '../../../../core/network/backend_v1_contract.dart';
 import '../../../../core/network/network_exceptions.dart';
 import '../../data/search_repository.dart';
 import '../../domain/search_models.dart';
+import 'search_history_store.dart';
 
 enum GlobalSearchStatus { idle, loading, ready, empty, failure }
 
@@ -33,27 +34,52 @@ final class GlobalSearchState {
 }
 
 final globalSearchControllerProvider =
-    ChangeNotifierProvider.autoDispose<GlobalSearchController>(
-      (ref) => GlobalSearchController(ref.watch(searchRepositoryProvider)),
+    ChangeNotifierProvider<GlobalSearchController>(
+      (ref) => GlobalSearchController(
+        ref.watch(searchRepositoryProvider),
+        history: ref.read(searchHistoryProvider),
+      ),
+    );
+
+final relationSearchControllerProvider =
+    ChangeNotifierProvider<GlobalSearchController>(
+      (ref) => GlobalSearchController(
+        ref.watch(searchRepositoryProvider),
+        history: ref.read(searchHistoryProvider),
+      ),
     );
 
 final class GlobalSearchController extends ChangeNotifier {
-  GlobalSearchController(this._repository);
+  GlobalSearchController(this._repository, {this.history});
 
   static const pageSize = 20;
   final SearchRepositoryContract _repository;
+  final SearchHistoryStore? history;
   GlobalSearchState _state = const GlobalSearchState();
   int _generation = 0;
+  String? _lastRequestedKeyword;
+  SearchEntityType? _lastRequestedType;
+  bool _disposed = false;
 
   GlobalSearchState get state => _state;
 
   Future<void> search(String value) async {
-    final keyword = value.trim();
+    if (_disposed) return;
+    final keyword = normalizeSearchKeyword(value);
+    if (keyword.isNotEmpty &&
+        keyword == _lastRequestedKeyword &&
+        _state.entityType == _lastRequestedType) {
+      return;
+    }
     final generation = ++_generation;
     if (keyword.isEmpty) {
+      _lastRequestedKeyword = null;
+      _lastRequestedType = null;
       _setState(GlobalSearchState(entityType: _state.entityType));
       return;
     }
+    _lastRequestedKeyword = keyword;
+    _lastRequestedType = _state.entityType;
     _setState(
       GlobalSearchState(
         status: GlobalSearchStatus.loading,
@@ -61,10 +87,11 @@ final class GlobalSearchController extends ChangeNotifier {
         entityType: _state.entityType,
       ),
     );
-    await _loadFirstPage(generation);
+    await _loadFirstPage(generation, recordHistory: true);
   }
 
   Future<void> selectType(SearchEntityType? entityType) async {
+    if (_disposed) return;
     if (_state.entityType == entityType) return;
     final generation = ++_generation;
     final keyword = _state.keyword;
@@ -79,10 +106,12 @@ final class GlobalSearchController extends ChangeNotifier {
         entityType: entityType,
       ),
     );
+    _lastRequestedType = entityType;
     await _loadFirstPage(generation);
   }
 
   Future<void> retry() async {
+    if (_disposed) return;
     if (_state.keyword.isEmpty) return;
     final generation = ++_generation;
     _setState(
@@ -96,6 +125,7 @@ final class GlobalSearchController extends ChangeNotifier {
   }
 
   Future<void> loadMore() async {
+    if (_disposed) return;
     if (_state.isLoadingMore || !_state.hasMore || _state.keyword.isEmpty) {
       return;
     }
@@ -127,14 +157,18 @@ final class GlobalSearchController extends ChangeNotifier {
           hasMore: page.hasMore,
         ),
       );
-    } on AppNetworkException catch (error) {
+    } catch (error) {
       if (generation != _generation) return;
       _copy(isLoadingMore: false, appendMessage: _messageFor(error));
     }
   }
 
-  Future<void> _loadFirstPage(int generation) async {
+  Future<void> _loadFirstPage(
+    int generation, {
+    bool recordHistory = false,
+  }) async {
     try {
+      if (recordHistory) history?.add(_state.keyword);
       final page = await _repository.search(
         keyword: _state.keyword,
         entityType: _state.entityType,
@@ -154,7 +188,7 @@ final class GlobalSearchController extends ChangeNotifier {
           hasMore: page.hasMore,
         ),
       );
-    } on AppNetworkException catch (error) {
+    } catch (error) {
       if (generation != _generation) return;
       _setState(
         GlobalSearchState(
@@ -165,6 +199,16 @@ final class GlobalSearchController extends ChangeNotifier {
         ),
       );
     }
+  }
+
+  /// Clears a controller context used by the relation picker without
+  /// affecting the separate global-search history.
+  void reset() {
+    if (_disposed) return;
+    ++_generation;
+    _lastRequestedKeyword = null;
+    _lastRequestedType = null;
+    _setState(const GlobalSearchState());
   }
 
   void _copy({
@@ -189,7 +233,7 @@ final class GlobalSearchController extends ChangeNotifier {
     );
   }
 
-  String _messageFor(AppNetworkException error) => switch (error) {
+  String _messageFor(Object error) => switch (error) {
     NetworkException() => '网络连接失败，请检查后重试。',
     TimeoutException() => '搜索超时，请稍后重试。',
     BusinessException() => error.message,
@@ -198,7 +242,14 @@ final class GlobalSearchController extends ChangeNotifier {
   };
 
   void _setState(GlobalSearchState value) {
+    if (_disposed) return;
     _state = value;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }

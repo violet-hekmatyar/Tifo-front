@@ -46,15 +46,30 @@ class MatchCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         card.leagueName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                    Text(
-                      status.label,
-                      style: const TextStyle(color: Colors.white),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ),
+                      child: Text(
+                        status.label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -62,32 +77,35 @@ class MatchCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: _Team(team: card.homeTeam, logoUrl: homeLogoUrl),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            card.hasScore
-                                ? '${card.homeScore} : ${card.awayScore}'
-                                : _time(card.matchTime),
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(
-                                  color: status.color,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                          ),
-                          if (card.hasScore && card.matchTime != null)
+                    Flexible(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                        ),
+                        child: Column(
+                          children: [
                             Text(
-                              _time(card.matchTime),
-                              style: Theme.of(context).textTheme.bodySmall,
+                              card.hasScore
+                                  ? '${card.homeScore} : ${card.awayScore}'
+                                  : _time(card.matchTime),
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    color: status.color,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                             ),
-                        ],
+                            if (card.hasScore && card.matchTime != null)
+                              Text(
+                                _time(card.matchTime),
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                     Expanded(
@@ -106,10 +124,26 @@ class MatchCard extends StatelessWidget {
                     AppSpacing.sm,
                   ),
                   color: AppColors.surfaceMuted,
-                  child: Text(
-                    card.eventSummary!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 2),
+                        child: Icon(
+                          Icons.event_note_outlined,
+                          size: 16,
+                          color: AppColors.inkMuted,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Expanded(
+                        child: Text(
+                          card.eventSummary!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
             ],

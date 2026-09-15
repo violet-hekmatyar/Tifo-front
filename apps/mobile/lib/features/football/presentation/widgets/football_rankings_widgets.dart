@@ -22,139 +22,121 @@ class FootballRankingFilters extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: AppColors.surface,
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        AppSpacing.sm,
-        AppSpacing.md,
-        AppSpacing.md,
-      ),
-      child: Column(
-        children: [
-          Row(
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final width = (constraints.maxWidth - AppSpacing.sm) / 2;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            AppSpacing.md,
+          ),
+          child: Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
             children: [
-              Expanded(
-                child: DropdownButtonFormField<int>(
-                  isExpanded: true,
-                  key: ValueKey(
-                    'ranking_league_${state.selectedLeagueId ?? 'none'}',
-                  ),
-                  initialValue: state.selectedLeagueId,
-                  decoration: const InputDecoration(labelText: '赛事'),
-                  items: [
-                    for (final league in state.leagues)
-                      DropdownMenuItem(
-                        value: league.id,
-                        child: Text(
-                          league.name,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                  ],
-                  onChanged: state.status == FootballRankingsStatus.loading
-                      ? null
-                      : (value) {
-                          if (value != null) controller.selectLeague(value);
-                        },
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: DropdownButtonFormField<int>(
-                  isExpanded: true,
-                  key: ValueKey(
-                    'ranking_season_${state.selectedSeasonId ?? 'none'}',
-                  ),
-                  initialValue: state.selectedSeasonId,
-                  decoration: const InputDecoration(labelText: '赛季'),
-                  items: [
-                    for (final season in state.seasons)
-                      DropdownMenuItem(
-                        value: season.id,
-                        child: Text(
-                          season.current ? '${season.name} · 当前' : season.name,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                  ],
-                  onChanged: state.status == FootballRankingsStatus.loading
-                      ? null
-                      : (value) {
-                          if (value != null) controller.selectSeason(value);
-                        },
-                ),
-              ),
+              SizedBox(width: width, child: _leagueField()),
+              SizedBox(width: width, child: _seasonField()),
+              SizedBox(width: width, child: _stageField()),
+              if (state.view == FootballRankingView.players)
+                SizedBox(width: width, child: _playerTypeField())
+              else if (state.view == FootballRankingView.teams)
+                SizedBox(width: width, child: _teamTypeField()),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<int>(
-                  isExpanded: true,
-                  key: ValueKey(
-                    'ranking_stage_${state.selectedStageId ?? 'all'}',
-                  ),
-                  initialValue: state.selectedStageId ?? 0,
-                  decoration: const InputDecoration(labelText: '阶段'),
-                  items: [
-                    const DropdownMenuItem(value: 0, child: Text('全部阶段')),
-                    for (final stage in state.stages)
-                      DropdownMenuItem(
-                        value: stage.id,
-                        child: Text(
-                          stage.name,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                  ],
-                  onChanged: state.status == FootballRankingsStatus.loading
-                      ? null
-                      : (value) => controller.selectStage(
-                          value == null || value == 0 ? null : value,
-                        ),
-                ),
-              ),
-              if (state.view == FootballRankingView.players) ...[
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: DropdownButtonFormField<PlayerRankType>(
-                    isExpanded: true,
-                    key: const ValueKey('player_rank_type'),
-                    initialValue: state.playerRankType,
-                    decoration: const InputDecoration(labelText: '指标'),
-                    items: [
-                      for (final type in PlayerRankType.values)
-                        DropdownMenuItem(value: type, child: Text(type.label)),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) controller.selectPlayerRankType(value);
-                    },
-                  ),
-                ),
-              ] else if (state.view == FootballRankingView.teams) ...[
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: DropdownButtonFormField<TeamRankType>(
-                    isExpanded: true,
-                    key: const ValueKey('team_rank_type'),
-                    initialValue: state.teamRankType,
-                    decoration: const InputDecoration(labelText: '指标'),
-                    items: [
-                      for (final type in TeamRankType.values)
-                        DropdownMenuItem(value: type, child: Text(type.label)),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) controller.selectTeamRankType(value);
-                    },
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     ),
+  );
+
+  Widget _leagueField() => DropdownButtonFormField<int>(
+    isExpanded: true,
+    key: const ValueKey('ranking_filter_league'),
+    initialValue: state.selectedLeagueId,
+    decoration: const InputDecoration(labelText: '赛事'),
+    items: [
+      for (final league in state.leagues)
+        DropdownMenuItem(
+          value: league.id,
+          child: Text(league.name, overflow: TextOverflow.ellipsis),
+        ),
+    ],
+    onChanged: state.status == FootballRankingsStatus.loading
+        ? null
+        : (value) {
+            if (value != null) controller.selectLeague(value);
+          },
+  );
+
+  Widget _seasonField() => DropdownButtonFormField<int>(
+    isExpanded: true,
+    key: const ValueKey('ranking_filter_season'),
+    initialValue: state.selectedSeasonId,
+    decoration: const InputDecoration(labelText: '赛季'),
+    items: [
+      for (final season in state.seasons)
+        DropdownMenuItem(
+          value: season.id,
+          child: Text(
+            season.current ? '${season.name} · 当前' : season.name,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+    ],
+    onChanged: state.status == FootballRankingsStatus.loading
+        ? null
+        : (value) {
+            if (value != null) controller.selectSeason(value);
+          },
+  );
+
+  Widget _stageField() => DropdownButtonFormField<int>(
+    isExpanded: true,
+    key: const ValueKey('ranking_filter_stage'),
+    initialValue: state.selectedStageId ?? 0,
+    decoration: const InputDecoration(labelText: '阶段'),
+    items: [
+      const DropdownMenuItem(value: 0, child: Text('全部阶段')),
+      for (final stage in state.stages)
+        DropdownMenuItem(
+          value: stage.id,
+          child: Text(stage.name, overflow: TextOverflow.ellipsis),
+        ),
+    ],
+    onChanged: state.status == FootballRankingsStatus.loading
+        ? null
+        : (value) => controller.selectStage(
+            value == null || value == 0 ? null : value,
+          ),
+  );
+
+  Widget _playerTypeField() => DropdownButtonFormField<PlayerRankType>(
+    isExpanded: true,
+    key: const ValueKey('player_rank_type'),
+    initialValue: state.playerRankType,
+    decoration: const InputDecoration(labelText: '指标'),
+    items: [
+      for (final type in PlayerRankType.values)
+        DropdownMenuItem(value: type, child: Text(type.label)),
+    ],
+    onChanged: (value) {
+      if (value != null) controller.selectPlayerRankType(value);
+    },
+  );
+
+  Widget _teamTypeField() => DropdownButtonFormField<TeamRankType>(
+    isExpanded: true,
+    key: const ValueKey('team_rank_type'),
+    initialValue: state.teamRankType,
+    decoration: const InputDecoration(labelText: '指标'),
+    items: [
+      for (final type in TeamRankType.values)
+        DropdownMenuItem(value: type, child: Text(type.label)),
+    ],
+    onChanged: (value) {
+      if (value != null) controller.selectTeamRankType(value);
+    },
   );
 }
 
@@ -177,7 +159,9 @@ class StandingsList extends ConsumerWidget {
         final record = table.records[index - 1];
         return InkWell(
           key: ValueKey('standing_team_${record.teamId}'),
-          onTap: () => context.push('/teams/${record.teamId}'),
+          onTap: record.teamId > 0
+              ? () => context.push('/teams/${record.teamId}')
+              : null,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
             child: Row(
@@ -260,7 +244,9 @@ class PlayerRankingList extends ConsumerWidget {
         final record = state.playerRecords[index];
         return ListTile(
           key: ValueKey('ranking_player_${record.playerId}'),
-          onTap: () => context.push('/players/${record.playerId}'),
+          onTap: record.playerId > 0
+              ? () => context.push('/players/${record.playerId}')
+              : null,
           leading: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -313,7 +299,9 @@ class TeamRankingList extends ConsumerWidget {
         final record = state.teamRecords[index];
         return ListTile(
           key: ValueKey('ranking_team_${record.teamId}'),
-          onTap: () => context.push('/teams/${record.teamId}'),
+          onTap: record.teamId > 0
+              ? () => context.push('/teams/${record.teamId}')
+              : null,
           leading: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

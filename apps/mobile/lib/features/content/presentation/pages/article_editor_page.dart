@@ -15,6 +15,7 @@ import '../../../search/domain/search_models.dart';
 import '../../domain/content_detail.dart';
 import '../controllers/article_editor_controller.dart';
 import 'publish_post_page.dart';
+import '../widgets/publish_mode_bar.dart';
 
 class ArticleEditorPage extends ConsumerStatefulWidget {
   const ArticleEditorPage({this.contentId, super.key});
@@ -84,11 +85,19 @@ class _ArticleEditorPageState extends ConsumerState<ArticleEditorPage> {
         }
       },
       child: Scaffold(
+        backgroundColor: Colors.white,
         appBar: AppBar(
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.ink,
+          leading: TextButton(
+            key: const ValueKey('article_cancel'),
+            onPressed: state.submitting ? null : () => _cancel(controller),
+            child: const Text('取消'),
+          ),
           title: Text(widget.contentId == null ? '撰写文章' : '编辑文章'),
           actions: [
             if (state.status == ArticleEditorStatus.ready)
-              TextButton(
+              FilledButton(
                 key: const ValueKey('article_submit'),
                 onPressed: state.submitting ? null : () => _submit(controller),
                 child: Text(
@@ -97,7 +106,6 @@ class _ArticleEditorPageState extends ConsumerState<ArticleEditorPage> {
                       : widget.contentId == null
                       ? '发布'
                       : '保存',
-                  style: const TextStyle(color: Colors.white),
                 ),
               ),
           ],
@@ -116,6 +124,31 @@ class _ArticleEditorPageState extends ConsumerState<ArticleEditorPage> {
           ),
           ArticleEditorStatus.ready => _editor(controller),
         },
+        bottomNavigationBar: state.status == ArticleEditorStatus.ready
+            ? PublishModeBar(
+                mode: PublishMode.article,
+                enabled: !state.submitting,
+                onModeSelected: (mode) => _switchMode(mode, controller),
+                tools: [
+                  IconButton(
+                    key: const ValueKey('article_bottom_add_text'),
+                    tooltip: '文字',
+                    onPressed: state.submitting
+                        ? null
+                        : controller.addTextBlock,
+                    icon: const Icon(Icons.notes_rounded),
+                  ),
+                  IconButton(
+                    key: const ValueKey('article_bottom_add_image'),
+                    tooltip: '图片',
+                    onPressed: state.submitting
+                        ? null
+                        : controller.addImageBlocks,
+                    icon: const Icon(Icons.add_photo_alternate_outlined),
+                  ),
+                ],
+              )
+            : null,
       ),
     );
   }
@@ -129,6 +162,7 @@ class _ArticleEditorPageState extends ConsumerState<ArticleEditorPage> {
         TextField(
           key: const ValueKey('article_title'),
           controller: _title,
+          enabled: !state.submitting,
           maxLength: 200,
           onChanged: (_) => controller.markDirty(),
           decoration: const InputDecoration(labelText: '标题'),
@@ -137,6 +171,7 @@ class _ArticleEditorPageState extends ConsumerState<ArticleEditorPage> {
         TextField(
           key: const ValueKey('article_summary'),
           controller: _summary,
+          enabled: !state.submitting,
           maxLines: 3,
           onChanged: (_) => controller.markDirty(),
           decoration: const InputDecoration(
@@ -159,22 +194,36 @@ class _ArticleEditorPageState extends ConsumerState<ArticleEditorPage> {
         ),
         if (state.cover case final cover?) ...[
           const SizedBox(height: AppSpacing.sm),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            child: cover.file != null
-                ? Image.file(
-                    File(cover.file!.path),
-                    height: 180,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const SizedBox(
-                      height: 120,
-                      child: Center(child: Icon(Icons.broken_image_outlined)),
-                    ),
-                  )
-                : AppContentImage(
-                    imageUrl: resolveMediaUrl(config, cover.existingUrl),
-                    aspectRatio: 16 / 9,
-                  ),
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: cover.file != null
+                    ? Image.file(
+                        File(cover.file!.path),
+                        height: 180,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => const SizedBox(
+                          height: 120,
+                          child: Center(child: Icon(Icons.broken_image_outlined)),
+                        ),
+                      )
+                    : AppContentImage(
+                        imageUrl: resolveMediaUrl(config, cover.existingUrl),
+                        aspectRatio: 16 / 9,
+                      ),
+              ),
+              Positioned(
+                right: 4,
+                top: 4,
+                child: IconButton.filled(
+                  key: const ValueKey('article_remove_cover'),
+                  onPressed: state.submitting ? null : controller.removeCover,
+                  icon: const Icon(Icons.delete_outline_rounded),
+                ),
+              ),
+            ],
           ),
         ],
         const Divider(height: AppSpacing.xxl),
@@ -270,6 +319,56 @@ class _ArticleEditorPageState extends ConsumerState<ArticleEditorPage> {
       extra: controller.state.relations,
     );
     if (selected != null) controller.setRelations(selected);
+  }
+
+  Future<void> _cancel(ArticleEditorController controller) async {
+    if (!controller.state.hasDraft) {
+      if (mounted) context.pop();
+      return;
+    }
+    if (await _confirmDiscard()) await _discard(controller);
+  }
+
+  Future<void> _switchMode(
+    PublishMode mode,
+    ArticleEditorController controller,
+  ) async {
+    if (mode == PublishMode.article) return;
+    if (controller.state.hasDraft) {
+      if (!await _confirmDiscard()) return;
+      await _discard(controller, pop: false);
+      if (!mounted) return;
+    }
+    context.pushReplacement('/publish/post');
+  }
+
+  Future<bool> _confirmDiscard() async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('放弃文章草稿？'),
+          content: const Text('尚未发布的修改不会保存，临时上传图片会尽力清理。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('继续编辑'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('放弃'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+
+  Future<void> _discard(
+    ArticleEditorController controller, {
+    bool pop = true,
+  }) async {
+    setState(() => _discarding = true);
+    await controller.cleanupDraft();
+    if (pop && mounted) context.pop();
   }
 
   Future<void> _submit(ArticleEditorController controller) async {

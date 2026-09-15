@@ -194,9 +194,13 @@ class RankingCard extends StatelessWidget {
         else
           ...card.items.take(5).map((item) {
             final isPlayer = card.rankingType == 'PLAYER';
+            final isTeam =
+                card.rankingType == 'STANDING' || card.rankingType == 'TEAM';
             final targetId = isPlayer
                 ? item.entityId
-                : item.teamId ?? item.entityId;
+                : isTeam
+                ? item.teamId ?? item.entityId
+                : null;
             final onTap = targetId == null
                 ? null
                 : isPlayer
@@ -388,6 +392,7 @@ class _CardSurface extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border.all(color: AppColors.border),
           borderRadius: BorderRadius.circular(AppRadius.md),
+          boxShadow: AppShadows.card,
         ),
         child: child,
       ),

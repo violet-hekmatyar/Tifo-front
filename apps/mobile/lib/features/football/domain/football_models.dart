@@ -72,6 +72,7 @@ final class MatchEvent {
     required this.type,
     required this.minute,
     this.extraMinute,
+    this.period,
     this.teamId,
     this.teamName,
     this.playerId,
@@ -86,6 +87,7 @@ final class MatchEvent {
   final String type;
   final int minute;
   final int? extraMinute;
+  final String? period;
   final int? teamId;
   final String? teamName;
   final int? playerId;

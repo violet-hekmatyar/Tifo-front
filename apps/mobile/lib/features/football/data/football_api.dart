@@ -373,6 +373,7 @@ MatchEvent _event(Object? raw) {
     type: _requiredText(m, 'eventType'),
     minute: _integer(m['minute']) ?? 0,
     extraMinute: _integer(m['extraMinute']),
+    period: _text(m['period']),
     teamId: _integer(m['teamId']),
     teamName: _text(m['teamName']),
     playerId: _integer(m['playerId']),

@@ -3,7 +3,7 @@ import 'package:tifo/features/football/domain/football_models.dart';
 import 'package:tifo/features/football/domain/match_display_sort.dart';
 
 void main() {
-  test('orders live upcoming finished and exceptional groups', () {
+  test('DAT-04 orders live upcoming finished and exceptional match groups', () {
     final sorted = sortMatchesForDisplay([
       _match(1, 'FINISHED', DateTime(2026, 7, 10)),
       _match(2, 'UNKNOWN', DateTime(2026, 7, 20)),
@@ -13,7 +13,7 @@ void main() {
     expect(sorted.map((item) => item.id), [4, 3, 1, 2]);
   });
 
-  test('upcoming is ascending and finished is descending', () {
+  test('DAT-04 keeps stable ascending and descending display sort rules', () {
     final sorted = sortMatchesForDisplay([
       _match(1, 'SCHEDULED', DateTime(2026, 7, 20)),
       _match(2, 'FINISHED', DateTime(2026, 7, 8)),
@@ -23,7 +23,7 @@ void main() {
     expect(sorted.map((item) => item.id), [3, 1, 4, 2]);
   });
 
-  test('live and unknown groups retain backend relative order', () {
+  test('DAT-08 unknown match statuses retain safe backend order', () {
     final sorted = sortMatchesForDisplay([
       _match(1, 'PLAYING', DateTime(2026, 7, 20)),
       _match(2, 'HALF_TIME', DateTime(2026, 7, 10)),
@@ -33,7 +33,7 @@ void main() {
     expect(sorted.map((item) => item.id), [1, 2, 3, 4]);
   });
 
-  test('missing time is stable and follows valid time inside timed groups', () {
+  test('DAT-06 missing match time is safe and stable', () {
     final sorted = sortMatchesForDisplay([
       _match(1, 'SCHEDULED', null),
       _match(2, 'SCHEDULED', DateTime(2026, 7, 10)),
@@ -43,7 +43,7 @@ void main() {
     expect(sorted.map((item) => item.id), [2, 1, 4, 3]);
   });
 
-  test('does not infer status from score', () {
+  test('DAT-08 does not infer ranking or match status from score', () {
     final scoredUpcoming = _match(
       1,
       'SCHEDULED',

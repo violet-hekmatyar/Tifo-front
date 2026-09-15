@@ -15,7 +15,7 @@ class FeedFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 44,
+    height: 42,
     child: ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       scrollDirection: Axis.horizontal,
@@ -30,6 +30,13 @@ class FeedFilterBar extends StatelessWidget {
           onSelected: (_) => onSelected(filter),
           showCheckmark: false,
           selectedColor: AppColors.brand,
+          backgroundColor: AppColors.surface,
+          side: BorderSide(
+            color: selected == filter ? AppColors.brand : AppColors.border,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+          ),
           labelStyle: TextStyle(
             color: selected == filter ? Colors.white : AppColors.ink,
             fontWeight: FontWeight.w700,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/legacy.dart';
 
 import '../../data/player_detail_repository.dart';
 import '../../domain/football_models.dart';
+import '../../domain/match_display_sort.dart';
 import '../../domain/player_detail_models.dart';
 import '../../domain/team_detail_models.dart';
 import 'team_detail_controllers.dart';
@@ -41,6 +42,7 @@ final playerMatchesV1ControllerProvider = ChangeNotifierProvider.autoDispose
       final repository = ref.watch(playerDetailRepositoryProvider);
       return TeamPagedController(
         target: '球员比赛',
+        sorter: (records) => sortMatchesForDisplay(records),
         loader: (page, size) => repository.matches(playerId, page, size),
         itemId: (item) => item.id,
       );

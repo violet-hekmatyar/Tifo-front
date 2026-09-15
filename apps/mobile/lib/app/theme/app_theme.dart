@@ -10,7 +10,11 @@ abstract final class AppTheme {
       surface: AppColors.surface,
       error: AppColors.error,
     );
-    final base = ThemeData(useMaterial3: true, colorScheme: scheme);
+    final base = ThemeData(
+      useMaterial3: true,
+      colorScheme: scheme,
+      visualDensity: VisualDensity.standard,
+    );
     return base.copyWith(
       scaffoldBackgroundColor: AppColors.page,
       textTheme: AppTypography.textTheme(
@@ -78,6 +82,14 @@ abstract final class AppTheme {
         side: const BorderSide(color: AppColors.border),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.surface,
+        indicatorColor: AppColors.brandSoft,
+        elevation: 0,
+        labelTextStyle: WidgetStatePropertyAll(
+          base.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
     );

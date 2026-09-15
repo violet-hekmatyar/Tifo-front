@@ -10,6 +10,7 @@ import '../../../../shared/design_system/app_design_tokens.dart';
 import '../../../../shared/widgets/app_state_view.dart';
 import '../../domain/search_models.dart';
 import '../controllers/global_search_controller.dart';
+import '../controllers/search_history_store.dart';
 import '../widgets/search_result_tile.dart';
 
 class GlobalSearchPage extends ConsumerStatefulWidget {
@@ -29,16 +30,44 @@ class GlobalSearchPage extends ConsumerStatefulWidget {
 class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
   late final TextEditingController _textController;
   final _scrollController = ScrollController();
+  Timer? _debounce;
   late final Map<String, SearchEntity> _selected;
 
   @override
   void initState() {
     super.initState();
-    final keyword = ref.read(globalSearchControllerProvider).state.keyword;
+    final keyword = ref
+        .read(
+          widget.selectionMode
+              ? relationSearchControllerProvider
+              : globalSearchControllerProvider,
+        )
+        .state
+        .keyword;
     _textController = TextEditingController(text: keyword);
-    _selected = {
-      for (final entity in widget.initialSelection) entity.stableKey: entity,
-    };
+    if (widget.selectionMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final controller = ref.read(relationSearchControllerProvider);
+        controller.reset();
+        if (_textController.text.isNotEmpty) {
+          _textController.clear();
+        }
+      });
+    }
+    _selected = {};
+    for (final entity in widget.initialSelection) {
+      if (_selected.length >= 10 ||
+          entity.entityId == null ||
+          !const {
+            SearchEntityType.team,
+            SearchEntityType.player,
+            SearchEntityType.match,
+          }.contains(entity.type)) {
+        continue;
+      }
+      _selected[entity.stableKey] = entity;
+    }
     _scrollController.addListener(_onScroll);
   }
 
@@ -47,20 +76,50 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
     _scrollController
       ..removeListener(_onScroll)
       ..dispose();
+    _debounce?.cancel();
     _textController.dispose();
     super.dispose();
   }
 
   void _onScroll() {
-    if (_scrollController.position.extentAfter < 300) {
-      unawaited(ref.read(globalSearchControllerProvider).loadMore());
+    if (_scrollController.hasClients &&
+        _scrollController.position.extentAfter < 300) {
+      unawaited(_controller.loadMore());
     }
+  }
+
+  GlobalSearchController get _controller => ref.read(
+    widget.selectionMode
+        ? relationSearchControllerProvider
+        : globalSearchControllerProvider,
+  );
+
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    if (normalizeSearchKeyword(value).isEmpty) {
+      unawaited(_controller.search(''));
+      return;
+    }
+    _debounce = Timer(
+      const Duration(milliseconds: 280),
+      () => unawaited(_controller.search(value)),
+    );
+  }
+
+  void _submit() {
+    _debounce?.cancel();
+    unawaited(_controller.search(_textController.text));
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = ref.watch(globalSearchControllerProvider);
-    final state = controller.state;
+    final activeController = ref.watch(
+      widget.selectionMode
+          ? relationSearchControllerProvider
+          : globalSearchControllerProvider,
+    );
+    final state = activeController.state;
+    final history = ref.watch(searchHistoryProvider);
     final config = ref.watch(appConfigProvider);
     final records = widget.selectionMode
         ? state.records
@@ -80,7 +139,11 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
           if (widget.selectionMode)
             TextButton(
               key: const ValueKey('relation_selection_done'),
-              onPressed: () => context.pop(_selected.values.toList()),
+              onPressed: () {
+                final result = _selected.values.toList()
+                  ..sort((a, b) => a.stableKey.compareTo(b.stableKey));
+                context.pop(result);
+              },
               child: Text(
                 '完成 ${_selected.length}/10',
                 style: const TextStyle(color: Colors.white),
@@ -103,20 +166,15 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
                 controller: _textController,
                 autofocus: state.keyword.isEmpty,
                 textInputAction: TextInputAction.search,
-                onChanged: (value) {
-                  if (value.trim().isEmpty && state.keyword.isNotEmpty) {
-                    unawaited(controller.search(''));
-                  }
-                },
-                onSubmitted: controller.search,
+                onChanged: _onChanged,
+                onSubmitted: (_) => _submit(),
                 decoration: InputDecoration(
                   hintText: '搜索球队、球员、比赛或内容',
                   prefixIcon: const Icon(Icons.search_rounded),
                   suffixIcon: IconButton(
                     key: const ValueKey('global_search_submit'),
                     tooltip: '搜索',
-                    onPressed: () =>
-                        unawaited(controller.search(_textController.text)),
+                    onPressed: _submit,
                     icon: const Icon(Icons.arrow_forward_rounded),
                   ),
                 ),
@@ -134,7 +192,8 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
                     key: const ValueKey('search_filter_all'),
                     label: '全部',
                     selected: state.entityType == null,
-                    onSelected: () => unawaited(controller.selectType(null)),
+                    onSelected: () =>
+                        unawaited(activeController.selectType(null)),
                   ),
                   for (final type in SearchEntityType.values.where(
                     (value) =>
@@ -147,7 +206,8 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
                       key: ValueKey('search_filter_${type.wireValue}'),
                       label: _typeLabel(type),
                       selected: state.entityType == type,
-                      onSelected: () => unawaited(controller.selectType(type)),
+                      onSelected: () =>
+                          unawaited(activeController.selectType(type)),
                     ),
                   ],
                 ],
@@ -155,11 +215,17 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
             ),
             Expanded(
               child: switch (state.status) {
-                GlobalSearchStatus.idle => const AppStateView(
-                  key: ValueKey('search_idle'),
-                  kind: AppStateKind.empty,
-                  title: '查找你关心的足球内容',
-                  message: '输入关键词后开始搜索。',
+                GlobalSearchStatus.idle => _IdleSearchView(
+                  history: history,
+                  onUse: (keyword) {
+                    _textController.text = keyword;
+                    _textController.selection = TextSelection.collapsed(
+                      offset: keyword.length,
+                    );
+                    unawaited(activeController.search(keyword));
+                  },
+                  onRemove: history.remove,
+                  onClear: history.clear,
                 ),
                 GlobalSearchStatus.loading => const AppStateView(
                   key: ValueKey('search_loading'),
@@ -172,15 +238,28 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
                   kind: AppStateKind.empty,
                   title: '没有找到相关结果',
                   message: '可以更换关键词或搜索分类。',
-                  onRetry: controller.retry,
+                  onRetry: activeController.retry,
                 ),
                 GlobalSearchStatus.failure => AppStateView(
                   key: const ValueKey('search_error'),
                   kind: AppStateKind.error,
                   title: '搜索失败',
                   message: state.message ?? '请稍后重试。',
-                  onRetry: controller.retry,
+                  onRetry: activeController.retry,
                 ),
+                GlobalSearchStatus.ready
+                    when widget.selectionMode && records.isEmpty =>
+                  AppStateView(
+                    key: const ValueKey('search_selection_empty'),
+                    kind: AppStateKind.empty,
+                    title: '没有可关联的实体',
+                    message: state.hasMore
+                        ? '当前页没有球队、球员或比赛。继续加载更多结果。'
+                        : '没有找到可关联的球队、球员或比赛。',
+                    onRetry: state.hasMore
+                        ? activeController.loadMore
+                        : activeController.retry,
+                  ),
                 GlobalSearchStatus.ready => ListView.separated(
                   key: const PageStorageKey('global_search_results'),
                   controller: _scrollController,
@@ -197,7 +276,7 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
                     if (index == records.length) {
                       return _LoadMoreState(
                         state: state,
-                        onRetry: controller.loadMore,
+                        onRetry: activeController.loadMore,
                       );
                     }
                     final entity = records[index];
@@ -234,6 +313,63 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
       }
       _selected[entity.stableKey] = entity;
     });
+  }
+}
+
+class _IdleSearchView extends StatelessWidget {
+  const _IdleSearchView({
+    required this.history,
+    required this.onUse,
+    required this.onRemove,
+    required this.onClear,
+  });
+
+  final SearchHistoryStore history;
+  final ValueChanged<String> onUse;
+  final ValueChanged<String> onRemove;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    if (history.items.isEmpty) {
+      return const AppStateView(
+        key: ValueKey('search_idle'),
+        kind: AppStateKind.empty,
+        title: '查找你关心的足球内容',
+        message: '输入关键词后开始搜索。',
+      );
+    }
+    return ListView(
+      key: const ValueKey('search_idle_history'),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      children: [
+        Row(
+          children: [
+            Text('搜索历史', style: Theme.of(context).textTheme.titleMedium),
+            const Spacer(),
+            TextButton(
+              key: const ValueKey('search_history_clear'),
+              onPressed: onClear,
+              child: const Text('清空'),
+            ),
+          ],
+        ),
+        for (final keyword in history.items)
+          ListTile(
+            key: ValueKey('search_history_$keyword'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.history_rounded),
+            title: Text(keyword),
+            onTap: () => onUse(keyword),
+            trailing: IconButton(
+              key: ValueKey('search_history_remove_$keyword'),
+              tooltip: '删除 $keyword',
+              onPressed: () => onRemove(keyword),
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ),
+      ],
+    );
   }
 }
 
@@ -294,7 +430,7 @@ class _LoadMoreState extends StatelessWidget {
 
 String? searchEntityLocation(SearchEntity entity) {
   final id = entity.entityId;
-  if (id == null) return null;
+  if (id == null || id <= 0) return null;
   return switch (entity.type) {
     SearchEntityType.team => '/teams/$id',
     SearchEntityType.player => '/players/$id',

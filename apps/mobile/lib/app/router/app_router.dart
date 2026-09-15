@@ -12,8 +12,9 @@ import '../../features/football/presentation/pages/player_detail_page.dart';
 import '../../features/football/presentation/pages/team_detail_page.dart';
 import '../../features/content/presentation/pages/content_detail_page.dart';
 import '../../features/content/presentation/pages/article_editor_page.dart';
-import '../../features/content/presentation/pages/publish_entry_page.dart';
 import '../../features/content/presentation/pages/publish_post_page.dart';
+import '../../features/content/presentation/pages/publish_auxiliary_page.dart';
+import '../../features/content/presentation/publish/publish_local_source.dart';
 import '../../features/main_shell/presentation/main_shell_page.dart';
 import '../../features/notification/presentation/notifications_page.dart';
 import '../../features/search/presentation/pages/global_search_page.dart';
@@ -27,6 +28,8 @@ import '../../features/user_center/presentation/pages/my_profile_page.dart';
 import '../../features/user_center/presentation/pages/public_user_page.dart';
 import '../../features/user_center/presentation/pages/unavailable_page.dart';
 import '../../features/user_center/presentation/pages/user_list_page.dart';
+import '../../features/user_center/presentation/pages/user_relations_page.dart';
+import '../../features/user_center/presentation/pages/settings_pages.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import 'auth_redirect.dart';
 import 'route_names.dart';
@@ -175,6 +178,12 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
       },
     ),
     GoRoute(
+      path: '/users/me/relations',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) =>
+          UserRelationsPage(userId: authController.state.user?.id ?? -1),
+    ),
+    GoRoute(
       path: '/users/me/followed-teams',
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const FollowedEntitiesPage(teams: true),
@@ -186,6 +195,22 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
     ),
     GoRoute(
       path: '/messages',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const NotificationsPage(),
+    ),
+    GoRoute(
+      path: '/settings',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => SettingsPage(authController: authController),
+    ),
+    GoRoute(
+      path: '/settings/account',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) =>
+          AccountInfoPage(authController: authController),
+    ),
+    GoRoute(
+      path: '/settings/notifications',
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const NotificationsPage(),
     ),
@@ -227,6 +252,13 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
           },
         ),
         GoRoute(
+          path: 'relations',
+          builder: (context, state) {
+            final id = int.tryParse(state.pathParameters['userId'] ?? '') ?? -1;
+            return UserRelationsPage(userId: id);
+          },
+        ),
+        GoRoute(
           path: 'favorites',
           builder: (context, state) {
             final id = int.tryParse(state.pathParameters['userId'] ?? '') ?? -1;
@@ -256,7 +288,7 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
     GoRoute(
       path: '/publish',
       name: RouteNames.publish,
-      builder: (context, state) => const PublishEntryPage(),
+      builder: (context, state) => const PublishPostPage(),
     ),
     GoRoute(
       path: '/publish/post',
@@ -267,6 +299,16 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
       path: '/publish/article',
       name: RouteNames.publishArticle,
       builder: (context, state) => const ArticleEditorPage(),
+    ),
+    GoRoute(
+      path: '/publish/topic',
+      builder: (context, state) =>
+          const PublishAuxiliaryPage(kind: PublishAuxiliaryKind.topic),
+    ),
+    GoRoute(
+      path: '/publish/hotspot',
+      builder: (context, state) =>
+          const PublishAuxiliaryPage(kind: PublishAuxiliaryKind.hotspot),
     ),
     GoRoute(
       path: '/relations/select',

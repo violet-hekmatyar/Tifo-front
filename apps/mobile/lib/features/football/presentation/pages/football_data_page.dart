@@ -214,12 +214,14 @@ class _SourceBar extends StatelessWidget {
       child: Row(
         children: [
           ChoiceChip(
+            key: const ValueKey('data_source_important'),
             label: const Text('重要'),
             selected: state.source is ImportantSource,
             onSelected: (_) => onSelected(const ImportantSource()),
           ),
           const SizedBox(width: AppSpacing.xs),
           ChoiceChip(
+            key: const ValueKey('data_source_following'),
             label: const Text('关注'),
             selected: state.source is FollowingSource,
             onSelected: (_) => onSelected(const FollowingSource()),
@@ -251,6 +253,7 @@ class _LeagueChip extends ConsumerWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context, WidgetRef ref) => ActionChip(
+    key: ValueKey('data_source_league_${league.id}'),
     backgroundColor: selected ? AppColors.brandSoft : null,
     side: BorderSide(color: selected ? AppColors.brand : AppColors.border),
     avatar: AppTeamLogo(
@@ -280,6 +283,21 @@ class _MatchList extends StatelessWidget {
   Widget build(BuildContext context) {
     String? previousDate;
     final children = <Widget>[];
+    if (state.message != null && state.matches.isNotEmpty) {
+      children.add(
+        Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.sm),
+          child: MaterialBanner(
+            key: const ValueKey('schedule_refresh_error'),
+            content: Text(state.message!),
+            leading: const Icon(Icons.info_outline_rounded),
+            actions: [
+              TextButton(onPressed: onRefresh, child: const Text('重试')),
+            ],
+          ),
+        ),
+      );
+    }
     for (final match in state.matches) {
       final date = footballDate(match.matchTime);
       if (date != previousDate) {

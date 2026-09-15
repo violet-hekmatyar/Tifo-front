@@ -19,7 +19,7 @@ void main() {
   });
 
   test(
-    'decodes all player detail resources with nullable and unknown data',
+    'PLAYER-16 decodes all player detail resources with nullable and unknown data',
     () async {
       adapter
         ..onGet(
@@ -104,6 +104,9 @@ void main() {
       expect(teams.single.current, isTrue);
       expect(career.byTeam.single.id, 40);
       expect(matches.records.single.status, 'UNKNOWN_MATCH_STATUS');
+      expect(matches.records.single.eventSummary, '战报摘要');
+      expect(matches.records.single.hasReport, isTrue);
+      expect(matches.records.single.reportContentId, 90);
       expect(contents.records.single.rawType, 'UNKNOWN_CONTENT_TYPE');
     },
   );
@@ -125,6 +128,9 @@ const _match = <String, Object?>{
   'awayTeamId': 41,
   'awayTeamName': '对手',
   'matchStatus': 'UNKNOWN_MATCH_STATUS',
+  'eventSummary': '战报摘要',
+  'hasReport': true,
+  'reportContentId': 90,
 };
 const _content = <String, Object?>{
   'contentId': 80,

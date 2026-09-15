@@ -44,6 +44,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final pageContext = context;
     final controller = ref.watch(notificationControllerProvider);
     final state = controller.state;
     final unread =
@@ -51,7 +52,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         state.items.where((item) => !item.read).length;
     return Scaffold(
       appBar: AppBar(
-        title: Text(unread > 0 ? '消息（$unread 条未读）' : '消息'),
+        title: Text(
+          unread > 0 ? '消息（$unread 条未读）' : '消息',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           TextButton(
             key: const ValueKey('notification_read_all'),
@@ -78,10 +83,12 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           onRefresh: controller.refresh,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            children: const [
+            children: [
+              if (state.message case final message?)
+                _NotificationNotice(message: message),
               SizedBox(
                 height: 420,
-                child: AppStateView(
+                child: const AppStateView(
                   kind: AppStateKind.empty,
                   title: '暂无互动通知',
                   message: '点赞、评论、回复和关注消息会显示在这里。',
@@ -97,10 +104,14 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
             controller: _scroll,
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-            itemCount: state.items.length + 1,
+            itemCount: state.items.length + (state.message == null ? 1 : 2),
             separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
-              if (index == state.items.length) {
+              if (state.message != null && index == 0) {
+                return _NotificationNotice(message: state.message!);
+              }
+              final itemIndex = state.message == null ? index : index - 1;
+              if (itemIndex == state.items.length) {
                 return _Footer(
                   loading: state.loadingMore,
                   hasMore: state.hasMore,
@@ -108,14 +119,15 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                   onRetry: controller.loadMore,
                 );
               }
-              final item = state.items[index];
+              final item = state.items[itemIndex];
               return _NotificationTile(
                 item: item,
+                busy: state.readBusyIds.contains(item.notificationId),
                 onTap: () async {
                   final read = await controller.markRead(item);
-                  if (!context.mounted || !read) return;
+                  if (!pageContext.mounted || !read) return;
                   final route = item.route;
-                  if (route != null) context.push(route);
+                  if (route != null) pageContext.push(route);
                 },
               );
             },
@@ -126,9 +138,41 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   }
 }
 
+class _NotificationNotice extends StatelessWidget {
+  const _NotificationNotice({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.fromLTRB(
+      AppSpacing.md,
+      AppSpacing.sm,
+      AppSpacing.md,
+      AppSpacing.xs,
+    ),
+    padding: const EdgeInsets.all(AppSpacing.sm),
+    decoration: BoxDecoration(
+      color: AppColors.error.withValues(alpha: .08),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.info_outline_rounded, color: AppColors.error),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(child: Text(message)),
+      ],
+    ),
+  );
+}
+
 class _NotificationTile extends ConsumerWidget {
-  const _NotificationTile({required this.item, required this.onTap});
+  const _NotificationTile({
+    required this.item,
+    required this.busy,
+    required this.onTap,
+  });
   final AppNotification item;
+  final bool busy;
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -138,13 +182,17 @@ class _NotificationTile extends ConsumerWidget {
     );
     final preview =
         item.targetPreview?.commentExcerpt ?? item.targetPreview?.contentTitle;
+    final cover = resolveMediaUrl(
+      ref.watch(appConfigProvider),
+      item.targetPreview?.coverUrl,
+    );
     return Material(
       color: item.read
           ? AppColors.surface
           : AppColors.brand.withValues(alpha: 0.06),
       child: ListTile(
         key: ValueKey('notification_${item.notificationId}'),
-        onTap: onTap,
+        onTap: busy ? null : onTap,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.xs,
@@ -182,7 +230,7 @@ class _NotificationTile extends ConsumerWidget {
             if (preview != null && preview.trim().isNotEmpty)
               Text(
                 preview,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: AppColors.inkMuted),
               ),
@@ -204,12 +252,51 @@ class _NotificationTile extends ConsumerWidget {
             ),
           ],
         ),
-        trailing: item.route == null
-            ? null
-            : const Icon(Icons.chevron_right_rounded),
+        trailing: busy
+            ? const SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : item.route == null
+            ? (cover == null
+                  ? null
+                  : _Cover(url: cover, label: preview ?? '内容封面'))
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (cover != null)
+                    _Cover(url: cover, label: preview ?? '内容封面'),
+                  const Icon(Icons.chevron_right_rounded),
+                ],
+              ),
       ),
     );
   }
+}
+
+class _Cover extends StatelessWidget {
+  const _Cover({required this.url, required this.label});
+  final String url;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(AppRadius.sm),
+    child: Image.network(
+      url,
+      width: 44,
+      height: 44,
+      fit: BoxFit.cover,
+      semanticLabel: label,
+      errorBuilder: (_, _, _) => const ColoredBox(
+        color: AppColors.surfaceMuted,
+        child: SizedBox.square(
+          dimension: 44,
+          child: Icon(Icons.image_not_supported_outlined),
+        ),
+      ),
+    ),
+  );
 }
 
 class _Footer extends StatelessWidget {
@@ -251,7 +338,13 @@ IconData _icon(AppNotificationType type) => switch (type) {
   AppNotificationType.unknown => Icons.notifications_rounded,
 };
 
-String _date(DateTime? value) => value == null
-    ? ''
-    : '${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')} '
-          '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+String _date(DateTime? value) {
+  if (value == null) return '时间待定';
+  final delta = DateTime.now().difference(value);
+  if (delta.inMinutes < 1) return '刚刚';
+  if (delta.inMinutes < 60) return '${delta.inMinutes} 分钟前';
+  if (delta.inHours < 24) return '${delta.inHours} 小时前';
+  if (delta.inDays < 7) return '${delta.inDays} 天前';
+  return '${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')} '
+      '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+}

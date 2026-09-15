@@ -12,14 +12,12 @@ class FollowedTeamBar extends ConsumerWidget {
     required this.teams,
     required this.selectedTeamId,
     required this.onSelected,
-    required this.onOpenTeam,
     super.key,
   });
 
   final List<FollowedTeam> teams;
   final int? selectedTeamId;
   final ValueChanged<int?> onSelected;
-  final ValueChanged<int> onOpenTeam;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,15 +41,15 @@ class FollowedTeamBar extends ConsumerWidget {
             );
           }
           final team = teams[index - 1];
-          final canOpenTeam = team.teamId > 0;
+          final canSelectTeam = team.teamId > 0;
           return _TeamButton(
             key: ValueKey('followed_team_${team.teamId}'),
             label: team.teamName,
             selected: selectedTeamId == team.teamId,
-            semanticLabel: canOpenTeam
-                ? '查看 ${team.teamName} 详情'
+            semanticLabel: canSelectTeam
+                ? '筛选 ${team.teamName} 内容'
                 : '${team.teamName} 暂不可用',
-            onTap: canOpenTeam ? () => onOpenTeam(team.teamId) : null,
+            onTap: canSelectTeam ? () => onSelected(team.teamId) : null,
             child: AppTeamLogo(
               identity: 'team:${team.teamId}',
               name: team.teamName,

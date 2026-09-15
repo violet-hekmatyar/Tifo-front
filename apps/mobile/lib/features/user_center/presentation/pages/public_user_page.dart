@@ -9,30 +9,61 @@ import '../../../../shared/widgets/app_entity_avatar.dart';
 import '../../../../shared/widgets/app_state_view.dart';
 import '../../domain/user_center_models.dart';
 import '../controllers/user_center_controllers.dart';
+import 'user_list_page.dart';
 
 class PublicUserPage extends ConsumerStatefulWidget {
   const PublicUserPage({required this.userId, super.key});
   final int userId;
+
   @override
   ConsumerState<PublicUserPage> createState() => _PublicUserPageState();
 }
 
-class _PublicUserPageState extends ConsumerState<PublicUserPage> {
+class _PublicUserPageState extends ConsumerState<PublicUserPage>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs;
+  final _pageStorage = PageStorageBucket();
+
   @override
   void initState() {
     super.initState();
+    _tabs = TabController(length: 3, vsync: this);
+    _tabs.addListener(_onTabChanged);
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => ref.read(publicProfileControllerProvider(widget.userId)).load(),
     );
   }
 
   @override
+  void dispose() {
+    _tabs.removeListener(_onTabChanged);
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final c = ref.watch(publicProfileControllerProvider(widget.userId));
-    final s = c.state;
+    final controller = ref.watch(
+      publicProfileControllerProvider(widget.userId),
+    );
+    final state = controller.state;
     return Scaffold(
-      appBar: AppBar(title: const Text('用户主页')),
-      body: switch (s.status) {
+      appBar: AppBar(
+        title: const Text('用户主页'),
+        actions: [
+          IconButton(
+            key: const ValueKey('public_user_refresh'),
+            tooltip: '刷新用户主页',
+            onPressed: state.refreshing ? null : controller.refresh,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
+      body: switch (state.status) {
         PublicProfileStatus.loading => const AppStateView(
           kind: AppStateKind.loading,
           title: '正在加载用户主页',
@@ -46,136 +77,221 @@ class _PublicUserPageState extends ConsumerState<PublicUserPage> {
         PublicProfileStatus.failure => AppStateView(
           kind: AppStateKind.error,
           title: '用户主页加载失败',
-          message: s.message ?? '请稍后重试。',
-          onRetry: c.load,
+          message: state.message ?? '请稍后重试。',
+          onRetry: controller.load,
         ),
-        PublicProfileStatus.ready => _Body(controller: c),
+        PublicProfileStatus.ready => _Body(
+          controller: controller,
+          tabs: _tabs,
+          activeTab: _tabs.index,
+          bucket: _pageStorage,
+        ),
       },
     );
   }
 }
 
-class _Body extends ConsumerWidget {
-  const _Body({required this.controller});
+class _Body extends StatelessWidget {
+  const _Body({
+    required this.controller,
+    required this.tabs,
+    required this.activeTab,
+    required this.bucket,
+  });
   final PublicProfileController controller;
+  final TabController tabs;
+  final int activeTab;
+  final PageStorageBucket bucket;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final p = controller.state.profile!;
-    final config = ref.watch(appConfigProvider);
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+    return Column(
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
+        if (controller.state.refreshing)
+          const LinearProgressIndicator(minHeight: 2),
+        _Header(profile: p, controller: controller),
+        if (controller.state.message case final message?)
+          _ErrorStrip(message: message, onRetry: controller.refresh),
+        TabBar(
+          controller: tabs,
+          isScrollable: true,
+          tabs: const [
+            Tab(key: ValueKey('public_tab_posts'), text: '发布'),
+            Tab(key: ValueKey('public_tab_favorites'), text: '收藏'),
+            Tab(key: ValueKey('public_tab_comments'), text: '评论'),
+          ],
+        ),
+        Expanded(
+          child: PageStorage(
+            bucket: bucket,
+            child: TabBarView(
+              controller: tabs,
               children: [
-                AppEntityAvatar(
-                  identity: 'user:${p.userId}',
-                  semanticLabel: '${p.nickname}头像',
-                  fallbackIcon: Icons.person_outline_rounded,
-                  fallbackText: p.nickname.characters.first,
-                  imageUrl: resolveMediaUrl(config, p.avatarUrl),
-                  size: 76,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(p.nickname, style: Theme.of(context).textTheme.titleLarge),
-                Text(
-                  '@${p.username}',
-                  style: const TextStyle(color: AppColors.inkMuted),
-                ),
-                Text(
-                  p.relationLabel,
-                  style: const TextStyle(color: AppColors.brand),
-                ),
-                if (p.bio case final bio?) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(bio, textAlign: TextAlign.center),
-                ],
-                if (p.mainTeam case final team?)
-                  TextButton.icon(
-                    onPressed: () => context.push('/teams/${team.id}'),
-                    icon: const Icon(Icons.shield_outlined),
-                    label: Text('主队：${team.name}'),
+                UserListView(
+                  key: const ValueKey('public_list_posts'),
+                  request: UserListRequest(
+                    UserListKind.userContents,
+                    userId: p.userId,
                   ),
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: [
-                    _Stat('${p.contentCount}', '发布'),
-                    _Stat('${p.followingCount}', '关注'),
-                    _Stat('${p.followerCount}', '粉丝'),
-                    _Stat('${p.likeReceivedCount}', '获赞'),
-                  ],
+                  allowUserActions: false,
+                  active: activeTab == 0,
                 ),
-                if (!p.isSelf) ...[
-                  const SizedBox(height: AppSpacing.lg),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      key: const ValueKey('public_user_follow'),
-                      onPressed: controller.state.followBusy
-                          ? null
-                          : () => _confirmFollow(context, controller, p),
-                      icon: Icon(
-                        p.followed
-                            ? Icons.person_remove_outlined
-                            : Icons.person_add_alt_rounded,
-                      ),
-                      label: Text(p.followed ? '取消关注' : '关注'),
-                    ),
+                UserListView(
+                  key: const ValueKey('public_list_favorites'),
+                  request: UserListRequest(
+                    UserListKind.userFavorites,
+                    userId: p.userId,
                   ),
-                ],
-                if (controller.state.message case final message?)
-                  Padding(
-                    padding: const EdgeInsets.only(top: AppSpacing.sm),
-                    child: Text(
-                      message,
-                      style: const TextStyle(color: AppColors.error),
-                    ),
+                  allowUserActions: false,
+                  active: activeTab == 1,
+                ),
+                UserListView(
+                  key: const ValueKey('public_list_comments'),
+                  request: UserListRequest(
+                    UserListKind.userComments,
+                    userId: p.userId,
                   ),
+                  allowUserActions: false,
+                  active: activeTab == 2,
+                ),
               ],
             ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Card(
-          child: Column(
-            children: [
-              ListTile(
-                title: const Text('发布内容'),
-                subtitle: const Text('查看该用户公开发布的内容'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/users/${p.userId}/posts'),
-              ),
-              ListTile(
-                title: const Text('关注的人'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/users/${p.userId}/following'),
-              ),
-              ListTile(
-                title: const Text('粉丝'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/users/${p.userId}/followers'),
-              ),
-              ListTile(
-                title: const Text('收藏内容'),
-                subtitle: const Text('仅本人可查看；无权限时显示隐私提示'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/users/${p.userId}/favorites'),
-              ),
-              ListTile(
-                title: const Text('评论记录'),
-                subtitle: const Text('仅本人可查看；无权限时显示隐私提示'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/users/${p.userId}/comments'),
-              ),
-            ],
           ),
         ),
       ],
     );
   }
 }
+
+class _Header extends ConsumerWidget {
+  const _Header({required this.profile, required this.controller});
+  final UserProfile profile;
+  final PublicProfileController controller;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
+    final canFollow =
+        !profile.isSelf &&
+        {
+          'NONE',
+          'FOLLOWING',
+          'FOLLOWED_BY',
+          'MUTUAL',
+        }.contains(profile.relationStatus);
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.brandDark, AppColors.brand],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          children: [
+            AppEntityAvatar(
+              identity: 'user:${profile.userId}',
+              semanticLabel: '${profile.nickname}头像',
+              fallbackIcon: Icons.person_outline_rounded,
+              fallbackText: profile.nickname,
+              imageUrl: resolveMediaUrl(config, profile.avatarUrl),
+              size: 78,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              profile.nickname,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            Text(
+              '@${profile.username}',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            Text(
+              profile.isSelf ? '本人' : profile.relationLabel,
+              style: const TextStyle(color: Colors.white),
+            ),
+            if (profile.bio case final bio?)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
+                child: Text(
+                  bio,
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            if (profile.mainTeam case final team?)
+              TextButton.icon(
+                key: const ValueKey('public_user_main_team'),
+                onPressed: team.id > 0
+                    ? () => context.push('/teams/${team.id}')
+                    : null,
+                icon: const Icon(Icons.shield_outlined, color: Colors.white),
+                label: Text(
+                  '主队：${team.name}',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                _Stat('${profile.contentCount}', '发布'),
+                _Stat(
+                  '${profile.followingCount}',
+                  '关注',
+                  onTap: () =>
+                      context.push('/users/${profile.userId}/relations'),
+                ),
+                _Stat(
+                  '${profile.followerCount}',
+                  '粉丝',
+                  onTap: () =>
+                      context.push('/users/${profile.userId}/relations'),
+                ),
+                _Stat('${profile.likeReceivedCount}', '获赞'),
+              ],
+            ),
+            if (canFollow) ...[
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  key: const ValueKey('public_user_follow'),
+                  onPressed: controller.state.followBusy
+                      ? null
+                      : () => _confirmFollow(context, controller, profile),
+                  icon: Icon(
+                    profile.followed
+                        ? Icons.person_remove_outlined
+                        : Icons.person_add_alt_rounded,
+                  ),
+                  label: Text(_followActionLabel(profile)),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _followActionLabel(UserProfile profile) =>
+    switch (profile.relationStatus) {
+      'FOLLOWED_BY' => '回关',
+      'MUTUAL' => '取消互关',
+      'FOLLOWING' => '取消关注',
+      _ => '关注',
+    };
 
 Future<void> _confirmFollow(
   BuildContext context,
@@ -206,21 +322,46 @@ Future<void> _confirmFollow(
 }
 
 class _Stat extends StatelessWidget {
-  const _Stat(this.value, this.label);
+  const _Stat(this.value, this.label, {this.onTap});
   final String value;
   final String label;
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) => Expanded(
-    child: Column(
-      children: [
-        Text(
-          value,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        Text(label, style: const TextStyle(color: AppColors.inkMuted)),
-      ],
+    child: InkWell(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(label, style: const TextStyle(color: Colors.white70)),
+        ],
+      ),
+    ),
+  );
+}
+
+class _ErrorStrip extends StatelessWidget {
+  const _ErrorStrip({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: AppColors.error.withValues(alpha: .08),
+    child: ListTile(
+      dense: true,
+      leading: const Icon(Icons.info_outline_rounded, color: AppColors.error),
+      title: Text(message),
+      trailing: TextButton(onPressed: onRetry, child: const Text('重试')),
     ),
   );
 }

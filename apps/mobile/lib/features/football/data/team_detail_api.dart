@@ -231,6 +231,9 @@ FootballMatch? _safeMatch(Object? raw, {required bool detailed}) {
     ),
     status: jsonString(m['matchStatus']) ?? 'UNKNOWN',
     matchTime: jsonIsoDateTime(m['matchTime']),
+    eventSummary: jsonString(m['eventSummary']),
+    hasReport: m['hasReport'] == true,
+    reportContentId: jsonInt(m['reportContentId']),
   );
 }
 

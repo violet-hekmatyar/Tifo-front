@@ -197,38 +197,43 @@ final class FootballRankingsController extends ChangeNotifier {
 
   Future<void> selectStage(int? stageId) async {
     if (stageId == _state.selectedStageId) return;
+    final generation = ++_generation;
     _set(_copy(selectedStageId: stageId, clearStage: stageId == null));
-    await _reloadRanking();
+    await _reloadRanking(generation: generation);
   }
 
   Future<void> selectView(FootballRankingView view) async {
     if (view == _state.view && _state.status != FootballRankingsStatus.idle) {
       return;
     }
+    final generation = ++_generation;
     _set(_copy(view: view, clearData: true));
     if (_state.status == FootballRankingsStatus.idle) {
       await loadInitial();
     } else {
-      await _reloadRanking();
+      await _reloadRanking(generation: generation);
     }
   }
 
   Future<void> selectPlayerRankType(PlayerRankType value) async {
     if (value == _state.playerRankType) return;
+    final generation = ++_generation;
     _set(_copy(playerRankType: value, clearData: true));
-    await _reloadRanking();
+    await _reloadRanking(generation: generation);
   }
 
   Future<void> selectTeamRankType(TeamRankType value) async {
     if (value == _state.teamRankType) return;
+    final generation = ++_generation;
     _set(_copy(teamRankType: value, clearData: true));
-    await _reloadRanking();
+    await _reloadRanking(generation: generation);
   }
 
-  Future<void> _reloadRanking() async {
+  Future<void> _reloadRanking({int? generation}) async {
     try {
-      await _loadRanking(reset: true);
+      await _loadRanking(reset: true, generation: generation);
     } on AppNetworkException catch (error) {
+      if (generation != null && generation != _generation) return;
       _fail(error, '榜单');
     }
   }

@@ -40,6 +40,8 @@ final class ContentDetailController extends ChangeNotifier {
     status: DetailStatus.loading,
   );
   bool _disposed = false;
+  bool _refreshingCommentCount = false;
+  int _commentRefreshVersion = 0;
   Future<void> load() async {
     if (id <= 0) {
       state = const ContentDetailState(
@@ -137,6 +139,42 @@ final class ContentDetailController extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  Future<void> refreshCommentCount() async {
+    if (_disposed || _refreshingCommentCount || state.detail == null) return;
+    _refreshingCommentCount = true;
+    final version = ++_commentRefreshVersion;
+    final previous = state;
+    try {
+      final value = await contentRepository.detail(id);
+      if (_disposed || version != _commentRefreshVersion) return;
+      state = ContentDetailState(
+        status: DetailStatus.ready,
+        detail: value,
+        likeBusy: previous.likeBusy,
+        favoriteBusy: previous.favoriteBusy,
+      );
+      notifyListeners();
+    } on BusinessException {
+      _keepPreviousCommentCount(previous, version);
+    } on AppNetworkException {
+      _keepPreviousCommentCount(previous, version);
+    } finally {
+      _refreshingCommentCount = false;
+    }
+  }
+
+  void _keepPreviousCommentCount(ContentDetailState previous, int version) {
+    if (_disposed || version != _commentRefreshVersion) return;
+    state = ContentDetailState(
+      status: DetailStatus.ready,
+      detail: previous.detail,
+      message: '评论数刷新失败，请稍后重试。',
+      likeBusy: previous.likeBusy,
+      favoriteBusy: previous.favoriteBusy,
+    );
+    notifyListeners();
   }
 
   @override

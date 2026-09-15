@@ -12,9 +12,11 @@ abstract interface class MatchDetailRepositoryContract {
   Future<FootballPage<MatchPlayerStat>> playerStats(
     int matchId,
     int page,
-    int size,
-  );
-  Future<List<MatchRatingSummary>> ratings(int matchId);
+    int size, {
+    int? teamId,
+    String? position,
+  });
+  Future<List<MatchRatingSummary>> ratings(int matchId, {int? teamId});
   Future<MatchRatingResult> submitRating(
     int matchId,
     int playerId,
@@ -40,11 +42,19 @@ final class MatchDetailRepository implements MatchDetailRepositoryContract {
   Future<FootballPage<MatchPlayerStat>> playerStats(
     int matchId,
     int page,
-    int size,
-  ) => _api.playerStats(matchId, pageNum: page, pageSize: size);
+    int size, {
+    int? teamId,
+    String? position,
+  }) => _api.playerStats(
+    matchId,
+    teamId: teamId,
+    position: position,
+    pageNum: page,
+    pageSize: size,
+  );
   @override
-  Future<List<MatchRatingSummary>> ratings(int matchId) =>
-      _api.ratings(matchId);
+  Future<List<MatchRatingSummary>> ratings(int matchId, {int? teamId}) =>
+      _api.ratings(matchId, teamId: teamId);
   @override
   Future<MatchRatingResult> submitRating(
     int matchId,

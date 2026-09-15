@@ -132,6 +132,7 @@ void main() {
       ),
     );
     expect(find.text('热门评论'), findsNothing);
+    expect(find.byKey(const ValueKey('content_comment_slot')), findsNothing);
     expect(find.byType(ContentCard), findsOneWidget);
   });
 
@@ -207,6 +208,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(child: MaterialApp.router(routerConfig: router)),
     );
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
+    expect(scaffold.extendBody, isFalse);
+    expect(find.byType(ClipRRect), findsOneWidget);
     for (final label in ['首页', '数据', '消息', '我的']) {
       expect(find.text(label), findsOneWidget);
     }
@@ -226,8 +230,8 @@ void main() {
   ) async {
     tester.view.physicalSize = const Size(412, 915);
     tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
     await _pumpWidget(
       tester,
       const Row(
@@ -281,6 +285,60 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('content masonry keeps independent columns and full-width gaps', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(412, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final controller = FeedController(_MasonryRepository());
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          feedControllerProvider.overrideWith((_) => controller),
+          appConfigProvider.overrideWithValue(
+            AppConfig.fromValues(apiBaseUrl: 'http://localhost:8080'),
+          ),
+        ],
+        child: MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(1.4)),
+          child: MaterialApp(theme: AppTheme.light, home: const HomeFeedPage()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    Rect cardRect(String title) => tester.getRect(
+      find.ancestor(of: find.text(title), matching: find.byType(ContentCard)),
+    );
+    final m1 = cardRect('短');
+    final m2 = cardRect('很长的标题' * 12);
+    final m3 = cardRect('中等标题');
+    final m4 = cardRect('另一个很长的标题' * 10);
+    final m5 = cardRect('第五张');
+    final m6 = cardRect('后段短');
+    final m7 = cardRect('后段长' * 10);
+    final m8 = cardRect('后段中');
+    expect(m1.left, m3.left);
+    expect(m3.left, m5.left);
+    expect(m2.left, m4.left);
+    expect(m4.left, isNot(m1.left));
+    expect(m3.top, greaterThan(m1.bottom));
+    expect(m5.top, greaterThan(m3.bottom));
+    expect(m4.top, greaterThan(m2.bottom));
+    expect(m5.width, closeTo(m1.width, 0.1));
+    final matches = find.byType(MatchCard);
+    expect(matches, findsNWidgets(1));
+    final matchRect = tester.getRect(matches.first);
+    expect(matchRect.width, greaterThan(m5.width * 1.8));
+    expect(matchRect.top, greaterThan(m5.bottom));
+    expect(matchRect.bottom, lessThan(m6.top));
+    expect(m7.left, isNot(m6.left));
+    expect(m8.left, m6.left);
+    expect(find.byType(IntrinsicHeight), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Future<void> _pumpWidget(
@@ -322,6 +380,35 @@ final class _WidgetRepository implements FeedRepositoryContract {
   Future<List<FollowedTeam>> loadFollowedTeams() async => const [
     FollowedTeam(teamId: 7, teamName: '主队'),
   ];
+}
+
+final class _MasonryRepository implements FeedRepositoryContract {
+  @override
+  Future<FeedPage> loadFeed({
+    required FeedFilter filter,
+    required int pageNum,
+    required int pageSize,
+    int? teamId,
+  }) async => FeedPage(
+    cards: [
+      _content('m1', title: '短'),
+      _content('m2', title: '很长的标题' * 12),
+      _content('m3', title: '中等标题'),
+      _content('m4', title: '另一个很长的标题' * 10),
+      _content('m5', title: '第五张'),
+      _match(status: 'LIVE', matchId: 77),
+      _content('m6', title: '后段短'),
+      _content('m7', title: '后段长' * 10),
+      _content('m8', title: '后段中'),
+    ],
+    total: 9,
+    pageNum: 1,
+    pageSize: pageSize,
+    pages: 1,
+  );
+
+  @override
+  Future<List<FollowedTeam>> loadFollowedTeams() async => const [];
 }
 
 final class _TrackingRepository implements FeedRepositoryContract {

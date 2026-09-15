@@ -11,49 +11,67 @@ import 'package:tifo/features/football/presentation/controllers/football_ranking
 import 'package:tifo/features/football/presentation/widgets/football_rankings_widgets.dart';
 
 void main() {
-  testWidgets('ranking filters do not overflow for all ranking views', (
+  testWidgets('DAT-03 ranking filters fit narrow widths and large text', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(363, 800);
+    tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final controller = FootballRankingsController(_NoopRankingsRepository());
     addTearDown(controller.dispose);
 
-    for (final view in FootballRankingView.values) {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: FootballRankingFilters(
-              state: FootballRankingsState(
-                status: FootballRankingsStatus.ready,
-                view: view,
-                leagues: const [League(id: 1, name: 'Premier League')],
-                seasons: const [
-                  FootballSeason(
-                    id: 2,
-                    leagueId: 1,
-                    name: '2025/26赛季',
-                    current: true,
+    for (final width in [360.0, 412.0]) {
+      tester.view.physicalSize = Size(width, 800);
+      for (final view in FootballRankingView.values) {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: const TextScaler.linear(1.4)),
+                child: Scaffold(
+                  body: FootballRankingFilters(
+                    state: FootballRankingsState(
+                      status: FootballRankingsStatus.ready,
+                      view: view,
+                      leagues: const [
+                        League(id: 1, name: '这是一个很长的赛事名称 Premier League'),
+                      ],
+                      seasons: const [
+                        FootballSeason(
+                          id: 2,
+                          leagueId: 1,
+                          name: '2025/26赛季',
+                          current: true,
+                        ),
+                      ],
+                      stages: const [
+                        FootballStage(id: 3, name: '这是一个较长的联赛阶段名称'),
+                      ],
+                      selectedLeagueId: 1,
+                      selectedSeasonId: 2,
+                      selectedStageId: 3,
+                    ),
+                    controller: controller,
                   ),
-                ],
-                stages: const [FootballStage(id: 3, name: '联赛阶段')],
-                selectedLeagueId: 1,
-                selectedSeasonId: 2,
-                selectedStageId: 3,
+                ),
               ),
-              controller: controller,
             ),
           ),
-        ),
-      );
-      await tester.pump();
-      expect(tester.takeException(), isNull, reason: '$view overflowed');
+        );
+        await tester.pump();
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: '$width $view overflowed',
+        );
+      }
     }
   });
 
-  testWidgets('standing and player rows navigate to entity details', (
+  testWidgets('DAT-07 standings columns and player rows navigate correctly', (
     tester,
   ) async {
     var showPlayers = false;
@@ -120,6 +138,74 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('ranking_player_50')));
     await tester.pumpAndSettle();
     expect(find.text('球员 50'), findsOneWidget);
+  });
+
+  testWidgets('DAT-08 invalid ranking IDs render safely without navigation', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appConfigProvider.overrideWithValue(
+            AppConfig.fromValues(apiBaseUrl: 'http://localhost:8080'),
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                SizedBox(
+                  height: 180,
+                  child: const StandingsList(
+                    table: StandingTable(
+                      leagueId: 1,
+                      seasonId: 2,
+                      records: [
+                        StandingRecord(
+                          rank: 1,
+                          teamId: 0,
+                          teamName: '缺少编号的球队',
+                          played: 0,
+                          won: 0,
+                          drawn: 0,
+                          lost: 0,
+                          goalsFor: 0,
+                          goalsAgainst: 0,
+                          goalDifference: 0,
+                          points: 0,
+                          deductionPoints: 0,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: 220,
+                  child: PlayerRankingList(
+                    state: const FootballRankingsState(
+                      status: FootballRankingsStatus.ready,
+                      view: FootballRankingView.players,
+                      playerRecords: [
+                        PlayerRankRecord(
+                          rank: 1,
+                          playerId: 0,
+                          playerName: '缺少编号的球员',
+                        ),
+                      ],
+                    ),
+                    onLoadMore: () {},
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.text('缺少编号的球队'), findsOneWidget);
+    expect(find.text('缺少编号的球员'), findsOneWidget);
   });
 }
 

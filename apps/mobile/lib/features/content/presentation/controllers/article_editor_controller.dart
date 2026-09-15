@@ -247,6 +247,17 @@ final class ArticleEditorController extends ChangeNotifier {
     );
   }
 
+  Future<void> removeCover() async {
+    final uploaded = state.cover?.uploaded;
+    if (uploaded != null) {
+      try {
+        await files.delete(uploaded.fileId);
+      } catch (_) {}
+      if (_disposed) return;
+    }
+    _copy(cover: null, clearCover: true, dirty: true, clearMessage: true);
+  }
+
   void updateText(int key, String value) {
     _copy(
       blocks: [
@@ -286,6 +297,7 @@ final class ArticleEditorController extends ChangeNotifier {
     final unique = <String, SearchEntity>{};
     for (final relation in relations) {
       if (relation.entityId == null ||
+          relation.entityId! <= 0 ||
           !const {
             SearchEntityType.team,
             SearchEntityType.player,
@@ -483,13 +495,14 @@ final class ArticleEditorController extends ChangeNotifier {
     bool? dirty,
     String? message,
     bool clearMessage = false,
+    bool clearCover = false,
   }) {
     _setState(
       ArticleEditorState(
         status: state.status,
         title: state.title,
         summary: state.summary,
-        cover: cover ?? state.cover,
+        cover: clearCover ? null : cover ?? state.cover,
         blocks: blocks ?? state.blocks,
         relations: relations ?? state.relations,
         submitting: submitting ?? state.submitting,

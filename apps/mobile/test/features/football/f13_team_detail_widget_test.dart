@@ -11,7 +11,7 @@ import 'package:tifo/features/football/domain/team_detail_models.dart';
 import 'package:tifo/features/football/presentation/pages/team_detail_page.dart';
 
 void main() {
-  testWidgets('real team tabs replace placeholders and navigate', (
+  testWidgets('TEAM-04 TEAM-06 TEAM-13 real team tabs render and navigate', (
     tester,
   ) async {
     final router = GoRouter(

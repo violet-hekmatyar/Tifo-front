@@ -49,6 +49,7 @@ final class AuthController extends ChangeNotifier {
   final AuthRepositoryContract _repository;
   AuthState _state = const AuthState.bootstrapping();
   bool _initialized = false;
+  int _bootstrapGeneration = 0;
 
   AuthState get state => _state;
 
@@ -59,22 +60,29 @@ final class AuthController extends ChangeNotifier {
   }
 
   Future<void> retryBootstrap() async {
+    final generation = ++_bootstrapGeneration;
     _setState(const AuthState.bootstrapping());
     final token = await _repository.storedToken();
+    if (generation != _bootstrapGeneration) return;
     if (token == null || token.trim().isEmpty) {
       _setState(const AuthState(status: AuthStatus.unauthenticated));
       return;
     }
     try {
-      _setAuthenticated(await _repository.restore());
+      final user = await _repository.restore();
+      if (generation != _bootstrapGeneration) return;
+      _setAuthenticated(user);
     } on BusinessException catch (error) {
+      if (generation != _bootstrapGeneration) return;
       if (error.code == 40101 || error.code == 40102) {
         await _repository.logout();
+        if (generation != _bootstrapGeneration) return;
         _setState(const AuthState(status: AuthStatus.unauthenticated));
       } else {
         _setFailure(error);
       }
     } on AppNetworkException catch (error) {
+      if (generation != _bootstrapGeneration) return;
       _setFailure(error);
     }
   }

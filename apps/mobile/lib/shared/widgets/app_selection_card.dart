@@ -9,6 +9,8 @@ class AppSelectionCard extends StatelessWidget {
     required this.onTap,
     this.subtitle,
     this.leading,
+    this.selectedIcon,
+    this.unselectedIcon,
     super.key,
   });
 
@@ -17,6 +19,8 @@ class AppSelectionCard extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final Widget? leading;
+  final IconData? selectedIcon;
+  final IconData? unselectedIcon;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -40,20 +44,24 @@ class AppSelectionCard extends StatelessWidget {
           leading: leading,
           title: Text(
             title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
-          subtitle: subtitle?.isNotEmpty == true ? Text(subtitle!) : null,
+          subtitle: subtitle?.isNotEmpty == true
+              ? Text(subtitle!, maxLines: 2, overflow: TextOverflow.ellipsis)
+              : null,
           trailing: AnimatedSwitcher(
             duration: const Duration(milliseconds: 160),
             child: selected
-                ? const Icon(
-                    Icons.check_circle_rounded,
-                    key: ValueKey('selected'),
+                ? Icon(
+                    selectedIcon ?? Icons.check_circle_rounded,
+                    key: const ValueKey('selected'),
                     color: AppColors.brand,
                   )
-                : const Icon(
-                    Icons.circle_outlined,
-                    key: ValueKey('unselected'),
+                : Icon(
+                    unselectedIcon ?? Icons.circle_outlined,
+                    key: const ValueKey('unselected'),
                     color: AppColors.inkMuted,
                   ),
           ),

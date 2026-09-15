@@ -9,9 +9,7 @@ import '../../../../shared/design_system/app_design_tokens.dart';
 import '../../../../shared/widgets/app_player_avatar.dart';
 import '../../../../shared/widgets/app_primary_button.dart';
 import '../../../../shared/widgets/app_secondary_button.dart';
-import '../../../../shared/widgets/app_section_header.dart';
 import '../../../../shared/widgets/app_selection_card.dart';
-import '../../../../shared/widgets/app_state_view.dart';
 import '../../../../shared/widgets/app_team_logo.dart';
 import '../controllers/onboarding_controller.dart';
 
@@ -24,25 +22,48 @@ class OnboardingPage extends ConsumerStatefulWidget {
 
 class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   int _step = 0;
-  String _teamQuery = '';
+  String _mainTeamQuery = '';
+  String _followTeamQuery = '';
   String _playerQuery = '';
+  final _mainTeamSearchController = TextEditingController();
+  final _followTeamSearchController = TextEditingController();
+  final _playerSearchController = TextEditingController();
+  final _mainTeamScrollController = ScrollController();
+  final _followTeamScrollController = ScrollController();
+  final _playerScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _mainTeamSearchController.dispose();
+    _followTeamSearchController.dispose();
+    _playerSearchController.dispose();
+    _mainTeamScrollController.dispose();
+    _followTeamScrollController.dispose();
+    _playerScrollController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        unawaited(ref.read(onboardingControllerProvider).load());
-      }
+      if (mounted) unawaited(ref.read(onboardingControllerProvider).load());
     });
   }
 
   void _previous() {
-    if (_step > 0) setState(() => _step--);
+    if (_step > 0) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      setState(() => _step--);
+    }
   }
 
-  void _next() {
-    if (_step < 2) setState(() => _step++);
+  void _next(OnboardingController controller) {
+    if (_step == 0 && !controller.requireMainTeam()) return;
+    if (_step < 2) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      setState(() => _step++);
+    }
   }
 
   @override
@@ -55,36 +76,35 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         if (!didPop) _previous();
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('设置我的看台'),
-          leading: _step == 0
-              ? null
-              : IconButton(
-                  tooltip: '上一步',
-                  onPressed: _previous,
-                  icon: const Icon(Icons.arrow_back_rounded),
-                ),
-        ),
+        backgroundColor: AppColors.brandDark,
         body: switch (state.status) {
-          OnboardingLoadStatus.loading => const AppStateView(
-            key: ValueKey('onboarding_loading'),
-            kind: AppStateKind.loading,
+          OnboardingLoadStatus.loading => _buildStateShell(
+            key: const ValueKey('onboarding_loading'),
+            icon: const CircularProgressIndicator(color: Colors.white),
             title: '正在准备选择',
             message: '正在加载球队与球员信息…',
           ),
-          OnboardingLoadStatus.empty => AppStateView(
+          OnboardingLoadStatus.empty => _buildStateShell(
             key: const ValueKey('onboarding_empty'),
-            kind: AppStateKind.empty,
+            icon: const Icon(
+              Icons.inbox_outlined,
+              size: 54,
+              color: Colors.white,
+            ),
             title: '暂时没有可选内容',
             message: state.message ?? '请稍后重试。',
-            onRetry: controller.load,
+            onRetry: controller.retry,
           ),
-          OnboardingLoadStatus.failure => AppStateView(
+          OnboardingLoadStatus.failure => _buildStateShell(
             key: const ValueKey('onboarding_error'),
-            kind: AppStateKind.error,
+            icon: const Icon(
+              Icons.cloud_off_rounded,
+              size: 54,
+              color: Colors.white,
+            ),
             title: '加载失败',
             message: state.message ?? '选项加载失败。',
-            onRetry: controller.load,
+            onRetry: controller.retry,
           ),
           OnboardingLoadStatus.ready => _buildReady(context, controller),
         },
@@ -92,107 +112,355 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     );
   }
 
+  Widget _buildStateShell({
+    required Key key,
+    required Widget icon,
+    required String title,
+    required String message,
+    VoidCallback? onRetry,
+  }) => Container(
+    key: key,
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        colors: [AppColors.brandDark, AppColors.brand],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+    ),
+    child: SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                icon,
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                if (onRetry != null) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  OutlinedButton.icon(
+                    key: const ValueKey('onboarding_retry'),
+                    onPressed: onRetry,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white),
+                    ),
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('重试'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
   Widget _buildReady(BuildContext context, OnboardingController controller) {
-    final state = controller.state;
     return SafeArea(
       child: Column(
         children: [
-          Container(
-            color: AppColors.surface,
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.md,
-              AppSpacing.lg,
-              AppSpacing.sm,
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: List.generate(3, (index) {
-                    final active = index <= _step;
-                    return Expanded(
-                      child: Container(
-                        height: 5,
-                        margin: EdgeInsets.only(
-                          right: index == 2 ? 0 : AppSpacing.xs,
-                        ),
-                        decoration: BoxDecoration(
-                          color: active ? AppColors.brand : AppColors.border,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    '步骤 ${_step + 1} / 3',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelLarge?.copyWith(color: AppColors.brand),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildHeader(context),
           Expanded(
-            child: IndexedStack(
-              index: _step,
-              children: [
-                _buildTeamStep(context, controller, mainTeam: true),
-                _buildTeamStep(context, controller, mainTeam: false),
-                _buildPlayerStep(context, controller),
-              ],
-            ),
-          ),
-          Container(
-            key: const ValueKey('onboarding_bottom_actions'),
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.sm,
-              AppSpacing.lg,
-              AppSpacing.md,
-            ),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              border: Border(top: BorderSide(color: AppColors.border)),
-            ),
-            child: Row(
-              children: [
-                if (_step > 0) ...[
-                  Expanded(
-                    child: AppSecondaryButton(
-                      key: const ValueKey('onboarding_previous'),
-                      label: '上一步',
-                      onPressed: state.isSubmitting ? null : _previous,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                ],
-                Expanded(
-                  flex: _step == 0 ? 1 : 2,
-                  child: AppPrimaryButton(
-                    key: ValueKey(
-                      _step == 2 ? 'onboarding_submit' : 'onboarding_next',
-                    ),
-                    label: _step == 2 ? '完成首次设置' : '下一步',
-                    icon: _step == 2
-                        ? Icons.check_rounded
-                        : Icons.arrow_forward_rounded,
-                    loading: state.isSubmitting,
-                    onPressed: _step == 0 && state.mainTeamId == null
-                        ? null
-                        : _step == 2
-                        ? controller.submit
-                        : _next,
-                  ),
+            child: Container(
+              key: const ValueKey('onboarding_results_panel'),
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(AppRadius.xl),
                 ),
-              ],
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                      AppSpacing.sm,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _panelTitle,
+                                key: const ValueKey('onboarding_results_title'),
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                            ),
+                            Text(
+                              '步骤 ${_step + 1} / 3',
+                              key: const ValueKey('onboarding_step_indicator'),
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(color: AppColors.brandDark),
+                            ),
+                          ],
+                        ),
+                        if (_step == 1)
+                          Text(
+                            '当前已选择 ${controller.state.followTeamIds.length} 支',
+                            key: const ValueKey(
+                              'onboarding_team_selection_count',
+                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppColors.inkMuted),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: IndexedStack(
+                      index: _step,
+                      children: [
+                        _buildTeamStep(context, controller, mainTeam: true),
+                        _buildTeamStep(context, controller, mainTeam: false),
+                        _buildPlayerStep(context, controller),
+                      ],
+                    ),
+                  ),
+                  _buildActions(controller),
+                ],
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  String get _panelTitle => switch (_step) {
+    0 => '选择主队',
+    1 => '可选球队',
+    _ => '可选球员',
+  };
+
+  Widget _buildHeader(BuildContext context) {
+    final copy = switch (_step) {
+      0 => ('选择我的主队', '主队为必选项，也会自动加入关注球队。'),
+      1 => ('关注球队', '选择你想持续关注的球队，数量不限。'),
+      _ => ('关注球员', '按兴趣选择球员，也可以暂不选择。'),
+    };
+    final searchController = switch (_step) {
+      0 => _mainTeamSearchController,
+      1 => _followTeamSearchController,
+      _ => _playerSearchController,
+    };
+    final searchKey = switch (_step) {
+      0 => const ValueKey('onboarding_main_team_search'),
+      1 => const ValueKey('onboarding_team_search'),
+      _ => const ValueKey('onboarding_player_search'),
+    };
+    return Container(
+      key: const ValueKey('onboarding_green_header'),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.brandDark, AppColors.brand],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              if (_step > 0)
+                IconButton(
+                  key: const ValueKey('onboarding_back'),
+                  tooltip: '上一步',
+                  onPressed: _previous,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 40,
+                    height: 40,
+                  ),
+                  alignment: Alignment.centerLeft,
+                  color: Colors.white,
+                  icon: const Icon(Icons.arrow_back_rounded),
+                )
+              else
+                const Icon(
+                  Icons.sports_soccer_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              const SizedBox(width: AppSpacing.sm),
+              const Expanded(
+                child: Text(
+                  '南看台 · 首次设置',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              Row(
+                children: List.generate(
+                  3,
+                  (index) => Container(
+                    width: index == _step ? 24 : 8,
+                    height: 6,
+                    margin: const EdgeInsets.only(left: 5),
+                    decoration: BoxDecoration(
+                      color: index == _step ? Colors.white : Colors.white54,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            copy.$1,
+            key: const ValueKey('onboarding_step_title'),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            copy.$2,
+            key: const ValueKey('onboarding_step_description'),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withValues(alpha: .82),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          TextField(
+            key: searchKey,
+            controller: searchController,
+            textInputAction: TextInputAction.search,
+            style: const TextStyle(color: Colors.white),
+            cursorColor: Colors.white,
+            decoration: InputDecoration(
+              hintText: _step == 2 ? '搜索球员、球队或位置' : '搜索球队、联赛或国家',
+              hintStyle: const TextStyle(color: Colors.white70),
+              prefixIcon: const Icon(Icons.search_rounded, color: Colors.white),
+              suffixIcon: searchController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      key: const ValueKey('onboarding_search_clear'),
+                      tooltip: '清空搜索',
+                      onPressed: () {
+                        searchController.clear();
+                        setState(() {
+                          if (_step == 0) _mainTeamQuery = '';
+                          if (_step == 1) _followTeamQuery = '';
+                          if (_step == 2) _playerQuery = '';
+                        });
+                      },
+                      color: Colors.white,
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: .16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                borderSide: const BorderSide(color: Colors.white54),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                borderSide: const BorderSide(color: Colors.white54),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                borderSide: const BorderSide(color: Colors.white, width: 2),
+              ),
+            ),
+            onChanged: (value) => setState(() {
+              if (_step == 0) _mainTeamQuery = value;
+              if (_step == 1) _followTeamQuery = value;
+              if (_step == 2) _playerQuery = value;
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActions(OnboardingController controller) {
+    final state = controller.state;
+    return SafeArea(
+      top: false,
+      child: Container(
+        key: const ValueKey('onboarding_bottom_actions'),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.lg,
+          AppSpacing.md,
+        ),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          border: Border(top: BorderSide(color: AppColors.border)),
+        ),
+        child: Row(
+          children: [
+            if (_step > 0) ...[
+              Expanded(
+                child: AppSecondaryButton(
+                  key: const ValueKey('onboarding_previous'),
+                  label: '上一步',
+                  onPressed: state.isSubmitting ? null : _previous,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+            ],
+            Expanded(
+              flex: _step == 0 ? 1 : 2,
+              child: AppPrimaryButton(
+                key: ValueKey(
+                  _step == 2 ? 'onboarding_submit' : 'onboarding_next',
+                ),
+                label: _step == 2 ? '完成首次设置' : '下一步',
+                icon: _step == 2
+                    ? Icons.check_rounded
+                    : Icons.arrow_forward_rounded,
+                loading: state.isSubmitting,
+                onPressed: _step == 2
+                    ? controller.submit
+                    : () => _next(controller),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -205,32 +473,30 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final state = controller.state;
     final config = ref.watch(appConfigProvider);
     final teams = state.options!.teams.where((team) {
-      final query = _teamQuery.trim().toLowerCase();
+      final query = (mainTeam ? _mainTeamQuery : _followTeamQuery)
+          .trim()
+          .toLowerCase();
       return query.isEmpty ||
           team.name.toLowerCase().contains(query) ||
+          (team.leagueName?.toLowerCase().contains(query) ?? false) ||
           (team.country?.toLowerCase().contains(query) ?? false);
     }).toList();
     return ListView(
       key: PageStorageKey(mainTeam ? 'onboarding_step_1' : 'onboarding_step_2'),
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      controller: mainTeam
+          ? _mainTeamScrollController
+          : _followTeamScrollController,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.xl,
+      ),
       children: [
-        AppSectionHeader(
-          title: mainTeam ? '选择我的主队' : '关注球队',
-          description: mainTeam
-              ? '主队为必选项，也会自动加入关注球队。'
-              : '可以关注多支球队，当前已选择 ${state.followTeamIds.length} 支。',
-        ),
-        const SizedBox(height: AppSpacing.md),
-        TextField(
-          decoration: const InputDecoration(
-            hintText: '搜索球队',
-            prefixIcon: Icon(Icons.search_rounded),
-          ),
-          onChanged: (value) => setState(() => _teamQuery = value),
-        ),
-        const SizedBox(height: AppSpacing.lg),
         if (teams.isEmpty)
           const Padding(
+            key: ValueKey('onboarding_local_empty'),
             padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
             child: Text('没有匹配的球队', textAlign: TextAlign.center),
           )
@@ -244,9 +510,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               title: team.name,
               subtitle: [team.leagueName, team.country]
                   .whereType<String>()
-                  .where((value) => value.isNotEmpty)
+                  .where((value) => value.trim().isNotEmpty)
                   .join(' · '),
               selected: selected,
+              selectedIcon: Icons.favorite_rounded,
+              unselectedIcon: Icons.favorite_border_rounded,
               onTap: mainTeam
                   ? () => controller.selectMainTeam(team.id)
                   : state.mainTeamId == team.id
@@ -259,6 +527,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               ),
             );
           }),
+        if (state.message != null && (mainTeam || _step == 0)) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            state.message!,
+            key: const ValueKey('onboarding_selection_message'),
+            style: const TextStyle(color: AppColors.error),
+          ),
+        ],
       ],
     );
   }
@@ -273,28 +549,23 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       final query = _playerQuery.trim().toLowerCase();
       return query.isEmpty ||
           player.name.toLowerCase().contains(query) ||
-          (player.teamName?.toLowerCase().contains(query) ?? false);
+          (player.teamName?.toLowerCase().contains(query) ?? false) ||
+          (player.position?.toLowerCase().contains(query) ?? false);
     }).toList();
     return ListView(
       key: const PageStorageKey('onboarding_step_3'),
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      controller: _playerScrollController,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.xl,
+      ),
       children: [
-        AppSectionHeader(
-          title: '关注球员',
-          description: '按兴趣选择球员，也可以暂不选择。',
-          trailing: Chip(label: Text('已选 ${state.followPlayerIds.length}')),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        TextField(
-          decoration: const InputDecoration(
-            hintText: '搜索球员',
-            prefixIcon: Icon(Icons.search_rounded),
-          ),
-          onChanged: (value) => setState(() => _playerQuery = value),
-        ),
-        const SizedBox(height: AppSpacing.lg),
         if (players.isEmpty)
           const Padding(
+            key: ValueKey('onboarding_local_empty'),
             padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
             child: Text('没有匹配的球员', textAlign: TextAlign.center),
           )
@@ -305,9 +576,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               title: player.name,
               subtitle: [player.teamName, player.position]
                   .whereType<String>()
-                  .where((value) => value.isNotEmpty)
+                  .where((value) => value.trim().isNotEmpty)
                   .join(' · '),
               selected: state.followPlayerIds.contains(player.id),
+              selectedIcon: Icons.favorite_rounded,
+              unselectedIcon: Icons.favorite_border_rounded,
               onTap: () => controller.togglePlayer(player.id),
               leading: AppPlayerAvatar(
                 identity: 'player:${player.id}',
@@ -318,7 +591,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           ),
         if (state.message != null) ...[
           const SizedBox(height: AppSpacing.sm),
-          Text(state.message!, style: const TextStyle(color: AppColors.error)),
+          Text(
+            state.message!,
+            key: const ValueKey('onboarding_submit_message'),
+            style: const TextStyle(color: AppColors.error),
+          ),
         ],
       ],
     );

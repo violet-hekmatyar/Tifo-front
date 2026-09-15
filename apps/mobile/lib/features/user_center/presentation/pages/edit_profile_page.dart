@@ -52,6 +52,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           .read(userCenterRepositoryProvider)
           .updateProfile(nickname: nickname, bio: bio);
       ref.invalidate(mySummaryProvider);
+      ref.invalidate(myProfileControllerProvider);
       if (mounted) context.pop();
     } catch (_) {
       if (mounted) {

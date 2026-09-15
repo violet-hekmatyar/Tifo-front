@@ -192,6 +192,9 @@ UserContentItem _content(Object? raw) {
     likeCount: _integer(map['likeCount']),
     commentCount: _integer(map['commentCount']),
     favoriteCount: _integer(map['favoriteCount']),
+    authorId: map['authorId'] is num ? (map['authorId'] as num).toInt() : null,
+    authorNickname: _text(map['authorNickname']),
+    authorAvatarUrl: _text(map['authorAvatarUrl']),
     publishTime: DateTime.tryParse(_text(map['publishTime']) ?? ''),
   );
 }
@@ -203,6 +206,9 @@ UserFavoriteItem _favorite(Object? raw) {
     title: _text(map['title']) ?? '未命名内容',
     summary: _text(map['summary']),
     coverUrl: _text(map['coverUrl']),
+    authorId: map['authorId'] is num ? (map['authorId'] as num).toInt() : null,
+    authorNickname: _text(map['authorNickname']),
+    authorAvatarUrl: _text(map['authorAvatarUrl']),
     favoriteTime: DateTime.tryParse(_text(map['favoriteTime']) ?? ''),
   );
 }

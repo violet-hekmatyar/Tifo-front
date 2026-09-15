@@ -59,15 +59,21 @@ final class PublishPostController extends ChangeNotifier {
   PublishState state = const PublishState();
   bool _disposed = false;
   Future<void> pickImages() async {
+    if (_disposed || state.submitting || state.images.length >= 9) return;
     final picked = await picker.pickImages();
-    if (_disposed) return;
+    if (_disposed || state.submitting) return;
     final existing = {for (final image in state.images) image.file.path: image};
+    var skipped = false;
     for (final file in picked) {
-      if (existing.length >= 9) break;
+      if (existing.length >= 9) {
+        skipped = true;
+        break;
+      }
       final ext = file.name.split('.').last.toLowerCase();
       final size = await file.length();
       if (!{'jpg', 'jpeg', 'png', 'webp', 'gif'}.contains(ext) ||
           size > 10 * 1024 * 1024) {
+        skipped = true;
         continue;
       }
       existing.putIfAbsent(
@@ -77,12 +83,13 @@ final class PublishPostController extends ChangeNotifier {
     }
     state = PublishState(
       images: existing.values.toList(),
-      message: picked.length > 9 ? '最多选择 9 张图片' : null,
+      message: skipped ? '最多选择 9 张图片，或存在不支持的图片' : null,
     );
     notifyListeners();
   }
 
   Future<void> remove(PublishImage image) async {
+    if (_disposed || state.submitting) return;
     if (image.uploaded != null) {
       try {
         await files.delete(image.uploaded!.fileId);
@@ -116,6 +123,7 @@ final class PublishPostController extends ChangeNotifier {
   }
 
   Future<void> upload(PublishImage image) async {
+    if (_disposed) return;
     if (image.status == UploadStatus.uploading ||
         image.status == UploadStatus.success) {
       return;
@@ -123,7 +131,12 @@ final class PublishPostController extends ChangeNotifier {
     _replace(image, image.copy(status: UploadStatus.uploading));
     try {
       final uploaded = await files.upload(image.file.path, image.file.name);
-      if (_disposed) return;
+      if (_disposed) {
+        try {
+          await files.delete(uploaded.fileId);
+        } catch (_) {}
+        return;
+      }
       _replace(
         image,
         image.copy(status: UploadStatus.success, uploaded: uploaded),
@@ -144,7 +157,16 @@ final class PublishPostController extends ChangeNotifier {
         t.length > 255 ||
         b.length > 2000 ||
         (b.isEmpty && state.images.isEmpty)) {
-      state = PublishState(images: state.images, message: '请填写标题，并输入正文或选择图片');
+      state = PublishState(
+        images: state.images,
+        message: t.isEmpty
+            ? '请填写标题'
+            : t.length > 255
+            ? '标题不能超过 255 字'
+            : b.length > 2000
+            ? '正文不能超过 2000 字'
+            : '请输入正文或选择图片',
+      );
       notifyListeners();
       return null;
     }
@@ -154,7 +176,10 @@ final class PublishPostController extends ChangeNotifier {
       if (image.status != UploadStatus.success) await upload(image);
     }
     if (state.images.any((x) => x.status != UploadStatus.success)) {
-      state = PublishState(images: state.images, message: '部分图片上传失败');
+      state = PublishState(
+        images: state.images,
+        message: '部分图片上传失败，请重试后再发布',
+      );
       notifyListeners();
       return null;
     }

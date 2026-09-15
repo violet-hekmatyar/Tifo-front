@@ -45,13 +45,26 @@ final class OnboardingController extends ChangeNotifier {
   final OnboardingRepositoryContract _repository;
   final AuthController _authController;
   OnboardingState _state = const OnboardingState.loading();
+  int _optionsGeneration = 0;
+  bool _optionsLoading = false;
 
   OnboardingState get state => _state;
 
   Future<void> load() async {
+    if (_optionsLoading) return;
+    await _loadOptions();
+  }
+
+  Future<void> retry() => _loadOptions(force: true);
+
+  Future<void> _loadOptions({bool force = false}) async {
+    if (_optionsLoading && !force) return;
+    final generation = ++_optionsGeneration;
+    _optionsLoading = true;
     _setState(const OnboardingState.loading());
     try {
       final options = await _repository.loadOptions();
+      if (generation != _optionsGeneration) return;
       if (options.isEmpty || options.teams.isEmpty) {
         _setState(
           OnboardingState(
@@ -77,16 +90,20 @@ final class OnboardingController extends ChangeNotifier {
         ),
       );
     } on AppNetworkException catch (error) {
+      if (generation != _optionsGeneration) return;
       _setState(
         OnboardingState(
           status: OnboardingLoadStatus.failure,
           message: error is NetworkException ? '网络连接失败，请重试。' : error.message,
         ),
       );
+    } finally {
+      if (generation == _optionsGeneration) _optionsLoading = false;
     }
   }
 
   void selectMainTeam(int id) {
+    if (!_validTeamId(id)) return;
     _setState(
       OnboardingState(
         status: _state.status,
@@ -98,7 +115,14 @@ final class OnboardingController extends ChangeNotifier {
     );
   }
 
+  bool requireMainTeam() {
+    if (_state.mainTeamId != null) return true;
+    _copySelections(message: '请选择一支主队后继续。');
+    return false;
+  }
+
   void toggleTeam(int id) {
+    if (!_validTeamId(id)) return;
     final selected = {..._state.followTeamIds};
     if (id == _state.mainTeamId) return;
     selected.contains(id) ? selected.remove(id) : selected.add(id);
@@ -106,6 +130,7 @@ final class OnboardingController extends ChangeNotifier {
   }
 
   void togglePlayer(int id) {
+    if (!_validPlayerId(id)) return;
     final selected = {..._state.followPlayerIds};
     selected.contains(id) ? selected.remove(id) : selected.add(id);
     _copySelections(followPlayerIds: selected);
@@ -126,12 +151,20 @@ final class OnboardingController extends ChangeNotifier {
         followPlayerIds: _state.followPlayerIds,
       );
       await _authController.refreshAfterOnboarding();
+      _copySelections(isSubmitting: false);
       return true;
     } on AppNetworkException catch (error) {
       _copySelections(message: error.message);
       return false;
     }
   }
+
+  bool _validTeamId(int id) =>
+      id > 0 && (_state.options?.teams.any((team) => team.id == id) ?? false);
+
+  bool _validPlayerId(int id) =>
+      id > 0 &&
+      (_state.options?.players.any((player) => player.id == id) ?? false);
 
   void _copySelections({
     Set<int>? followTeamIds,

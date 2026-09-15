@@ -14,7 +14,8 @@ String? authRedirect(AuthStatus status, String location) {
       location.startsWith('/teams/') ||
       location.startsWith('/players/') ||
       location.startsWith('/users/') ||
-      location == '/messages';
+      location == '/messages' ||
+      location.startsWith('/settings');
   return switch (status) {
     AuthStatus.bootstrapping ||
     AuthStatus.failure => location == '/bootstrap' ? null : '/bootstrap',

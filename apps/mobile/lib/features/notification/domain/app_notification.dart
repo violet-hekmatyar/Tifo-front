@@ -114,16 +114,23 @@ final class AppNotification {
 
   String? get route {
     if (!targetAvailable) return null;
-    return switch (targetType) {
-      NotificationTargetType.content when targetId != null =>
-        '/contents/$targetId',
-      NotificationTargetType.comment
-          when secondaryTargetType == NotificationTargetType.content &&
-              secondaryTargetId != null =>
-        '/contents/$secondaryTargetId',
-      NotificationTargetType.user when targetId != null => '/users/$targetId',
-      _ => null,
-    };
+    if (targetType == NotificationTargetType.content &&
+        targetId != null &&
+        targetId! > 0) {
+      return '/contents/$targetId';
+    }
+    if (targetType == NotificationTargetType.comment &&
+        secondaryTargetType == NotificationTargetType.content &&
+        secondaryTargetId != null &&
+        secondaryTargetId! > 0) {
+      return '/contents/$secondaryTargetId';
+    }
+    if (targetType == NotificationTargetType.user &&
+        targetId != null &&
+        targetId! > 0) {
+      return '/users/$targetId';
+    }
+    return null;
   }
 }
 

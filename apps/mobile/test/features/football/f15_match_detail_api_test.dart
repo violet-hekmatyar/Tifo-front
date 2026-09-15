@@ -17,55 +17,58 @@ void main() {
     );
   });
 
-  test('decodes overview and all match tab contracts safely', () async {
-    adapter
-      ..onGet(
-        '$base/api/app/football/matches/70/overview',
-        (s) => s.reply(200, _result(_overview)),
-      )
-      ..onGet(
-        '$base/api/app/football/matches/70/lineups',
-        (s) => s.reply(200, _result(_lineups)),
-      )
-      ..onGet(
-        '$base/api/app/football/matches/70/stats',
-        (s) => s.reply(200, _result([_teamStat])),
-      )
-      ..onGet(
-        '$base/api/app/football/matches/70/player-stats',
-        (s) => s.reply(200, _result(_page(_playerStat))),
-        queryParameters: {'pageNum': 1, 'pageSize': 50},
-      )
-      ..onGet(
-        '$base/api/app/football/matches/70/ratings',
-        (s) => s.reply(200, _result([_rating])),
-      )
-      ..onPost(
-        '$base/api/app/football/matches/70/players/50/ratings',
-        (s) => s.reply(200, _result(_ratingResult(8.5))),
-        data: {'rating': 8.5},
-      )
-      ..onDelete(
-        '$base/api/app/football/matches/70/players/50/ratings',
-        (s) => s.reply(200, _result(_ratingResult(null))),
-      );
+  test(
+    'MATCH-19 decodes overview and all match tab contracts safely',
+    () async {
+      adapter
+        ..onGet(
+          '$base/api/app/football/matches/70/overview',
+          (s) => s.reply(200, _result(_overview)),
+        )
+        ..onGet(
+          '$base/api/app/football/matches/70/lineups',
+          (s) => s.reply(200, _result(_lineups)),
+        )
+        ..onGet(
+          '$base/api/app/football/matches/70/stats',
+          (s) => s.reply(200, _result([_teamStat])),
+        )
+        ..onGet(
+          '$base/api/app/football/matches/70/player-stats',
+          (s) => s.reply(200, _result(_page(_playerStat))),
+          queryParameters: {'pageNum': 1, 'pageSize': 50},
+        )
+        ..onGet(
+          '$base/api/app/football/matches/70/ratings',
+          (s) => s.reply(200, _result([_rating])),
+        )
+        ..onPost(
+          '$base/api/app/football/matches/70/players/50/ratings',
+          (s) => s.reply(200, _result(_ratingResult(8.5))),
+          data: {'rating': 8.5},
+        )
+        ..onDelete(
+          '$base/api/app/football/matches/70/players/50/ratings',
+          (s) => s.reply(200, _result(_ratingResult(null))),
+        );
 
-    final overview = await api.overview(70);
-    final lineups = await api.lineups(70);
-    final stats = await api.stats(70);
-    final players = await api.playerStats(70);
-    final ratings = await api.ratings(70);
-    final submitted = await api.submitRating(70, 50, 8.5);
-    final cancelled = await api.cancelRating(70, 50);
+      final overview = await api.overview(70);
+      final lineups = await api.lineups(70);
+      final stats = await api.stats(70);
+      final players = await api.playerStats(70);
+      final ratings = await api.ratings(70);
+      final submitted = await api.submitRating(70, 50, 8.5);
+      final cancelled = await api.cancelRating(70, 50);
 
-    expect(overview.ranking?.snapshotType, 'CURRENT_STANDING');
-    expect(lineups.home?.starters.single.position, 'UNKNOWN_POSITION');
-    expect(stats.single.rawType, 'UNKNOWN_STAT');
-    expect(players.records.single.playerId, 50);
-    expect(ratings.single.distribution['8.5-10.0'], 1);
-    expect(submitted.myRating, 8.5);
-    expect(cancelled.myRating, isNull);
-  });
+      expect(overview.ranking?.snapshotType, 'CURRENT_STANDING');
+      expect(lineups.home?.starters.single.position, 'UNKNOWN_POSITION');
+      expect(stats.single.rawType, 'UNKNOWN_STAT');
+      expect(players.records.single.playerId, 50);
+      expect(ratings.single.distribution['8.5-10.0'], 1);
+      expect(submitted.myRating, 8.5);
+      expect(cancelled.myRating, isNull);
+    },
+  );
 }
 
 const _lineups = <String, Object?>{

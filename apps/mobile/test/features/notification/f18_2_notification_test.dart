@@ -10,7 +10,7 @@ import 'package:tifo/features/notification/presentation/notifications_page.dart'
 
 void main() {
   testWidgets(
-    'renders interaction types, reads items and blocks unavailable target',
+    'MSG-01 renders interaction types, reads items and blocks unavailable target',
     (tester) async {
       final repository = _Repository();
       final router = GoRouter(

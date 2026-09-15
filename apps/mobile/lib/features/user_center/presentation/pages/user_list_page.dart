@@ -2,33 +2,76 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/network/media_url_resolver.dart';
+import '../../../../core/network/network_providers.dart';
 import '../../../../shared/design_system/app_design_tokens.dart';
 import '../../../../shared/widgets/app_entity_avatar.dart';
 import '../../../../shared/widgets/app_state_view.dart';
+import '../../../feed/domain/feed_card.dart';
+import '../../../feed/presentation/widgets/content_card.dart';
 import '../../domain/user_center_models.dart';
 import '../controllers/user_center_controllers.dart';
 
-class UserListPage extends ConsumerStatefulWidget {
+class UserListPage extends StatelessWidget {
   const UserListPage({required this.title, required this.request, super.key});
   final String title;
   final UserListRequest request;
+
   @override
-  ConsumerState<UserListPage> createState() => _UserListPageState();
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(title)),
+    body: UserListView(request: request),
+  );
 }
 
-class _UserListPageState extends ConsumerState<UserListPage> {
+class UserListView extends ConsumerStatefulWidget {
+  const UserListView({
+    required this.request,
+    this.showSearch = false,
+    this.allowUserActions = true,
+    this.active = true,
+    super.key,
+  });
+  final UserListRequest request;
+  final bool showSearch;
+  final bool allowUserActions;
+  final bool active;
+
+  @override
+  ConsumerState<UserListView> createState() => _UserListViewState();
+}
+
+class _UserListViewState extends ConsumerState<UserListView>
+    with AutomaticKeepAliveClientMixin {
   final _scroll = ScrollController();
+  final _search = TextEditingController();
+  String _query = '';
+
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
     _scroll.addListener(_nearEnd);
+    _loadWhenActive();
+  }
+
+  @override
+  void didUpdateWidget(covariant UserListView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active && !oldWidget.active) _loadWhenActive();
+  }
+
+  void _loadWhenActive() {
+    if (!widget.active) return;
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => ref.read(userListControllerProvider(widget.request)).loadInitial(),
     );
   }
 
   void _nearEnd() {
-    if (_scroll.position.extentAfter < 360) {
+    if (_scroll.hasClients && _scroll.position.extentAfter < 360) {
       ref.read(userListControllerProvider(widget.request)).loadMore();
     }
   }
@@ -36,162 +79,470 @@ class _UserListPageState extends ConsumerState<UserListPage> {
   @override
   void dispose() {
     _scroll.dispose();
+    _search.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final c = ref.watch(userListControllerProvider(widget.request));
-    final s = c.state;
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: switch (s.status) {
-        UserListStatus.loading => const AppStateView(
-          kind: AppStateKind.loading,
-          title: '正在加载',
-          message: '正在读取真实数据。',
+    super.build(context);
+    final controller = ref.watch(userListControllerProvider(widget.request));
+    final state = controller.state;
+    if (state.status == UserListStatus.loading && state.items.isEmpty) {
+      return const SingleChildScrollView(
+        child: SizedBox(
+          height: 260,
+          child: AppStateView(
+            kind: AppStateKind.loading,
+            title: '正在加载',
+            message: '正在读取真实数据。',
+          ),
         ),
-        UserListStatus.failure => AppStateView(
-          kind: AppStateKind.error,
-          title: '加载失败',
-          message: s.message ?? '请稍后重试。',
-          onRetry: c.retry,
+      );
+    }
+    if (state.status == UserListStatus.failure && state.items.isEmpty) {
+      return SingleChildScrollView(
+        child: SizedBox(
+          height: 260,
+          child: AppStateView(
+            kind: AppStateKind.error,
+            title: '加载失败',
+            message: state.message ?? '请稍后重试。',
+            onRetry: controller.retry,
+          ),
         ),
-        UserListStatus.restricted => AppStateView(
-          kind: AppStateKind.error,
-          title: '该列表不可查看',
-          message: s.message ?? '该列表受隐私保护。',
-          onRetry: c.retry,
+      );
+    }
+    if (state.status == UserListStatus.restricted && state.items.isEmpty) {
+      return SingleChildScrollView(
+        child: SizedBox(
+          height: 260,
+          child: AppStateView(
+            kind: AppStateKind.error,
+            title: '该列表不可查看',
+            message: state.message ?? '该列表受隐私保护。',
+            onRetry: controller.retry,
+          ),
         ),
-        UserListStatus.empty => RefreshIndicator(
-          onRefresh: c.refresh,
-          child: ListView(
-            controller: _scroll,
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: const [
-              SizedBox(
-                height: 520,
-                child: AppStateView(
-                  kind: AppStateKind.empty,
-                  title: '暂无内容',
-                  message: '这里还没有可展示的真实记录。',
-                ),
+      );
+    }
+    final values = _filtered(state.items);
+    return RefreshIndicator(
+      onRefresh: controller.refresh,
+      child: ListView(
+        key: PageStorageKey<String>(
+          'user-list-${widget.request.kind.name}-${widget.request.userId ?? 'me'}',
+        ),
+        controller: _scroll,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        children: [
+          if (widget.showSearch) _searchField(),
+          if (state.refreshing) const LinearProgressIndicator(minHeight: 2),
+          if (state.message != null && state.items.isNotEmpty)
+            _MessageBanner(
+              message: state.message!,
+              onRetry: controller.refresh,
+            ),
+          if (state.status == UserListStatus.restricted)
+            _MessageBanner(
+              message: state.message ?? '该列表受隐私保护。',
+              onRetry: controller.retry,
+            ),
+          if (values.isEmpty)
+            const SizedBox(
+              height: 420,
+              child: AppStateView(
+                kind: AppStateKind.empty,
+                title: '暂无内容',
+                message: '这里还没有可展示的真实记录。',
               ),
-            ],
-          ),
-        ),
-        UserListStatus.ready => RefreshIndicator(
-          onRefresh: c.refresh,
-          child: ListView.builder(
-            controller: _scroll,
-            padding: const EdgeInsets.all(AppSpacing.md),
-            itemCount: s.items.length + 1,
-            itemBuilder: (context, index) => index == s.items.length
-                ? _Footer(state: s, retry: c.loadMore)
-                : _item(context, s.items[index], c),
-          ),
-        ),
+            )
+          else
+            _records(values, controller),
+          if (state.status == UserListStatus.ready &&
+              _query.isEmpty &&
+              state.items.isNotEmpty)
+            _Footer(state: state, retry: controller.loadMore),
+        ],
+      ),
+    );
+  }
+
+  Widget _searchField() => Padding(
+    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+    child: TextField(
+      key: const ValueKey('user_list_search'),
+      controller: _search,
+      onChanged: (value) => setState(() => _query = value.trim().toLowerCase()),
+      decoration: InputDecoration(
+        hintText: '搜索已加载用户',
+        prefixIcon: const Icon(Icons.search_rounded),
+        suffixIcon: _query.isEmpty
+            ? null
+            : IconButton(
+                tooltip: '清空搜索',
+                onPressed: () {
+                  _search.clear();
+                  setState(() => _query = '');
+                },
+                icon: const Icon(Icons.clear_rounded),
+              ),
+      ),
+    ),
+  );
+
+  List<Object> _filtered(List<Object> values) {
+    if (!widget.showSearch || _query.isEmpty) return values;
+    return values.where((value) {
+      if (value is! UserBrief) return true;
+      return [
+        value.nickname,
+        value.username,
+        value.bio,
+      ].whereType<String>().any((text) => text.toLowerCase().contains(_query));
+    }).toList();
+  }
+
+  Widget _records(List<Object> values, UserListController controller) {
+    final isContentList = values.every(
+      (value) =>
+          value is UserContentItem ||
+          value is UserLikeItem ||
+          value is UserFavoriteItem,
+    );
+    if (!isContentList) {
+      return Column(
+        children: [for (final value in values) _item(value, controller)],
+      );
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final single =
+            constraints.maxWidth < 350 ||
+            MediaQuery.textScalerOf(context).scale(14) > 16.5;
+        if (single) {
+          return Column(
+            children: [for (final value in values) _contentItem(value)],
+          );
+        }
+        final left = <Object>[];
+        final right = <Object>[];
+        for (var i = 0; i < values.length; i++) {
+          (i.isEven ? left : right).add(values[i]);
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: Column(children: left.map(_contentItem).toList())),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(child: Column(children: right.map(_contentItem).toList())),
+          ],
+        );
       },
     );
   }
 
-  Widget _item(
-    BuildContext context,
-    Object value,
-    UserListController controller,
-  ) => switch (value) {
-    UserContentItem item => Card(
-      child: ListTile(
-        key: ValueKey('user-content-${item.contentId}'),
-        leading: const Icon(Icons.article_outlined),
-        title: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: Text(
-          '${item.likeCount} 赞 · ${item.commentCount} 评论 · ${item.favoriteCount} 收藏',
+  Widget _contentItem(Object value) => Padding(
+    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+    child: switch (value) {
+      UserContentItem item => _contentCard(
+        contentId: item.contentId,
+        title: item.title,
+        summary: item.summary,
+        coverUrl: item.coverUrl,
+        contentType: item.contentType,
+        likeCount: item.likeCount,
+        commentCount: item.commentCount,
+        authorId: item.authorId,
+        authorNickname: item.authorNickname,
+        authorAvatarUrl: item.authorAvatarUrl,
+        keyPrefix: 'user-content',
+      ),
+      UserLikeItem item => _contentCard(
+        contentId: item.contentId,
+        title: item.title,
+        summary: item.summary,
+        coverUrl: item.coverUrl,
+        contentType: item.contentType,
+        likeCount: item.likeCount,
+        commentCount: item.commentCount,
+        authorId: item.authorId,
+        authorNickname: item.authorNickname,
+        authorAvatarUrl: item.authorAvatarUrl,
+        visible: item.visible,
+        keyPrefix: 'user-like',
+      ),
+      UserFavoriteItem item => _contentCard(
+        contentId: item.contentId,
+        title: item.title,
+        summary: item.summary,
+        coverUrl: item.coverUrl,
+        contentType: 'POST',
+        likeCount: 0,
+        commentCount: 0,
+        authorId: item.authorId,
+        authorNickname: item.authorNickname,
+        authorAvatarUrl: item.authorAvatarUrl,
+        removable: widget.request.kind == UserListKind.myFavorites,
+        keyPrefix: 'user-favorite',
+      ),
+      _ => const SizedBox.shrink(),
+    },
+  );
+
+  Widget _contentCard({
+    required int contentId,
+    required String title,
+    required String? summary,
+    required String? coverUrl,
+    required String contentType,
+    required int likeCount,
+    required int commentCount,
+    required int? authorId,
+    required String? authorNickname,
+    required String? authorAvatarUrl,
+    required String keyPrefix,
+    bool visible = true,
+    bool removable = false,
+  }) {
+    final config = ref.read(appConfigProvider);
+    if (!visible) {
+      return Card(
+        key: ValueKey('user-like-$contentId'),
+        child: ListTile(
+          leading: const Icon(Icons.visibility_off_outlined),
+          title: Text(title),
+          subtitle: const Text('内容当前不可见，无法打开。'),
         ),
-        onTap: () => context.push('/contents/${item.contentId}'),
-        trailing: const Icon(Icons.chevron_right_rounded),
-      ),
-    ),
-    UserLikeItem item => Card(
-      child: ListTile(
-        key: ValueKey('user-like-${item.contentId}'),
-        leading: const Icon(Icons.favorite_rounded, color: AppColors.error),
-        title: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: Text(
-          [
-            item.authorNickname,
-            '${item.likeCount} 赞 · ${item.commentCount} 评论',
-            if (!item.visible) '内容当前不可见',
-          ].whereType<String>().join(' · '),
+      );
+    }
+    final card = ContentFeedCard(
+      cardId: '$contentId',
+      rawCardType: 'CONTENT',
+      contentId: contentId,
+      contentType: contentType,
+      title: title,
+      summary: summary,
+      coverUrl: coverUrl,
+      likeCount: likeCount,
+      commentCount: commentCount,
+      author: authorId == null && authorNickname == null
+          ? null
+          : FeedAuthor(
+              userId: authorId,
+              nickname: authorNickname ?? '南看台用户',
+              avatarUrl: authorAvatarUrl,
+            ),
+    );
+    return Stack(
+      children: [
+        ContentCard(
+          key: ValueKey('$keyPrefix-$contentId'),
+          card: card,
+          coverUrl: resolveMediaUrl(config, coverUrl),
+          authorAvatarUrl: resolveMediaUrl(config, authorAvatarUrl),
+          showMedia: coverUrl != null && coverUrl.trim().isNotEmpty,
+          onTap: () => context.push('/contents/$contentId'),
         ),
-        onTap: item.visible
-            ? () => context.push('/contents/${item.contentId}')
-            : null,
-        trailing: item.visible
-            ? const Icon(Icons.chevron_right_rounded)
-            : const Icon(Icons.visibility_off_outlined),
-      ),
-    ),
-    UserFavoriteItem item => Card(
-      child: ListTile(
-        leading: const Icon(Icons.bookmark_rounded),
-        title: Text(item.title),
-        subtitle: item.summary == null
-            ? null
-            : Text(item.summary!, maxLines: 2, overflow: TextOverflow.ellipsis),
-        onTap: () => context.push('/contents/${item.contentId}'),
-        trailing: widget.request.kind == UserListKind.myFavorites
-            ? IconButton(
-                tooltip: '取消收藏',
-                onPressed: () => controller.removeItem(item),
-                icon: const Icon(Icons.bookmark_remove_outlined),
-              )
-            : const Icon(Icons.chevron_right_rounded),
-      ),
-    ),
+        if (!removable)
+          const Positioned(
+            top: 8,
+            right: 8,
+            child: CircleAvatar(
+              radius: 14,
+              backgroundColor: Colors.white,
+              child: Icon(Icons.chevron_right_rounded, size: 20),
+            ),
+          ),
+        if (removable)
+          Positioned(
+            right: 4,
+            bottom: 4,
+            child: IconButton(
+              tooltip: '取消收藏',
+              onPressed: () => _confirmRemove(
+                context,
+                ref.read(userListControllerProvider(widget.request)),
+                contentId,
+              ),
+              icon: const CircleAvatar(
+                radius: 15,
+                backgroundColor: Colors.white,
+                child: Icon(Icons.bookmark_remove_outlined, size: 18),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _item(Object value, UserListController controller) => switch (value) {
     UserCommentItem item => Card(
+      key: ValueKey('user-comment-${item.commentId}'),
       child: ListTile(
         leading: const Icon(Icons.chat_bubble_outline_rounded),
         title: Text(item.content, maxLines: 3, overflow: TextOverflow.ellipsis),
-        subtitle: item.contentTitle == null ? null : Text(item.contentTitle!),
-        onTap: () => context.push('/contents/${item.contentId}'),
+        subtitle: Text(item.contentTitle ?? '内容已删除或不可见'),
+        onTap: item.contentId > 0
+            ? () => context.push('/contents/${item.contentId}')
+            : null,
         trailing: widget.request.kind == UserListKind.myComments
             ? IconButton(
                 tooltip: '删除评论',
-                onPressed: () => controller.removeItem(item),
+                onPressed: () =>
+                    _confirmRemove(context, controller, item.commentId),
                 icon: const Icon(Icons.delete_outline_rounded),
               )
             : const Icon(Icons.chevron_right_rounded),
       ),
     ),
-    UserBrief item => Card(
+    UserBrief item => _userRow(item, controller),
+    _ => const SizedBox.shrink(),
+  };
+
+  Widget _userRow(UserBrief item, UserListController controller) {
+    final busy = controller.state.busyItemKeys.contains('user:${item.userId}');
+    final actionable =
+        widget.allowUserActions &&
+        item.userId > 0 &&
+        item.relationStatus != 'SELF' &&
+        {
+          'NONE',
+          'FOLLOWING',
+          'FOLLOWED_BY',
+          'MUTUAL',
+        }.contains(item.relationStatus);
+    return Card(
+      key: ValueKey('user-row-${item.userId}'),
       child: ListTile(
         leading: AppEntityAvatar(
           identity: 'user:${item.userId}',
           semanticLabel: '${item.nickname}头像',
           fallbackIcon: Icons.person_outline_rounded,
-          fallbackText: item.nickname.characters.first,
+          fallbackText: item.nickname,
           imageUrl: item.avatarUrl,
           size: 44,
         ),
         title: Text(item.nickname),
         subtitle: Text(
-          item.bio ?? '@${item.username}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          item.bio?.isNotEmpty == true ? item.bio! : '@${item.username}',
         ),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: () => context.push('/users/${item.userId}'),
+        onTap: item.userId > 0
+            ? () => context.push('/users/${item.userId}')
+            : null,
+        trailing: actionable
+            ? TextButton(
+                key: ValueKey('user-follow-${item.userId}'),
+                onPressed: busy
+                    ? null
+                    : () => _confirmUserFollow(context, controller, item),
+                child: Text(
+                  busy
+                      ? '处理中'
+                      : switch (item.relationStatus) {
+                          'FOLLOWING' => '已关注',
+                          'FOLLOWED_BY' => '回关',
+                          'MUTUAL' => '互相关注',
+                          _ => '关注',
+                        },
+                ),
+              )
+            : Text(item.relationLabel),
       ),
+    );
+  }
+
+  Future<void> _confirmUserFollow(
+    BuildContext context,
+    UserListController controller,
+    UserBrief item,
+  ) async {
+    final follow = !item.followed;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(follow ? '确认关注' : '确认取消关注'),
+        content: Text(
+          follow ? '确认关注 ${item.nickname}？' : '确认取消关注 ${item.nickname}？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确认'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await controller.toggleUser(item);
+  }
+
+  Future<void> _confirmRemove(
+    BuildContext context,
+    UserListController controller,
+    int id,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('确认删除'),
+        content: const Text('此操作无法撤销，确认继续吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确认'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final item = controller.state.items.firstWhere(
+      (value) =>
+          (value is UserFavoriteItem && value.contentId == id) ||
+          (value is UserCommentItem && value.commentId == id),
+      orElse: () => const UserContentItem(
+        contentId: -1,
+        contentType: 'UNKNOWN',
+        title: '',
+        likeCount: 0,
+        commentCount: 0,
+        favoriteCount: 0,
+      ),
+    );
+    if (item is UserContentItem) return;
+    await controller.removeItem(item);
+  }
+}
+
+class _MessageBanner extends StatelessWidget {
+  const _MessageBanner({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    color: AppColors.error.withValues(alpha: .08),
+    child: ListTile(
+      leading: const Icon(Icons.info_outline_rounded, color: AppColors.error),
+      title: Text(message),
+      trailing: TextButton(onPressed: onRetry, child: const Text('重试')),
     ),
-    _ => const SizedBox.shrink(),
-  };
+  );
 }
 
 class _Footer extends StatelessWidget {
   const _Footer({required this.state, required this.retry});
   final UserListState state;
   final VoidCallback retry;
+
   @override
   Widget build(BuildContext context) {
     if (state.loadingMore) {

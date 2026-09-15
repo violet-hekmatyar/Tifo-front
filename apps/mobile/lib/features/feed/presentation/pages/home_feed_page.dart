@@ -151,7 +151,6 @@ class _HomeFeedPageState extends ConsumerState<HomeFeedPage> {
               teams: state.followedTeams,
               selectedTeamId: state.teamId,
               onSelected: (value) => unawaited(controller.selectTeam(value)),
-              onOpenTeam: (teamId) => context.push('/teams/$teamId'),
             ),
             Expanded(child: _body(context, controller)),
           ],
@@ -226,6 +225,7 @@ class _ReadyFeed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sections = FeedDisplaySections.fromCards(cards);
+    final visualEntries = _visualEntries(sections.entries);
     return CustomScrollView(
       key: scrollViewKey,
       controller: controller,
@@ -264,10 +264,10 @@ class _ReadyFeed extends StatelessWidget {
             0,
           ),
           sliver: SliverList.separated(
-            itemCount: sections.entries.length,
+            itemCount: visualEntries.length,
             separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
             itemBuilder: (context, index) =>
-                _entry(sections.entries[index], cardKey),
+                _entry(visualEntries[index], cardKey),
           ),
         ),
         SliverPadding(
@@ -284,31 +284,84 @@ class _ReadyFeed extends StatelessWidget {
   }
 }
 
-Widget _entry(
-  FeedDisplayEntry entry,
-  GlobalKey Function(FeedCard card) cardKey,
-) => switch (entry) {
-  FeedSingleEntry(:final card) => FeedCardRenderer(
-    key: cardKey(card),
-    card: card,
-  ),
-  FeedContentRowEntry(:final left, :final right) => IntrinsicHeight(
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+List<Object> _visualEntries(List<FeedDisplayEntry> entries) {
+  final result = <Object>[];
+  for (var index = 0; index < entries.length; index++) {
+    final entry = entries[index];
+    if (entry is FeedContentRowEntry) {
+      final cards = <ContentFeedCard>[entry.left];
+      if (entry.right case final right?) cards.add(right);
+      while (index + 1 < entries.length &&
+          entries[index + 1] is FeedContentRowEntry) {
+        final next = entries[++index] as FeedContentRowEntry;
+        cards.add(next.left);
+        if (next.right case final right?) cards.add(right);
+      }
+      result.add(_ContentMasonryEntry(cards));
+    } else {
+      result.add(entry);
+    }
+  }
+  return result;
+}
+
+Widget _entry(Object entry, GlobalKey Function(FeedCard card) cardKey) =>
+    switch (entry) {
+      FeedSingleEntry(:final card) => FeedCardRenderer(
+        key: cardKey(card),
+        card: card,
+      ),
+      _ContentMasonryEntry(:final cards) => _ContentMasonry(
+        cards: cards,
+        cardKey: cardKey,
+      ),
+      _ => const SizedBox.shrink(),
+    };
+
+final class _ContentMasonryEntry {
+  const _ContentMasonryEntry(this.cards);
+  final List<ContentFeedCard> cards;
+}
+
+class _ContentMasonry extends StatelessWidget {
+  const _ContentMasonry({required this.cards, required this.cardKey});
+  final List<ContentFeedCard> cards;
+  final GlobalKey Function(FeedCard card) cardKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final columns = <List<ContentFeedCard>>[[], []];
+    for (var index = 0; index < cards.length; index++) {
+      columns[index.isEven ? 0 : 1].add(cards[index]);
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: FeedCardRenderer(key: cardKey(left), card: left),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: right == null
-              ? const SizedBox()
-              : FeedCardRenderer(key: cardKey(right), card: right),
-        ),
+        for (var index = 0; index < columns.length; index++) ...[
+          if (index > 0) const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (
+                  var cardIndex = 0;
+                  cardIndex < columns[index].length;
+                  cardIndex++
+                ) ...[
+                  if (cardIndex > 0) const SizedBox(height: AppSpacing.sm),
+                  FeedCardRenderer(
+                    key: cardKey(columns[index][cardIndex]),
+                    card: columns[index][cardIndex],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ],
-    ),
-  ),
-};
+    );
+  }
+}
 
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader({required this.onSearch, required this.onPublish});
@@ -319,7 +372,7 @@ class _HomeHeader extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(
       AppSpacing.lg,
-      AppSpacing.md,
+      AppSpacing.lg,
       AppSpacing.lg,
       0,
     ),
@@ -335,7 +388,7 @@ class _HomeHeader extends StatelessWidget {
             child: Icon(Icons.sports_soccer_rounded, color: Colors.white),
           ),
         ),
-        const SizedBox(width: AppSpacing.sm),
+        const SizedBox(width: AppSpacing.xs),
         Expanded(
           child: Text('南看台', style: Theme.of(context).textTheme.headlineSmall),
         ),
@@ -351,6 +404,10 @@ class _HomeHeader extends StatelessWidget {
           onPressed: onPublish,
           icon: const Icon(Icons.add_rounded),
           label: const Text('发布'),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(0, 44),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          ),
         ),
       ],
     ),

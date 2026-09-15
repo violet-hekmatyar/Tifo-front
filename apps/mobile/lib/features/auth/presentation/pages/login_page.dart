@@ -7,6 +7,7 @@ import '../../../../shared/widgets/app_primary_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/auth_brand_header.dart';
 import '../controllers/auth_controller.dart';
+import '../widgets/auth_agreement.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -20,6 +21,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _agreed = false;
+  Future<bool>? _agreementRequest;
 
   @override
   void didChangeDependencies() {
@@ -39,6 +42,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!_agreed) {
+      final request = _agreementRequest ??= presentAuthAgreement(context);
+      final accepted = await request;
+      _agreementRequest = null;
+      if (!accepted || !mounted) return;
+      setState(() => _agreed = true);
+    }
     await ref
         .read(authControllerProvider)
         .login(
@@ -52,6 +62,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final state = ref.watch(authControllerProvider).state;
     return Scaffold(
       body: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Column(
           children: [
             const AuthBrandHeader(title: '欢迎回来', subtitle: '登录后继续关注你热爱的球队与球员'),
@@ -75,6 +86,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             ),
                             const SizedBox(height: AppSpacing.xl),
                             AppTextField(
+                              key: const ValueKey('login_username'),
                               controller: _usernameController,
                               label: '用户名',
                               prefixIcon: Icons.person_outline_rounded,
@@ -87,6 +99,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             ),
                             const SizedBox(height: AppSpacing.md),
                             AppTextField(
+                              key: const ValueKey('login_password'),
                               controller: _passwordController,
                               label: '密码',
                               prefixIcon: Icons.lock_outline_rounded,
@@ -128,14 +141,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 ),
                               ),
                             ],
+                            AuthAgreement(
+                              value: _agreed,
+                              onChanged: (value) =>
+                                  setState(() => _agreed = value),
+                            ),
                             const SizedBox(height: AppSpacing.lg),
                             AppPrimaryButton(
+                              key: const ValueKey('login_submit'),
                               label: '登录',
                               icon: Icons.login_rounded,
                               loading: state.isSubmitting,
                               onPressed: _submit,
                             ),
                             TextButton(
+                              key: const ValueKey('login_to_register'),
                               onPressed: state.isSubmitting
                                   ? null
                                   : () => context.go('/register'),

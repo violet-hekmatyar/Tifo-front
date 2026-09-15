@@ -17,9 +17,9 @@ final class TeamOption {
     return TeamOption(
       id: (raw['teamId'] as num).toInt(),
       name: raw['teamName'] as String,
-      logoUrl: raw['logoUrl'] as String?,
-      leagueName: raw['leagueName'] as String?,
-      country: raw['country'] as String?,
+      logoUrl: _stringOrNull(raw['logoUrl']),
+      leagueName: _stringOrNull(raw['leagueName']),
+      country: _stringOrNull(raw['country']),
       followed: raw['followed'] == true,
     );
   }
@@ -52,10 +52,10 @@ final class PlayerOption {
     return PlayerOption(
       id: (raw['playerId'] as num).toInt(),
       name: raw['playerName'] as String,
-      avatarUrl: raw['avatarUrl'] as String?,
-      position: raw['position'] as String?,
-      teamId: (raw['teamId'] as num?)?.toInt(),
-      teamName: raw['teamName'] as String?,
+      avatarUrl: _stringOrNull(raw['avatarUrl']),
+      position: _stringOrNull(raw['position']),
+      teamId: raw['teamId'] is num ? (raw['teamId'] as num).toInt() : null,
+      teamName: _stringOrNull(raw['teamName']),
       followed: raw['followed'] == true,
     );
   }
@@ -68,6 +68,9 @@ final class PlayerOption {
   final String? teamName;
   final bool followed;
 }
+
+String? _stringOrNull(Object? value) =>
+    value is String && value.isNotEmpty ? value : null;
 
 final class OnboardingOptions {
   const OnboardingOptions({required this.teams, required this.players});

@@ -15,6 +15,7 @@ final class CommentsState {
     this.hasMore = false,
     this.message,
     this.loadingMore = false,
+    this.moreFailure = false,
     this.submitting = false,
     this.busyIds = const {},
   });
@@ -25,6 +26,7 @@ final class CommentsState {
   final bool hasMore;
   final String? message;
   final bool loadingMore;
+  final bool moreFailure;
   final bool submitting;
   final Set<int> busyIds;
 }
@@ -42,13 +44,19 @@ final class CommentController extends ChangeNotifier {
   final InteractionRepositoryContract repository;
   CommentsState state = const CommentsState(status: CommentsStatus.loading);
   bool _disposed = false;
+  int _requestVersion = 0;
   Future<void> load({CommentSort? sort}) async {
     final selected = sort ?? state.sort;
-    state = CommentsState(status: CommentsStatus.loading, sort: selected);
+    final version = ++_requestVersion;
+    state = CommentsState(
+      status: CommentsStatus.loading,
+      sort: selected,
+      moreFailure: false,
+    );
     notifyListeners();
     try {
       final p = await repository.comments(contentId, selected, 1);
-      if (_disposed) return;
+      if (_disposed || version != _requestVersion) return;
       state = CommentsState(
         status: p.records.isEmpty ? CommentsStatus.empty : CommentsStatus.ready,
         items: p.records,
@@ -58,7 +66,7 @@ final class CommentController extends ChangeNotifier {
       );
       notifyListeners();
     } on AppNetworkException catch (e) {
-      if (_disposed) return;
+      if (_disposed || version != _requestVersion) return;
       state = CommentsState(
         status: CommentsStatus.failure,
         sort: selected,
@@ -70,15 +78,14 @@ final class CommentController extends ChangeNotifier {
 
   Future<void> more() async {
     if (state.loadingMore || !state.hasMore) return;
-    state = _copy(loadingMore: true, message: null);
+    final version = _requestVersion;
+    final selected = state.sort;
+    final nextPage = state.page + 1;
+    state = _copy(loadingMore: true, moreFailure: false, message: null);
     notifyListeners();
     try {
-      final p = await repository.comments(
-        contentId,
-        state.sort,
-        state.page + 1,
-      );
-      if (_disposed) return;
+      final p = await repository.comments(contentId, selected, nextPage);
+      if (_disposed || version != _requestVersion) return;
       final map = {for (final x in state.items) x.commentId: x};
       for (final x in p.records) {
         map[x.commentId] = x;
@@ -89,11 +96,12 @@ final class CommentController extends ChangeNotifier {
         sort: state.sort,
         page: p.pageNum,
         hasMore: p.hasMore,
+        moreFailure: false,
       );
       notifyListeners();
     } on AppNetworkException catch (e) {
-      if (_disposed) return;
-      state = _copy(loadingMore: false, message: e.message);
+      if (_disposed || version != _requestVersion) return;
+      state = _copy(loadingMore: false, moreFailure: true, message: e.message);
       notifyListeners();
     }
   }
@@ -107,7 +115,7 @@ final class CommentController extends ChangeNotifier {
       await repository.createComment(
         contentId: contentId,
         content: value,
-        parentId: replyTo?.commentId ?? 0,
+        parentId: replyTo?.rootId ?? replyTo?.commentId ?? 0,
         replyToUserId: replyTo?.author.userId,
       );
       await load(sort: state.sort);
@@ -123,6 +131,7 @@ final class CommentController extends ChangeNotifier {
   Future<void> toggleLike(CommentItem item) async {
     if (state.busyIds.contains(item.commentId)) return;
     final originalItems = state.items;
+    final originalState = state;
     final optimistic = item.interactionCopy(
       liked: !item.liked,
       likeCount: (item.likeCount + (item.liked ? -1 : 1)).clamp(0, 1 << 31),
@@ -136,6 +145,10 @@ final class CommentController extends ChangeNotifier {
       sort: state.sort,
       page: state.page,
       hasMore: state.hasMore,
+      message: null,
+      loadingMore: state.loadingMore,
+      moreFailure: state.moreFailure,
+      submitting: state.submitting,
       busyIds: {...state.busyIds, item.commentId},
     );
     notifyListeners();
@@ -145,11 +158,14 @@ final class CommentController extends ChangeNotifier {
     } on AppNetworkException catch (e) {
       if (_disposed) return;
       state = CommentsState(
-        status: state.status,
+        status: originalState.status,
         items: originalItems,
-        sort: state.sort,
-        page: state.page,
-        hasMore: state.hasMore,
+        sort: originalState.sort,
+        page: originalState.page,
+        hasMore: originalState.hasMore,
+        loadingMore: originalState.loadingMore,
+        moreFailure: originalState.moreFailure,
+        submitting: originalState.submitting,
         message: e.message,
       );
       notifyListeners();
@@ -162,7 +178,17 @@ final class CommentController extends ChangeNotifier {
     notifyListeners();
     try {
       await repository.deleteComment(item.commentId);
-      await load(sort: state.sort);
+      final remaining = state.items
+          .where((value) => value.commentId != item.commentId)
+          .toList(growable: false);
+      state = CommentsState(
+        status: remaining.isEmpty ? CommentsStatus.empty : CommentsStatus.ready,
+        items: remaining,
+        sort: state.sort,
+        page: state.page,
+        hasMore: state.hasMore,
+      );
+      notifyListeners();
       return true;
     } on AppNetworkException catch (e) {
       if (_disposed) return false;
@@ -180,6 +206,7 @@ final class CommentController extends ChangeNotifier {
 
   CommentsState _copy({
     bool? loadingMore,
+    bool? moreFailure,
     bool? submitting,
     String? message,
     Set<int>? busyIds,
@@ -190,6 +217,7 @@ final class CommentController extends ChangeNotifier {
     page: state.page,
     hasMore: state.hasMore,
     loadingMore: loadingMore ?? state.loadingMore,
+    moreFailure: moreFailure ?? state.moreFailure,
     submitting: submitting ?? state.submitting,
     message: message,
     busyIds: busyIds ?? state.busyIds,

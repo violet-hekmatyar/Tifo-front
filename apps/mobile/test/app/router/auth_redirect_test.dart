@@ -27,6 +27,12 @@ void main() {
     );
     expect(authRedirect(AuthStatus.authenticatedReady, '/app/data'), isNull);
     expect(authRedirect(AuthStatus.authenticatedReady, '/content/42'), isNull);
+    expect(authRedirect(AuthStatus.authenticatedReady, '/login'), '/app/home');
+    expect(
+      authRedirect(AuthStatus.authenticatedReady, '/register'),
+      '/app/home',
+    );
+    expect(authRedirect(AuthStatus.unauthenticated, '/settings'), '/login');
     for (final location in [
       '/publish',
       '/publish/post',

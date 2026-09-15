@@ -12,6 +12,7 @@ class ContentCard extends StatelessWidget {
     this.onAuthorTap,
     this.coverUrl,
     this.authorAvatarUrl,
+    this.showMedia = true,
     super.key,
   });
 
@@ -20,6 +21,7 @@ class ContentCard extends StatelessWidget {
   final VoidCallback? onAuthorTap;
   final String? coverUrl;
   final String? authorAvatarUrl;
+  final bool showMedia;
 
   @override
   Widget build(BuildContext context) => Material(
@@ -36,17 +38,18 @@ class ContentCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
-              children: [
-                AppContentImage(imageUrl: coverUrl),
-                if (card.contentType == 'POST')
-                  const Positioned(
-                    top: AppSpacing.xs,
-                    right: AppSpacing.xs,
-                    child: _TypeBadge(label: '帖子'),
-                  ),
-              ],
-            ),
+            if (showMedia)
+              Stack(
+                children: [
+                  AppContentImage(imageUrl: coverUrl),
+                  if (card.contentType == 'POST')
+                    const Positioned(
+                      top: AppSpacing.xs,
+                      right: AppSpacing.xs,
+                      child: _TypeBadge(label: '帖子'),
+                    ),
+                ],
+              ),
             Padding(
               padding: const EdgeInsets.all(AppSpacing.sm),
               child: Column(
@@ -62,28 +65,25 @@ class ContentCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
-                  SizedBox(
-                    key: const ValueKey('content_comment_slot'),
-                    height: 52,
-                    child: card.hotComment == null
-                        ? null
-                        : Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(AppSpacing.xs),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceMuted,
-                              borderRadius: BorderRadius.circular(AppRadius.sm),
-                            ),
-                            child: Text(
-                              card.hotComment!.content,
-                              key: const ValueKey('content_comment_summary'),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
+                  if (card.hotComment case final comment?) ...[
+                    Container(
+                      key: const ValueKey('content_comment_slot'),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppSpacing.xs),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceMuted,
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ),
+                      child: Text(
+                        comment.content,
+                        key: const ValueKey('content_comment_summary'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
                   InkWell(
                     onTap: onAuthorTap,
                     borderRadius: BorderRadius.circular(AppRadius.sm),

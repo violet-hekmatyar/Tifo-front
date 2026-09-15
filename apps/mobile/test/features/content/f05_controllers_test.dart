@@ -32,6 +32,25 @@ void main() {
     expect(c.state.status, DetailStatus.notFound);
     expect(c.state.message, contains('下架'));
   });
+  test(
+    'comment count refresh keeps ready detail after network and business failures',
+    () async {
+      for (final error in <AppNetworkException>[
+        const NetworkException('offline'),
+        const BusinessException('busy', code: 40901),
+      ]) {
+        final repo = _ContentRepo();
+        final c = ContentDetailController(1, repo, _Interactions());
+        await c.load();
+        final oldCount = c.state.detail!.commentCount;
+        repo.error = error;
+        await c.refreshCommentCount();
+        expect(c.state.status, DetailStatus.ready);
+        expect(c.state.detail!.commentCount, oldCount);
+        expect(c.state.message, '评论数刷新失败，请稍后重试。');
+      }
+    },
+  );
   test('like prevents duplicate and refreshes authoritative counts', () async {
     final interactions = _Interactions()..toggleGate = Completer();
     final c = ContentDetailController(1, _ContentRepo(), interactions);

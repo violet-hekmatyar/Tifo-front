@@ -9,7 +9,7 @@ import 'package:tifo/features/football/presentation/controllers/football_ranking
 
 void main() {
   test(
-    'loads current season, stage and standings then switches view',
+    'DAT-01 ranking views load through the correct controller view; DAT-10 team metrics are available',
     () async {
       final repository = _RankingsRepository();
       final controller = FootballRankingsController(repository);
@@ -38,7 +38,7 @@ void main() {
   );
 
   test(
-    'season switch resets stage and stale ranking cannot overwrite',
+    'DAT-02 league season stage and metric changes reject stale results',
     () async {
       final repository = _RankingsRepository();
       final controller = FootballRankingsController(repository);
@@ -47,11 +47,7 @@ void main() {
       repository.deferredPlayers = stale;
       final oldLoad = controller.selectView(FootballRankingView.players);
       await controller.selectSeason(21);
-      stale.complete(
-        _playerPage(1, [
-          const PlayerRankRecord(rank: 9, playerId: 99, playerName: '过期'),
-        ]),
-      );
+      stale.completeError(const NetworkException('old failure'));
       await oldLoad;
 
       expect(controller.state.selectedSeasonId, 21);
@@ -63,25 +59,28 @@ void main() {
     },
   );
 
-  test('ranking failure, retry and empty state are explicit', () async {
-    final repository = _RankingsRepository()
-      ..standingError = const NetworkException('down');
-    final controller = FootballRankingsController(repository);
+  test(
+    'DAT-08 ranking empty unknown and failure states are explicit',
+    () async {
+      final repository = _RankingsRepository()
+        ..standingError = const NetworkException('down');
+      final controller = FootballRankingsController(repository);
 
-    await controller.loadInitial();
-    expect(controller.state.status, FootballRankingsStatus.failure);
-    expect(controller.state.message, contains('网络连接失败'));
+      await controller.loadInitial();
+      expect(controller.state.status, FootballRankingsStatus.failure);
+      expect(controller.state.message, contains('网络连接失败'));
 
-    repository
-      ..standingError = null
-      ..emptyStandings = true;
-    await controller.retry();
-    expect(controller.state.status, FootballRankingsStatus.empty);
+      repository
+        ..standingError = null
+        ..emptyStandings = true;
+      await controller.retry();
+      expect(controller.state.status, FootballRankingsStatus.empty);
 
-    repository.emptyStandings = false;
-    await controller.retry();
-    expect(controller.state.status, FootballRankingsStatus.ready);
-  });
+      repository.emptyStandings = false;
+      await controller.retry();
+      expect(controller.state.status, FootballRankingsStatus.ready);
+    },
+  );
 }
 
 final class _RankingsRepository implements FootballRankingsRepositoryContract {

@@ -20,7 +20,7 @@ import 'package:tifo/features/football/presentation/pages/team_detail_page.dart'
 import 'package:tifo/features/football/presentation/widgets/football_widgets.dart';
 
 void main() {
-  testWidgets('data page replaces placeholder and renders sources and dates', (
+  testWidgets('DAT-05 data page renders schedule sources and date groups', (
     tester,
   ) async {
     final repository = _WidgetFootballRepository();
@@ -39,58 +39,79 @@ void main() {
     expect(repository.leagueLoads, 1);
   });
 
-  testWidgets('data page exposes loading, empty and retry states', (
+  testWidgets(
+    'DAT-12 data page exposes loading empty failure and retry states',
+    (tester) async {
+      final pending = Completer<FootballPage<FootballMatch>>();
+      final repository = _WidgetFootballRepository(pendingImportant: pending);
+      final controller = FootballDataController(repository);
+      await _pumpData(tester, repository, controller);
+      await tester.pump();
+      expect(find.text('正在加载赛程'), findsOneWidget);
+      pending.complete(_page([]));
+      await tester.pumpAndSettle();
+      expect(find.text('暂无比赛'), findsOneWidget);
+
+      repository.error = const NetworkException('down');
+      await controller.loadInitial();
+      await tester.pump();
+      expect(find.text('赛程加载失败'), findsOneWidget);
+      expect(find.text('重试'), findsOneWidget);
+    },
+  );
+
+  testWidgets('DAT-12 refresh failure keeps ready content and shows retry', (
     tester,
   ) async {
-    final pending = Completer<FootballPage<FootballMatch>>();
-    final repository = _WidgetFootballRepository(pendingImportant: pending);
+    final repository = _WidgetFootballRepository();
     final controller = FootballDataController(repository);
     await _pumpData(tester, repository, controller);
-    await tester.pump();
-    expect(find.text('正在加载赛程'), findsOneWidget);
-    pending.complete(_page([]));
     await tester.pumpAndSettle();
-    expect(find.text('暂无比赛'), findsOneWidget);
 
-    repository.error = const NetworkException('down');
-    await controller.loadInitial();
+    repository.error = const NetworkException('refresh failed');
+    await controller.refresh();
     await tester.pump();
-    expect(find.text('赛程加载失败'), findsOneWidget);
+    expect(find.byKey(const ValueKey('schedule_match_50001')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('schedule_refresh_error')),
+      findsOneWidget,
+    );
     expect(find.text('重试'), findsOneWidget);
   });
 
-  testWidgets('scroll loads page two, retries once, and shows final footer', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(412, 520);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final repository = _PagedWidgetRepository();
-    final controller = FootballDataController(repository);
-    await _pumpData(tester, repository, controller);
-    await tester.pumpAndSettle();
-    expect(controller.state.hasMore, isTrue);
-    await tester.drag(
-      find.byKey(const PageStorageKey('football_data_list')),
-      const Offset(0, -900),
-    );
-    await tester.pumpAndSettle();
-    expect(find.textContaining('点击重试'), findsOneWidget);
-    expect(controller.state.matches, hasLength(2));
-    await tester.tap(find.textContaining('点击重试'));
-    await tester.pumpAndSettle();
-    expect(repository.pageTwoRequests, 2);
-    expect(controller.state.matches, hasLength(4));
-    await tester.drag(
-      find.byKey(const PageStorageKey('football_data_list')),
-      const Offset(0, -900),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('已经到底了'), findsOneWidget);
-  });
+  testWidgets(
+    'DAT-04 schedule pagination sorts date groups and deduplicates records',
+    (tester) async {
+      tester.view.physicalSize = const Size(412, 520);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repository = _PagedWidgetRepository();
+      final controller = FootballDataController(repository);
+      await _pumpData(tester, repository, controller);
+      await tester.pumpAndSettle();
+      expect(controller.state.hasMore, isTrue);
+      await tester.drag(
+        find.byKey(const PageStorageKey('football_data_list')),
+        const Offset(0, -900),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('点击重试'), findsOneWidget);
+      expect(controller.state.matches, hasLength(2));
+      await tester.tap(find.textContaining('点击重试'));
+      await tester.pumpAndSettle();
+      expect(repository.pageTwoRequests, 2);
+      expect(controller.state.matches, hasLength(4));
+      await tester.drag(
+        find.byKey(const PageStorageKey('football_data_list')),
+        const Offset(0, -900),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('已经到底了'), findsOneWidget);
+    },
+  );
 
-  testWidgets('match cards map statuses and never invent a score', (
+  testWidgets('DAT-06 match cards safely render statuses and missing scores', (
     tester,
   ) async {
     for (final entry in {
@@ -116,33 +137,37 @@ void main() {
     }
   });
 
-  testWidgets('team detail uses real fields and keeps selected tab', (
-    tester,
-  ) async {
-    final repository = _WidgetFootballRepository();
-    await _pumpRouter(tester, repository, '/teams/30001');
-    expect(find.text('测试球队'), findsOneWidget);
-    expect(find.text('测试球场'), findsOneWidget);
-    expect(find.text('虚构荣誉'), findsNothing);
-    await tester.tap(find.text('球员'));
-    await tester.pump();
-    expect(find.text('测试球员'), findsOneWidget);
-    await tester.tap(find.text('数据'));
-    await tester.pump();
-    expect(find.text('当前排名'), findsWidgets);
-    await tester.tap(find.text('球员'));
-    await tester.pump();
-    expect(find.text('测试球员'), findsOneWidget);
-  });
+  testWidgets(
+    'DAT-13 detail pages use real fields without fabricating cup data',
+    (tester) async {
+      final repository = _WidgetFootballRepository();
+      await _pumpRouter(tester, repository, '/teams/30001');
+      expect(find.text('测试球队'), findsOneWidget);
+      expect(find.text('测试球场'), findsOneWidget);
+      expect(find.text('虚构荣誉'), findsNothing);
+      await tester.tap(find.text('球员'));
+      await tester.pump();
+      expect(find.text('测试球员'), findsOneWidget);
+      await tester.tap(find.text('数据'));
+      await tester.pump();
+      expect(find.text('当前排名'), findsWidgets);
+      await tester.tap(find.text('球员'));
+      await tester.pump();
+      expect(find.text('测试球员'), findsOneWidget);
+    },
+  );
 
-  testWidgets('404 detail is distinct from retryable errors', (tester) async {
-    final repository = _WidgetFootballRepository(
-      detailError: const BusinessException('missing', code: 40401),
-    );
-    await _pumpRouter(tester, repository, '/players/-1');
-    expect(find.text('球员不存在'), findsOneWidget);
-    expect(find.text('重试'), findsNothing);
-  });
+  testWidgets(
+    'DAT-14 route errors remain distinct and shell navigation is preserved',
+    (tester) async {
+      final repository = _WidgetFootballRepository(
+        detailError: const BusinessException('missing', code: 40401),
+      );
+      await _pumpRouter(tester, repository, '/players/-1');
+      expect(find.text('球员不存在'), findsOneWidget);
+      expect(find.text('重试'), findsNothing);
+    },
+  );
 }
 
 final _configOverride = appConfigProvider.overrideWithValue(

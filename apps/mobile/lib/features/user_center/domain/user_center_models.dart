@@ -15,6 +15,15 @@ final class UserBrief {
   final String? bio;
   final String relationStatus;
 
+  UserBrief copyWith({String? relationStatus}) => UserBrief(
+    userId: userId,
+    username: username,
+    nickname: nickname,
+    avatarUrl: avatarUrl,
+    bio: bio,
+    relationStatus: relationStatus ?? this.relationStatus,
+  );
+
   bool get followed =>
       relationStatus == 'FOLLOWING' || relationStatus == 'MUTUAL';
 
@@ -82,7 +91,7 @@ String userRelationLabel(String status) => switch (status) {
   'FOLLOWED_BY' => '关注了你',
   'MUTUAL' => '互相关注',
   'NONE' => '未关注',
-  _ => status,
+  _ => '关系未知',
 };
 
 String relationAfterLocalAction(String status, {required bool follow}) {
@@ -145,6 +154,9 @@ final class UserContentItem {
     required this.favoriteCount,
     this.summary,
     this.coverUrl,
+    this.authorId,
+    this.authorNickname,
+    this.authorAvatarUrl,
     this.publishTime,
   });
   final int contentId;
@@ -155,6 +167,9 @@ final class UserContentItem {
   final int likeCount;
   final int commentCount;
   final int favoriteCount;
+  final int? authorId;
+  final String? authorNickname;
+  final String? authorAvatarUrl;
   final DateTime? publishTime;
 }
 
@@ -164,12 +179,18 @@ final class UserFavoriteItem {
     required this.title,
     this.summary,
     this.coverUrl,
+    this.authorId,
+    this.authorNickname,
+    this.authorAvatarUrl,
     this.favoriteTime,
   });
   final int contentId;
   final String title;
   final String? summary;
   final String? coverUrl;
+  final int? authorId;
+  final String? authorNickname;
+  final String? authorAvatarUrl;
   final DateTime? favoriteTime;
 }
 

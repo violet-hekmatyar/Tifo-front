@@ -18,73 +18,80 @@ void main() {
     api = FootballApi(ApiClient(AppConfig.fromValues(apiBaseUrl: base), dio));
   });
 
-  test('decodes seasons stages and standings with nullable fields', () async {
-    adapter
-      ..onGet(
-        '$base/api/app/football/leagues/10/seasons',
-        (server) => server.reply(
-          200,
-          _result([
-            {
-              'seasonId': 20,
-              'leagueId': 10,
-              'seasonName': '当前赛季',
-              'current': true,
-              'status': 'ACTIVE',
-            },
-            {'seasonId': null, 'leagueId': 10},
-          ]),
-        ),
-      )
-      ..onGet(
-        '$base/api/app/football/leagues/10/seasons/20/stages',
-        (server) => server.reply(
-          200,
-          _result([
-            {
-              'stageId': 30,
-              'stageType': 'UNKNOWN_STAGE',
-              'stageName': '联赛阶段',
-              'groupCode': null,
-            },
-          ]),
-        ),
-      )
-      ..onGet(
-        '$base/api/app/football/standings',
-        (server) => server.reply(
-          200,
-          _result({
-            'leagueId': 10,
-            'seasonId': 20,
-            'stageId': 30,
-            'records': [
+  test(
+    'DAT-07 decodes standings nullable fields and current ranking data',
+    () async {
+      adapter
+        ..onGet(
+          '$base/api/app/football/leagues/10/seasons',
+          (server) => server.reply(
+            200,
+            _result([
               {
-                'rank': 1,
-                'teamId': 40,
-                'teamName': '测试球队',
-                'played': null,
-                'points': 9,
+                'seasonId': 20,
+                'leagueId': 10,
+                'seasonName': '当前赛季',
+                'current': true,
+                'status': 'ACTIVE',
               },
-              {'teamId': null},
-            ],
-          }),
-        ),
-        queryParameters: {'leagueId': 10, 'seasonId': 20, 'stageId': 30},
+              {'seasonId': null, 'leagueId': 10},
+            ]),
+          ),
+        )
+        ..onGet(
+          '$base/api/app/football/leagues/10/seasons/20/stages',
+          (server) => server.reply(
+            200,
+            _result([
+              {
+                'stageId': 30,
+                'stageType': 'UNKNOWN_STAGE',
+                'stageName': '联赛阶段',
+                'groupCode': null,
+              },
+            ]),
+          ),
+        )
+        ..onGet(
+          '$base/api/app/football/standings',
+          (server) => server.reply(
+            200,
+            _result({
+              'leagueId': 10,
+              'seasonId': 20,
+              'stageId': 30,
+              'records': [
+                {
+                  'rank': 1,
+                  'teamId': 40,
+                  'teamName': '测试球队',
+                  'played': null,
+                  'points': 9,
+                },
+                {'teamId': null},
+              ],
+            }),
+          ),
+          queryParameters: {'leagueId': 10, 'seasonId': 20, 'stageId': 30},
+        );
+
+      final seasons = await api.seasons(10);
+      final stages = await api.stages(10, 20);
+      final table = await api.standings(
+        leagueId: 10,
+        seasonId: 20,
+        stageId: 30,
       );
+      expect(seasons, hasLength(1));
+      expect(seasons.single.current, isTrue);
+      expect(stages.single.rawType, 'UNKNOWN_STAGE');
+      expect(table.records, hasLength(1));
+      expect(table.records.single.played, 0);
+      expect(table.records.single.points, 9);
+    },
+  );
 
-    final seasons = await api.seasons(10);
-    final stages = await api.stages(10, 20);
-    final table = await api.standings(leagueId: 10, seasonId: 20, stageId: 30);
-    expect(seasons, hasLength(1));
-    expect(seasons.single.current, isTrue);
-    expect(stages.single.rawType, 'UNKNOWN_STAGE');
-    expect(table.records, hasLength(1));
-    expect(table.records.single.played, 0);
-    expect(table.records.single.points, 9);
-  });
-
-  test('uses frozen rankType values and decodes paged ranks', () async {
+  test('DAT-09 and DAT-10 decode ranking types and paged records', () async {
     adapter
       ..onGet(
         '$base/api/app/football/player-ranks',

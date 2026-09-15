@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import '../../../../core/network/network_exceptions.dart';
 import '../../data/team_detail_repository.dart';
 import '../../domain/football_models.dart';
+import '../../domain/match_display_sort.dart';
 import '../../domain/team_detail_models.dart';
 import 'football_data_controller.dart';
 
@@ -39,6 +40,7 @@ final class TeamPagedState<T> {
     this.records = const [],
     this.pageNum = 0,
     this.hasMore = false,
+    this.isRefreshing = false,
     this.loadingMore = false,
     this.message,
     this.appendMessage,
@@ -47,6 +49,7 @@ final class TeamPagedState<T> {
   final List<T> records;
   final int pageNum;
   final bool hasMore;
+  final bool isRefreshing;
   final bool loadingMore;
   final String? message;
   final String? appendMessage;
@@ -55,17 +58,20 @@ final class TeamPagedState<T> {
 typedef TeamPageLoader<T> =
     Future<FootballPage<T>> Function(int page, int size);
 typedef TeamItemId<T> = int Function(T item);
+typedef TeamRecordSorter<T> = List<T> Function(Iterable<T> records);
 
 final class TeamPagedController<T> extends ChangeNotifier {
   TeamPagedController({
     required this.loader,
     required this.itemId,
     required this.target,
+    this.sorter,
     this.pageSize = 20,
   });
   final TeamPageLoader<T> loader;
   final TeamItemId<T> itemId;
   final String target;
+  final TeamRecordSorter<T>? sorter;
   final int pageSize;
   TeamPagedState<T> _state = TeamPagedState<T>();
   int _generation = 0;
@@ -100,12 +106,15 @@ final class TeamPagedController<T> extends ChangeNotifier {
         for (final item in _state.records) itemId(item): item,
         for (final item in page.records) itemId(item): item,
       };
+      final records = sorter == null
+          ? unique.values.toList(growable: false)
+          : sorter!(unique.values);
       _set(
         TeamPagedState<T>(
-          status: unique.isEmpty
+          status: records.isEmpty
               ? TeamPagedStatus.empty
               : TeamPagedStatus.ready,
-          records: unique.values.toList(growable: false),
+          records: records,
           pageNum: page.pageNum,
           hasMore: page.hasMore,
         ),
@@ -121,19 +130,46 @@ final class TeamPagedController<T> extends ChangeNotifier {
     }
   }
 
+  Future<void> refresh() async {
+    if (_state.isRefreshing) return;
+    final generation = ++_generation;
+    _set(_copy(isRefreshing: true, loadingMore: false, clearMessages: true));
+    try {
+      final page = await loader(1, pageSize);
+      if (generation != _generation) return;
+      _replace(page);
+    } on AppNetworkException catch (error) {
+      if (generation != _generation) return;
+      _set(
+        _copy(
+          isRefreshing: false,
+          message: footballErrorMessage(error, target: target),
+        ),
+      );
+    }
+  }
+
   void _replace(FootballPage<T> page) => _set(
     TeamPagedState<T>(
       status: page.records.isEmpty
           ? TeamPagedStatus.empty
           : TeamPagedStatus.ready,
-      records: page.records,
+      records: sorter == null
+          ? _unique(page.records)
+          : sorter!(_unique(page.records)),
       pageNum: page.pageNum,
       hasMore: page.hasMore,
     ),
   );
 
+  List<T> _unique(Iterable<T> values) {
+    final unique = <int, T>{for (final item in values) itemId(item): item};
+    return unique.values.toList(growable: false);
+  }
+
   TeamPagedState<T> _copy({
     bool? loadingMore,
+    bool? isRefreshing,
     String? message,
     String? appendMessage,
     bool clearMessages = false,
@@ -142,6 +178,7 @@ final class TeamPagedController<T> extends ChangeNotifier {
     records: _state.records,
     pageNum: _state.pageNum,
     hasMore: _state.hasMore,
+    isRefreshing: isRefreshing ?? _state.isRefreshing,
     loadingMore: loadingMore ?? _state.loadingMore,
     message: clearMessages ? null : message ?? _state.message,
     appendMessage: clearMessages ? null : appendMessage ?? _state.appendMessage,
@@ -177,6 +214,7 @@ final teamMatchesControllerProvider = ChangeNotifierProvider.autoDispose
       final repository = ref.watch(teamDetailRepositoryProvider);
       return TeamPagedController(
         target: '球队赛程',
+        sorter: (records) => sortMatchesForDisplay(records),
         loader: (page, size) => repository.matches(teamId, page, size),
         itemId: (item) => item.id,
       );

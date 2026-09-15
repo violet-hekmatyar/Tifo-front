@@ -35,7 +35,8 @@ final class SearchEntity {
   final String? contentType;
   final DateTime? publishTime;
 
-  String get stableKey => '${type.wireValue}:${entityId ?? '$rawType:$name'}';
+  String get stableKey =>
+      '${type.wireValue}:${entityId ?? '$rawType:${name.trim().toLowerCase()}'}';
 }
 
 final class SearchPageResult {

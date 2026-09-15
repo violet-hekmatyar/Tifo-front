@@ -12,7 +12,7 @@ import 'package:tifo/features/football/domain/team_detail_models.dart';
 import 'package:tifo/features/football/presentation/pages/player_detail_page.dart';
 
 void main() {
-  testWidgets('player tabs use real models and navigate to related entities', (
+  testWidgets('PLAYER-01 PLAYER-04 PLAYER-05 tabs navigate and return safely', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(412, 1000);
@@ -63,6 +63,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('player_team_40')));
     await tester.pumpAndSettle();
     expect(find.text('球队 40'), findsOneWidget);
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.text('测试球员'), findsOneWidget);
 
     router.go('/players/50');
     await tester.pumpAndSettle();

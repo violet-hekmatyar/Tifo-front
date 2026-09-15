@@ -66,6 +66,20 @@ final class PlayerSeasonStats {
   final int? saves;
   final String? source;
   final DateTime? updatedAt;
+
+  bool get hasData =>
+      appearances != null ||
+      starts != null ||
+      minutes != null ||
+      goals != null ||
+      assists != null ||
+      yellowCards != null ||
+      redCards != null ||
+      shots != null ||
+      shotsOnTarget != null ||
+      shotAccuracy != null ||
+      rating != null ||
+      saves != null;
 }
 
 final class PlayerTeamHistory {
@@ -158,7 +172,18 @@ final class PlayerCareer {
 
   bool get hasData =>
       totalAppearances != null ||
+      totalStarts != null ||
+      totalMinutes != null ||
       totalGoals != null ||
+      totalAssists != null ||
+      totalYellowCards != null ||
+      totalRedCards != null ||
+      totalShots != null ||
+      totalShotsOnTarget != null ||
+      averageRating != null ||
+      totalSaves != null ||
+      teamCount != null ||
+      seasonCount != null ||
       bySeason.isNotEmpty ||
       byTeam.isNotEmpty;
 }
