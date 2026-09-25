@@ -1,0 +1,7 @@
+APK: D:\Football-APP-Front\apps\mobile\build\app\outputs\flutter-apk\app-debug.apk
+SHA-256: E6F1A87A6FBC7559F38CED0077637F87A19403EF591131A5C4D77EB686FA98FD
+SizeBytes: 213441898
+BuildCount: 2
+AppEnv: development
+ApiBaseUrl: http://10.0.2.2:8080
+Built: 2026-09-22 22:33:16 +08:00

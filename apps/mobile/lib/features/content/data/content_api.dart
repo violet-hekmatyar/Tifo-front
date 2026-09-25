@@ -12,13 +12,16 @@ final class ContentApi {
     required String title,
     required String body,
     required List<int> mediaFileIds,
+    List<ContentRelationInput> relations = const [],
   }) => _client.post(
     '/api/app/contents/posts',
     body: {
       'title': title,
       'body': body,
       'mediaFileIds': mediaFileIds,
-      'relationList': <Object>[],
+      'relationList': relations
+          .map((relation) => relation.toJson())
+          .toList(growable: false),
     },
     decode: (raw) {
       if (raw is! Map || raw['contentId'] is! num || raw['title'] is! String) {

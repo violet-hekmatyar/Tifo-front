@@ -12,6 +12,135 @@ import 'package:tifo/features/feed/presentation/widgets/supplementary_feed_cards
 import 'package:tifo/features/feed/presentation/widgets/unknown_card.dart';
 
 void main() {
+  testWidgets('match card keeps score, scheduled time and event summary', (
+    tester,
+  ) async {
+    var matchTapped = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: Column(
+              children: [
+                MatchCard(
+                  card: MatchFeedCard(
+                    cardId: 'finished-with-event',
+                    rawCardType: 'MATCH',
+                    matchId: 11,
+                    leagueName: '旗舰联赛',
+                    homeTeam: const FeedTeam(teamId: 1, teamName: '主队'),
+                    awayTeam: const FeedTeam(teamId: 2, teamName: '客队'),
+                    matchStatus: 'FINISHED',
+                    homeScore: 2,
+                    awayScore: 1,
+                    matchTime: DateTime(2026, 9, 18, 20),
+                    eventSummary: '主队下半场完成反超，比赛进入关键阶段。',
+                  ),
+                  onTap: () => matchTapped = true,
+                ),
+                MatchCard(
+                  card: MatchFeedCard(
+                    cardId: 'scheduled-without-score',
+                    rawCardType: 'MATCH',
+                    matchId: 12,
+                    leagueName: '青年联赛',
+                    homeTeam: const FeedTeam(teamId: 3, teamName: '主队二'),
+                    awayTeam: const FeedTeam(teamId: 4, teamName: '客队二'),
+                    matchStatus: 'SCHEDULED',
+                    matchTime: DateTime(2026, 9, 19, 19, 30),
+                  ),
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('2 : 1'), findsOneWidget);
+    expect(find.text('09-19\n19:30'), findsOneWidget);
+    expect(find.textContaining('完成反超'), findsOneWidget);
+    expect(find.text('0 : 0'), findsNothing);
+    await tester.tap(find.text('旗舰联赛'));
+    expect(matchTapped, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'special cards collapse optional fields and keep safe fallbacks',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const DiscussionCard(
+                    card: DiscussionFeedCard(
+                      cardId: 'empty-discussion',
+                      rawCardType: 'DISCUSSION',
+                      contentId: 91,
+                      title: '没有摘要的讨论',
+                      summary: '',
+                      commentCount: 0,
+                      likeCount: 0,
+                      favoriteCount: 0,
+                      relationTags: [],
+                    ),
+                    onTap: _noop,
+                  ),
+                  const RankingCard(
+                    card: RankingFeedCard(
+                      cardId: 'empty-ranking',
+                      rawCardType: 'RANKING',
+                      rankingType: 'STANDING',
+                      rankType: 'POINTS',
+                      title: '积分榜',
+                      items: [],
+                    ),
+                    resolveImage: _noImage,
+                  ),
+                  const PlayerRatingCard(
+                    card: PlayerRatingFeedCard(
+                      cardId: 'empty-rating',
+                      rawCardType: 'PLAYER_RATING',
+                      matchId: 92,
+                      homeTeam: FeedTeam(teamId: 1, teamName: '主队'),
+                      awayTeam: FeedTeam(teamId: 2, teamName: '客队'),
+                      topPlayers: [],
+                      ratingUserCount: 0,
+                    ),
+                    onTap: _noop,
+                    resolveImage: _noImage,
+                  ),
+                  const HotCommentCard(
+                    card: HotCommentFeedCard(
+                      cardId: 'comment-with-author',
+                      rawCardType: 'HOT_COMMENT',
+                      commentId: 93,
+                      contentId: 94,
+                      commentText: '这条评论保留正文和互动数',
+                      likeCount: 6,
+                      replyCount: 2,
+                    ),
+                    onTap: _noop,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(find.text('没有摘要的讨论'), findsOneWidget);
+      expect(find.text('当前暂无排名数据'), findsOneWidget);
+      expect(find.text('当前暂无球员评分'), findsOneWidget);
+      expect(find.textContaining('这条评论保留正文和互动数'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('supplementary cards handle nullable data and large text', (
     tester,
   ) async {
@@ -221,6 +350,9 @@ void main() {
     },
   );
 }
+
+void _noop() {}
+String? _noImage(String? _) => null;
 
 const _home = FeedTeam(teamId: 1, teamName: '主队');
 const _away = FeedTeam(teamId: 2, teamName: '客队');

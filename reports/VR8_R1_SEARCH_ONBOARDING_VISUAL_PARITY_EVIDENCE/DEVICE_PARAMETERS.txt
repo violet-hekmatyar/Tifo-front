@@ -1,0 +1,7 @@
+ADB: C:\Users\hekmatyar\AppData\Local\Android\Sdk\platform-tools\adb.exe
+Device: emulator-5554
+Final physical size: 1080x2400
+Final density: 420
+Final font scale: 1.0
+Final APK package: com.southstand.tifo
+The temporary 360dp and 140% captures were restored to the values above after collection.

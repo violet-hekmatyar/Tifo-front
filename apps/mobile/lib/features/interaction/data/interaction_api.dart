@@ -28,6 +28,22 @@ final class InteractionApi {
         },
         decode: _page,
       );
+  Future<CommentPage> commentsForTarget(
+    String targetType,
+    int id,
+    CommentSort sort,
+    int page,
+  ) => client.get(
+    '/api/app/comments',
+    queryParameters: {
+      'targetType': targetType,
+      'targetId': id,
+      'sort': sort.name,
+      'pageNum': page,
+      'pageSize': 10,
+    },
+    decode: _page,
+  );
   Future<CommentPage> replies(int id, int page) => client.get(
     '/api/app/comments/$id/replies',
     queryParameters: {'sort': 'latest', 'pageNum': page, 'pageSize': 10},
@@ -42,6 +58,28 @@ final class InteractionApi {
     '/api/app/comments',
     body: {
       'contentId': contentId,
+      'parentId': parentId,
+      'replyToUserId': ?replyToUserId,
+      'content': content,
+    },
+    decode: (raw) {
+      if (raw is! Map || raw['commentId'] is! num) {
+        throw const ParseException('Invalid comment response.');
+      }
+      return (raw['commentId'] as num).toInt();
+    },
+  );
+  Future<int> createCommentForTarget({
+    required String targetType,
+    required int targetId,
+    required String content,
+    int parentId = 0,
+    int? replyToUserId,
+  }) => client.post(
+    '/api/app/comments',
+    body: {
+      'targetType': targetType,
+      'targetId': targetId,
       'parentId': parentId,
       'replyToUserId': ?replyToUserId,
       'content': content,

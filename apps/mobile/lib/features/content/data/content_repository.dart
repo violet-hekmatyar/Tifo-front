@@ -9,6 +9,7 @@ abstract interface class ContentRepositoryContract {
     required String title,
     required String body,
     required List<int> mediaFileIds,
+    List<ContentRelationInput> relations = const [],
   });
   Future<CreatedPost> createArticle(ArticleRequest request);
   Future<ContentDetail> updateArticle(int id, ArticleRequest request);
@@ -28,7 +29,13 @@ final class ContentRepository implements ContentRepositoryContract {
     required String title,
     required String body,
     required List<int> mediaFileIds,
-  }) => api.createPost(title: title, body: body, mediaFileIds: mediaFileIds);
+    List<ContentRelationInput> relations = const [],
+  }) => api.createPost(
+    title: title,
+    body: body,
+    mediaFileIds: mediaFileIds,
+    relations: relations,
+  );
 
   @override
   Future<CreatedPost> createArticle(ArticleRequest request) =>

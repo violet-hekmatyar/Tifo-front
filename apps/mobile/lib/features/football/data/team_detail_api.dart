@@ -108,6 +108,45 @@ TeamOverview _overview(Object? raw) {
     recentMatches: jsonList(m['recentMatches'], _safeOverviewMatch),
     nextMatch: _safeOverviewMatch(m['nextMatch']),
     recentContents: jsonList(m['recentContents'], _safeContent),
+    competitionStandings: jsonList(
+      m['competitionStandings'],
+      _safeCompetitionStanding,
+    ),
+    leaderboards: jsonList(m['leaderboards'], _safeLeaderboard),
+    honors: jsonList(m['honors'], _honor),
+  );
+}
+
+TeamCompetitionStanding? _safeCompetitionStanding(Object? raw) {
+  final m = jsonMap(raw);
+  final leagueId = jsonInt(m?['leagueId']);
+  if (m == null || leagueId == null) return null;
+  return TeamCompetitionStanding(
+    leagueId: leagueId,
+    leagueName: jsonString(m['leagueName']) ?? '赛事',
+    seasonId: jsonInt(m['seasonId']),
+    seasonName: jsonString(m['seasonName']),
+    stageId: jsonInt(m['stageId']),
+    rank: jsonInt(m['rank']),
+    played: jsonInt(m['played']),
+    won: jsonInt(m['won']),
+    drawn: jsonInt(m['drawn']),
+    lost: jsonInt(m['lost']),
+    goalsFor: jsonInt(m['goalsFor']),
+    goalsAgainst: jsonInt(m['goalsAgainst']),
+    goalDifference: jsonInt(m['goalDifference']),
+    points: jsonInt(m['points']),
+  );
+}
+
+TeamLeaderboard? _safeLeaderboard(Object? raw) {
+  final m = jsonMap(raw);
+  final rankType = jsonString(m?['rankType']);
+  if (m == null || rankType == null) return null;
+  return TeamLeaderboard(
+    rankType: rankType,
+    title: jsonString(m['title']) ?? rankType,
+    players: jsonList(m['players'], _safeRosterPlayer),
   );
 }
 

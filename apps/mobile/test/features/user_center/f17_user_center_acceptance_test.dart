@@ -264,7 +264,9 @@ void main() {
     ]) {
       expect(find.byKey(ValueKey(key)), findsOneWidget);
     }
-    expect(find.text('球队'), findsOneWidget);
+    expect(find.text('我的主队'), findsOneWidget);
+    expect(find.text('我关注的球队'), findsOneWidget);
+    expect(find.text('我关注的球星'), findsOneWidget);
     expect(find.text('浏览记录'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -313,36 +315,37 @@ void main() {
   });
 
   testWidgets(
-    'USER-05 stand routes valid teams/players and disables invalid entity taps',
+    'USER-05 stand cards keep real management routes and safe invalid main-team action',
     (tester) async {
       final repository = _Repo()
         ..standValue = const UserStand(
-          teams: [EntityBrief(id: 40, name: '可跳转球队')],
-          players: [
-            EntityBrief(id: 50, name: '可跳转球员'),
-            EntityBrief(id: -1, name: '无效球员'),
-          ],
+          teams: [EntityBrief(id: 40, name: '球队')],
+          players: [EntityBrief(id: 50, name: '球员')],
         );
-      final router = _profileRouter(repository);
+      final router = GoRouter(
+        initialLocation: '/me',
+        routes: [
+          GoRoute(path: '/me', builder: (_, _) => const MyProfilePage()),
+          GoRoute(path: '/teams', builder: (_, _) => const Text('球队管理')),
+          GoRoute(path: '/players', builder: (_, _) => const Text('球员管理')),
+        ],
+      );
       addTearDown(router.dispose);
       await tester.pumpWidget(_routerScope(repository, router));
       await _settle(tester);
-      await tester.tap(find.byKey(const ValueKey('my_tab_stand')));
+      await tester.tap(find.text('我关注的球队'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('可跳转球队'));
-      await tester.pumpAndSettle();
-      expect(find.text('球队详情 40'), findsOneWidget);
+      expect(find.text('球队管理'), findsOneWidget);
       router.pop();
       await tester.pumpAndSettle();
-      await tester.tap(find.text('可跳转球员'));
-      await tester.pumpAndSettle();
-      expect(find.text('球员详情 50'), findsOneWidget);
-      router.pop();
-      await tester.pumpAndSettle();
-      final invalidTile = tester.widget<ListTile>(
-        find.ancestor(of: find.text('无效球员'), matching: find.byType(ListTile)),
+      await tester.drag(
+        find.byKey(const ValueKey('my_stand_scroll')),
+        const Offset(0, -260),
       );
-      expect(invalidTile.onTap, isNull);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('我关注的球星'));
+      await tester.pumpAndSettle();
+      expect(find.text('球员管理'), findsOneWidget);
     },
   );
 
@@ -1821,6 +1824,9 @@ class _Repo implements UserCenterRepositoryContract {
     if (editFailure) throw const NetworkException('edit');
     await editGate?.future;
   }
+
+  @override
+  Future<void> setMainTeam(int teamId) async {}
 
   @override
   Future<UserProfile> follow(int userId, bool follow) async {

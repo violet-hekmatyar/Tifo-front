@@ -13,6 +13,21 @@ final class MatchDetailApi {
       _client.get('/api/app/football/matches/$id/overview', decode: _overview);
   Future<MatchLineups> lineups(int id) =>
       _client.get('/api/app/football/matches/$id/lineups', decode: _lineups);
+  Future<FootballPage<MatchRelatedContent>> contents(
+    int id, {
+    int pageNum = 1,
+    int pageSize = 10,
+    String? contentType,
+  }) => _client.get(
+    '/api/app/football/matches/$id/contents',
+    queryParameters: {
+      'pageNum': pageNum,
+      'pageSize': pageSize,
+      if (contentType != null && contentType.isNotEmpty)
+        'contentType': contentType,
+    },
+    decode: (raw) => _page(raw, _content),
+  );
   Future<List<MatchTeamStatItem>> stats(int id) => _client.get(
     '/api/app/football/matches/$id/stats',
     decode: (raw) => jsonList(raw, _teamStat),
@@ -112,6 +127,8 @@ MatchLineupPlayer? _lineupPlayer(Object? raw) {
     appeared: m['appeared'] == true,
     substitutedInMinute: jsonInt(m['substitutedInMinute']),
     substitutedOutMinute: jsonInt(m['substitutedOutMinute']),
+    fieldX: jsonDouble(m['fieldX']),
+    fieldY: jsonDouble(m['fieldY']),
   );
 }
 
@@ -163,6 +180,24 @@ MatchPlayerStat? _playerStat(Object? raw) {
   );
 }
 
+MatchRelatedContent? _content(Object? raw) {
+  final m = jsonMap(raw);
+  final id = jsonInt(m?['contentId']);
+  final title = jsonString(m?['title']);
+  if (m == null || id == null || title == null) return null;
+  return MatchRelatedContent(
+    contentId: id,
+    contentType: jsonString(m['contentType']),
+    title: title,
+    summary: jsonString(m['summary']),
+    coverUrl: jsonString(m['coverUrl']),
+    publishTime: jsonIsoDateTime(m['publishTime']),
+    likeCount: jsonInt(m['likeCount']) ?? 0,
+    commentCount: jsonInt(m['commentCount']) ?? 0,
+    favoriteCount: jsonInt(m['favoriteCount']) ?? 0,
+  );
+}
+
 MatchRatingSummary? _rating(Object? raw) {
   final m = jsonMap(raw);
   final playerId = jsonInt(m?['playerId']);
@@ -173,6 +208,8 @@ MatchRatingSummary? _rating(Object? raw) {
     playerId: playerId,
     playerName: jsonString(m['playerName']) ?? '球员 $playerId',
     teamId: teamId,
+    avatarUrl: jsonString(m['avatarUrl']),
+    ratingTargetId: jsonInt(m['ratingTargetId']),
     officialRating: jsonDouble(m['officialRating']),
     averageRating: jsonDouble(m['averageRating']),
     ratingCount: jsonInt(m['ratingCount']) ?? 0,

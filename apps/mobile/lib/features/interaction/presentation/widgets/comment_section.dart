@@ -14,6 +14,7 @@ class CommentSection extends ConsumerStatefulWidget {
     required this.contentId,
     required this.currentUserId,
     this.commentCount,
+    this.targetType = 'CONTENT',
     this.onCommentCreated,
     this.onCommentsChanged,
     this.focusNode,
@@ -24,6 +25,7 @@ class CommentSection extends ConsumerStatefulWidget {
   final int contentId;
   final int? currentUserId;
   final int? commentCount;
+  final String targetType;
   final VoidCallback? onCommentCreated;
   final VoidCallback? onCommentsChanged;
   final FocusNode? focusNode;
@@ -60,7 +62,11 @@ class _CommentSectionState extends ConsumerState<CommentSection> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = ref.watch(commentControllerProvider(widget.contentId));
+    final controller = ref.watch(
+      widget.targetType == 'PLAYER_RATING'
+          ? playerRatingCommentControllerProvider(widget.contentId)
+          : commentControllerProvider(widget.contentId),
+    );
     final state = controller.state;
     return Column(
       key: const ValueKey('comment_section'),

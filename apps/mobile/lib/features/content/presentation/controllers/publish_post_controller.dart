@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../file_upload/data/file_upload_repository.dart';
 import '../../../file_upload/domain/uploaded_file.dart';
 import '../../data/content_repository.dart';
+import '../../domain/publish_subject.dart';
 
 enum UploadStatus { waiting, uploading, success, failure }
 
@@ -33,13 +34,17 @@ final class PublishImage {
 final class PublishState {
   const PublishState({
     this.images = const [],
+    this.topic,
+    this.hotspot,
     this.submitting = false,
     this.message,
   });
   final List<PublishImage> images;
+  final PublishAuxiliaryItem? topic;
+  final PublishAuxiliaryItem? hotspot;
   final bool submitting;
   final String? message;
-  bool get hasDraft => images.isNotEmpty;
+  bool get hasDraft => images.isNotEmpty || topic != null || hotspot != null;
 }
 
 final publishPostControllerProvider =
@@ -58,6 +63,29 @@ final class PublishPostController extends ChangeNotifier {
   final GalleryPicker picker;
   PublishState state = const PublishState();
   bool _disposed = false;
+
+  void setAuxiliary(PublishAuxiliaryItem item) {
+    if (_disposed || state.submitting) return;
+    state = PublishState(
+      images: state.images,
+      topic: item.kind == PublishAuxiliaryKind.topic ? item : state.topic,
+      hotspot: item.kind == PublishAuxiliaryKind.hotspot ? item : state.hotspot,
+      message: state.message,
+    );
+    notifyListeners();
+  }
+
+  void removeAuxiliary(PublishAuxiliaryKind kind) {
+    if (_disposed || state.submitting) return;
+    state = PublishState(
+      images: state.images,
+      topic: kind == PublishAuxiliaryKind.topic ? null : state.topic,
+      hotspot: kind == PublishAuxiliaryKind.hotspot ? null : state.hotspot,
+      message: state.message,
+    );
+    notifyListeners();
+  }
+
   Future<void> pickImages() async {
     if (_disposed || state.submitting || state.images.length >= 9) return;
     final picked = await picker.pickImages();
@@ -83,6 +111,8 @@ final class PublishPostController extends ChangeNotifier {
     }
     state = PublishState(
       images: existing.values.toList(),
+      topic: state.topic,
+      hotspot: state.hotspot,
       message: skipped ? '最多选择 9 张图片，或存在不支持的图片' : null,
     );
     notifyListeners();
@@ -100,6 +130,8 @@ final class PublishPostController extends ChangeNotifier {
       images: state.images
           .where((x) => x.file.path != image.file.path)
           .toList(),
+      topic: state.topic,
+      hotspot: state.hotspot,
       message: state.message,
     );
     notifyListeners();
@@ -159,6 +191,8 @@ final class PublishPostController extends ChangeNotifier {
         (b.isEmpty && state.images.isEmpty)) {
       state = PublishState(
         images: state.images,
+        topic: state.topic,
+        hotspot: state.hotspot,
         message: t.isEmpty
             ? '请填写标题'
             : t.length > 255
@@ -170,7 +204,12 @@ final class PublishPostController extends ChangeNotifier {
       notifyListeners();
       return null;
     }
-    state = PublishState(images: state.images, submitting: true);
+    state = PublishState(
+      images: state.images,
+      topic: state.topic,
+      hotspot: state.hotspot,
+      submitting: true,
+    );
     notifyListeners();
     for (final image in List.of(state.images)) {
       if (image.status != UploadStatus.success) await upload(image);
@@ -178,6 +217,8 @@ final class PublishPostController extends ChangeNotifier {
     if (state.images.any((x) => x.status != UploadStatus.success)) {
       state = PublishState(
         images: state.images,
+        topic: state.topic,
+        hotspot: state.hotspot,
         message: '部分图片上传失败，请重试后再发布',
       );
       notifyListeners();
@@ -188,6 +229,10 @@ final class PublishPostController extends ChangeNotifier {
         title: t,
         body: b,
         mediaFileIds: state.images.map((x) => x.uploaded!.fileId).toList(),
+        relations: [
+          if (state.topic case final topic?) topic.toRelation(),
+          if (state.hotspot case final hotspot?) hotspot.toRelation(),
+        ],
       );
       if (_disposed) return null;
       state = const PublishState();
@@ -195,7 +240,12 @@ final class PublishPostController extends ChangeNotifier {
       return post.contentId;
     } catch (e) {
       if (_disposed) return null;
-      state = PublishState(images: state.images, message: '发布失败，内容已保留');
+      state = PublishState(
+        images: state.images,
+        topic: state.topic,
+        hotspot: state.hotspot,
+        message: '发布失败，内容已保留',
+      );
       notifyListeners();
       return null;
     }
@@ -207,6 +257,8 @@ final class PublishPostController extends ChangeNotifier {
         for (final x in state.images)
           if (x.file.path == old.file.path) next else x,
       ],
+      topic: state.topic,
+      hotspot: state.hotspot,
       submitting: state.submitting,
       message: state.message,
     );

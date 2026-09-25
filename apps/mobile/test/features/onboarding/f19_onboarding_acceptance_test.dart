@@ -141,7 +141,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
-      expect(find.text('选择我的主队'), findsOneWidget);
+      expect(find.text('我的主队'), findsOneWidget);
       expect(controller.state.mainTeamId, 1);
     },
   );
@@ -153,7 +153,8 @@ void main() {
       final controller = _controller(repository);
       await _pumpOnboarding(tester, controller, repository);
 
-      expect(find.text('步骤 1 / 3'), findsOneWidget);
+      expect(find.text('搜索结果'), findsOneWidget);
+      expect(find.text('步骤 1 / 3'), findsNothing);
       expect(find.byKey(const ValueKey('onboarding_previous')), findsNothing);
       await tester.enterText(
         find.byKey(const ValueKey('onboarding_main_team_search')),
@@ -163,7 +164,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('main_team_1')));
       await tester.tap(find.byKey(const ValueKey('onboarding_next')));
       await tester.pumpAndSettle();
-      expect(find.text('步骤 2 / 3'), findsOneWidget);
+      expect(find.text('搜索结果'), findsOneWidget);
+      expect(find.text('步骤 2 / 3'), findsNothing);
       expect(find.byKey(const ValueKey('follow_team_1')), findsOneWidget);
       expect(find.byKey(const ValueKey('follow_team_2')), findsOneWidget);
 
@@ -175,7 +177,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('follow_team_2')));
       await tester.tap(find.byKey(const ValueKey('onboarding_next')));
       await tester.pumpAndSettle();
-      expect(find.text('步骤 3 / 3'), findsOneWidget);
+      expect(find.text('搜索结果'), findsOneWidget);
+      expect(find.text('步骤 3 / 3'), findsNothing);
       await tester.enterText(
         find.byKey(const ValueKey('onboarding_player_search')),
         '前锋',

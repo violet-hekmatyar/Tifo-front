@@ -29,6 +29,25 @@ void main() {
               'teamName': '测试球队',
               'seasonId': 20,
               'standing': {'rank': 2, 'points': 30},
+              'competitionStandings': [
+                {
+                  'leagueId': 10,
+                  'leagueName': '测试联赛',
+                  'seasonId': 20,
+                  'stageId': 30,
+                  'rank': 2,
+                  'points': 30,
+                },
+              ],
+              'leaderboards': [
+                {
+                  'rankType': 'GOALS',
+                  'title': '射手榜',
+                  'players': [
+                    {'playerId': 50, 'playerName': '测试球员', 'goals': 8},
+                  ],
+                },
+              ],
               'topScorers': [
                 {
                   'playerId': 50,
@@ -99,6 +118,8 @@ void main() {
       final contents = await api.contents(40);
 
       expect(overview.standing?.rank, 2);
+      expect(overview.competitionStandings.single.points, 30);
+      expect(overview.leaderboards.single.players.single.goals, 8);
       expect(overview.topScorers.single.position, 'UNKNOWN_POSITION');
       expect(players.records.single.squadRole, 'UNKNOWN_ROLE');
       expect(stats.averageRating, 7.25);

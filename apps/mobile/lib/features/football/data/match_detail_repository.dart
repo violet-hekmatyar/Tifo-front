@@ -8,6 +8,12 @@ import 'match_detail_api.dart';
 abstract interface class MatchDetailRepositoryContract {
   Future<MatchOverviewV1> overview(int matchId);
   Future<MatchLineups> lineups(int matchId);
+  Future<FootballPage<MatchRelatedContent>> contents(
+    int matchId, {
+    int page = 1,
+    int size = 10,
+    String? contentType,
+  });
   Future<List<MatchTeamStatItem>> stats(int matchId);
   Future<FootballPage<MatchPlayerStat>> playerStats(
     int matchId,
@@ -36,6 +42,18 @@ final class MatchDetailRepository implements MatchDetailRepositoryContract {
   Future<MatchOverviewV1> overview(int matchId) => _api.overview(matchId);
   @override
   Future<MatchLineups> lineups(int matchId) => _api.lineups(matchId);
+  @override
+  Future<FootballPage<MatchRelatedContent>> contents(
+    int matchId, {
+    int page = 1,
+    int size = 10,
+    String? contentType,
+  }) => _api.contents(
+    matchId,
+    pageNum: page,
+    pageSize: size,
+    contentType: contentType,
+  );
   @override
   Future<List<MatchTeamStatItem>> stats(int matchId) => _api.stats(matchId);
   @override

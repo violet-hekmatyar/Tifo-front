@@ -33,7 +33,9 @@ class MainShellPage extends ConsumerWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.xl),
             child: NavigationBar(
-              height: 68,
+              height: 74,
+              backgroundColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent,
               selectedIndex: navigationShell.currentIndex,
               onDestinationSelected: (index) => navigationShell.goBranch(
                 index,

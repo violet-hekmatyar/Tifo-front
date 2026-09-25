@@ -163,6 +163,7 @@ final class _Contents implements ContentRepositoryContract {
     required String title,
     required String body,
     required List<int> mediaFileIds,
+    List<ContentRelationInput> relations = const [],
   }) async => CreatedPost(contentId: 7, title: title);
 
   @override

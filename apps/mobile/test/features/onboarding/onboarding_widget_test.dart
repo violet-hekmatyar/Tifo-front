@@ -21,13 +21,16 @@ void main() {
       find.byKey(const ValueKey('onboarding_selection_message')),
       findsOneWidget,
     );
-    expect(find.text('选择我的主队'), findsOneWidget);
+    expect(find.text('我的主队'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('main_team_1')));
     await tester.tap(find.byKey(const ValueKey('onboarding_next')));
     await tester.pumpAndSettle();
-    expect(find.text('关注球队'), findsOneWidget);
-    expect(find.textContaining('当前已选择 1 支'), findsOneWidget);
+    expect(find.text('关注的球队'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('onboarding_team_selection_count')),
+      findsNothing,
+    );
   });
 
   testWidgets(
@@ -55,7 +58,7 @@ void main() {
       expect(find.byKey(const ValueKey('player_10')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('onboarding_previous')));
       await tester.pumpAndSettle();
-      expect(find.text('关注球队'), findsOneWidget);
+      expect(find.text('关注的球队'), findsOneWidget);
     },
   );
 

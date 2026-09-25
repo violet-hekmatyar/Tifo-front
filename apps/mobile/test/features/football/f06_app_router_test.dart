@@ -9,6 +9,7 @@ import 'package:tifo/features/auth/presentation/controllers/auth_controller.dart
 import 'package:tifo/features/football/data/football_repository.dart';
 import 'package:tifo/features/football/domain/football_models.dart';
 import 'package:tifo/features/football/presentation/pages/match_detail_page.dart';
+import 'package:tifo/features/football/presentation/pages/knockout_tree_placeholder_page.dart';
 import 'package:tifo/features/football/presentation/pages/player_detail_page.dart';
 import 'package:tifo/features/football/presentation/pages/team_detail_page.dart';
 
@@ -38,7 +39,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('schedule_match_50001')));
       await tester.pumpAndSettle();
       expect(find.byType(MatchDetailPage), findsOneWidget);
-      expect(find.text('比赛详情'), findsOneWidget);
+      expect(find.byKey(const ValueKey('match_header')), findsOneWidget);
       expect(find.text('南看台'), findsNothing);
 
       await tester.tap(find.byTooltip('返回'));
@@ -73,7 +74,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(MatchDetailPage), findsOneWidget);
 
-    await tester.tap(find.byTooltip('查看球员详情'));
+    await tester.tap(find.byKey(const ValueKey('event_player_1')));
     await tester.pumpAndSettle();
     expect(find.byType(PlayerDetailPage), findsOneWidget);
   });
@@ -102,6 +103,26 @@ void main() {
     );
     expect(find.text('比赛编号无效'), findsOneWidget);
     expect(find.text('南看台'), findsNothing);
+  });
+
+  testWidgets('knockout tree entry opens an honest placeholder', (
+    tester,
+  ) async {
+    final auth = AuthController(_ReadyAuthRepository());
+    await auth.initialize();
+    final router = createAppRouter(auth)..go('/football/knockout-tree');
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(KnockoutTreePlaceholderPage), findsOneWidget);
+    expect(find.text('淘汰树正在开发'), findsOneWidget);
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    expect(find.text('页面不存在'), findsNothing);
   });
 }
 

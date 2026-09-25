@@ -123,6 +123,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(find.text('0/10'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('article_select_relations')),
+        findsOneWidget,
+      );
       await tester.drag(find.byType(ListView).first, const Offset(0, -700));
       await tester.pumpAndSettle();
       await tester.tap(

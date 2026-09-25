@@ -74,6 +74,8 @@ final class _FakeRepository implements UserCenterRepositoryContract {
     required String bio,
   }) async {}
   @override
+  Future<void> setMainTeam(int teamId) async {}
+  @override
   Future<UserProfile> follow(int userId, bool follow) async {
     followCalls++;
     await followGate?.future;

@@ -22,6 +22,7 @@ class AppPlayerAvatar extends StatelessWidget {
     semanticLabel: '$name 球员头像',
     fallbackIcon: Icons.person_outline_rounded,
     fallbackText: name.trim().characters.firstOrNull,
+    fallbackAsset: 'assets/ui/football/neutral-player-avatar.png',
     imageUrl: imageUrl,
     size: size,
   );

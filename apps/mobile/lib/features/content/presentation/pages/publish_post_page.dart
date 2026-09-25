@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../shared/design_system/app_design_tokens.dart';
 import '../controllers/publish_post_controller.dart';
-import '../publish/publish_local_source.dart';
+import '../../domain/publish_subject.dart';
 import '../widgets/publish_mode_bar.dart';
 
 class PublishPostPage extends ConsumerStatefulWidget {
@@ -19,8 +19,6 @@ class PublishPostPage extends ConsumerStatefulWidget {
 class _PublishPostPageState extends ConsumerState<PublishPostPage> {
   final _title = TextEditingController();
   final _body = TextEditingController();
-  PublishAuxiliaryItem? _topic;
-  PublishAuxiliaryItem? _hotspot;
   bool _published = false;
   bool _discarding = false;
 
@@ -34,9 +32,7 @@ class _PublishPostPageState extends ConsumerState<PublishPostPage> {
   bool _isDirty(PublishState state) =>
       _title.text.trim().isNotEmpty ||
       _body.text.trim().isNotEmpty ||
-      state.images.isNotEmpty ||
-      _topic != null ||
-      _hotspot != null;
+      state.hasDraft;
 
   @override
   Widget build(BuildContext context) {
@@ -58,16 +54,27 @@ class _PublishPostPageState extends ConsumerState<PublishPostPage> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           foregroundColor: AppColors.ink,
+          toolbarHeight: 76,
+          leadingWidth: 96,
+          title: null,
           leading: TextButton(
             key: const ValueKey('publish_cancel'),
             onPressed: state.submitting ? null : () => _cancel(controller),
-            child: const Text('取消'),
+            child: const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text('取消', maxLines: 1, softWrap: false),
+            ),
           ),
-          title: const Text('发布帖子'),
           actions: [
             FilledButton(
               key: const ValueKey('publish_submit'),
               onPressed: state.submitting ? null : () => _submit(controller),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.brand,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                shape: const StadiumBorder(),
+              ),
               child: Text(state.submitting ? '发布中…' : '发布'),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -79,7 +86,7 @@ class _PublishPostPageState extends ConsumerState<PublishPostPage> {
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.lg,
-              AppSpacing.sm,
+              0,
               AppSpacing.lg,
               AppSpacing.xxl,
             ),
@@ -88,78 +95,62 @@ class _PublishPostPageState extends ConsumerState<PublishPostPage> {
                 key: const ValueKey('publish_title'),
                 controller: _title,
                 enabled: !state.submitting,
-                maxLength: 255,
+                maxLength: 20,
+                style: const TextStyle(fontSize: 20, color: AppColors.ink),
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
-                  labelText: '标题',
-                  hintText: '给帖子一个清晰标题',
+                  hintText: '请输入文章标题（20字内）',
+                  hintStyle: TextStyle(fontSize: 20, color: Color(0xFFC8CDD4)),
+                  counterText: '',
+                  contentPadding: EdgeInsets.symmetric(vertical: 18),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFFE9EBEF)),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.brand),
+                  ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.sm),
               TextField(
                 key: const ValueKey('publish_body'),
                 controller: _body,
                 enabled: !state.submitting,
                 maxLength: 2000,
-                minLines: 8,
-                maxLines: 16,
+                minLines: _body.text.trim().isEmpty ? 1 : 2,
+                maxLines: 12,
+                style: const TextStyle(fontSize: 18, height: 1.55),
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
-                  labelText: '正文',
-                  hintText: '分享你的足球观点…',
+                  hintText: '请输入帖子内容',
+                  hintStyle: TextStyle(fontSize: 18, color: Color(0xFFC8CDD4)),
                   alignLabelWithHint: true,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  counterText: '',
+                  contentPadding: EdgeInsets.only(top: 18),
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              _SelectedAuxiliary(
-                key: const ValueKey('publish_selected_auxiliary'),
-                topic: _topic,
-                hotspot: _hotspot,
-                enabled: !state.submitting,
-                onRemoveTopic: () => setState(() => _topic = null),
-                onRemoveHotspot: () => setState(() => _hotspot = null),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Text(
-                    '图片 ${state.images.length}/9',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const Spacer(),
-                  OutlinedButton.icon(
+                  for (final image in state.images)
+                    _PostImageTile(
+                      image: image,
+                      enabled: !state.submitting,
+                      onRetry: () => controller.upload(image),
+                      onRemove: () => controller.remove(image),
+                    ),
+                  _ImageAddTile(
                     key: const ValueKey('publish_images'),
-                    onPressed: state.submitting || state.images.length >= 9
-                        ? null
-                        : controller.pickImages,
-                    icon: const Icon(Icons.photo_library_outlined),
-                    label: const Text('添加图片'),
+                    enabled: !state.submitting && state.images.length < 9,
+                    onPressed: controller.pickImages,
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
-              if (state.images.isEmpty)
-                const Text(
-                  '可发布纯文字帖子；单张图片不超过 10MB。',
-                  style: TextStyle(color: AppColors.inkMuted),
-                )
-              else
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                  ),
-                  itemCount: state.images.length,
-                  itemBuilder: (context, index) => _PostImageTile(
-                    image: state.images[index],
-                    enabled: !state.submitting,
-                    onRetry: () => controller.upload(state.images[index]),
-                    onRemove: () => controller.remove(state.images[index]),
-                  ),
-                ),
               if (state.message case final message?)
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.md),
@@ -178,18 +169,27 @@ class _PublishPostPageState extends ConsumerState<PublishPostPage> {
           onModeSelected: (mode) => _switchMode(mode, controller),
           tools: [
             _ToolButton(
-              key: const ValueKey('publish_topic'),
-              icon: Icons.tag,
-              label: '话题',
+              key: const ValueKey('publish_add_image_tool'),
+              icon: Icons.add_photo_alternate_outlined,
+              label: '图片',
               enabled: !state.submitting,
-              onPressed: () => _selectAuxiliary(PublishAuxiliaryKind.topic),
+              onPressed: controller.pickImages,
             ),
-            _ToolButton(
-              key: const ValueKey('publish_hotspot'),
-              icon: Icons.local_fire_department_outlined,
-              label: '热点',
+          ],
+          auxiliary: [
+            _SelectedAuxiliary(
+              key: const ValueKey('publish_selected_auxiliary'),
+              topic: state.topic,
+              hotspot: state.hotspot,
               enabled: !state.submitting,
-              onPressed: () => _selectAuxiliary(PublishAuxiliaryKind.hotspot),
+              onRemoveTopic: () =>
+                  controller.removeAuxiliary(PublishAuxiliaryKind.topic),
+              onRemoveHotspot: () =>
+                  controller.removeAuxiliary(PublishAuxiliaryKind.hotspot),
+              onSelectTopic: () =>
+                  _selectAuxiliary(PublishAuxiliaryKind.topic, controller),
+              onSelectHotspot: () =>
+                  _selectAuxiliary(PublishAuxiliaryKind.hotspot, controller),
             ),
           ],
         ),
@@ -224,18 +224,17 @@ class _PublishPostPageState extends ConsumerState<PublishPostPage> {
     context.pushReplacement('/publish/article');
   }
 
-  Future<void> _selectAuxiliary(PublishAuxiliaryKind kind) async {
+  Future<void> _selectAuxiliary(
+    PublishAuxiliaryKind kind,
+    PublishPostController controller,
+  ) async {
     final item = await context.push<PublishAuxiliaryItem>(
-      kind == PublishAuxiliaryKind.topic ? '/publish/topic' : '/publish/hotspot',
+      kind == PublishAuxiliaryKind.topic
+          ? '/publish/topic'
+          : '/publish/hotspot',
     );
     if (!mounted || item == null) return;
-    setState(() {
-      if (kind == PublishAuxiliaryKind.topic) {
-        _topic = item;
-      } else {
-        _hotspot = item;
-      }
-    });
+    controller.setAuxiliary(item);
   }
 
   Future<bool> _confirmDiscard(BuildContext context) async =>
@@ -308,6 +307,8 @@ class _SelectedAuxiliary extends StatelessWidget {
     required this.enabled,
     required this.onRemoveTopic,
     required this.onRemoveHotspot,
+    required this.onSelectTopic,
+    required this.onSelectHotspot,
     super.key,
   });
   final PublishAuxiliaryItem? topic;
@@ -315,10 +316,11 @@ class _SelectedAuxiliary extends StatelessWidget {
   final bool enabled;
   final VoidCallback onRemoveTopic;
   final VoidCallback onRemoveHotspot;
+  final VoidCallback onSelectTopic;
+  final VoidCallback onSelectHotspot;
 
   @override
   Widget build(BuildContext context) {
-    if (topic == null && hotspot == null) return const SizedBox.shrink();
     return Wrap(
       spacing: AppSpacing.xs,
       runSpacing: AppSpacing.xs,
@@ -327,20 +329,87 @@ class _SelectedAuxiliary extends StatelessWidget {
           InputChip(
             key: const ValueKey('publish_topic_chip'),
             label: Text('#${value.name}'),
+            backgroundColor: AppColors.brandSoft,
+            side: BorderSide.none,
             onDeleted: enabled ? onRemoveTopic : null,
           ),
         if (hotspot case final value?)
           InputChip(
             key: const ValueKey('publish_hotspot_chip'),
             label: Text('热点 · ${value.name}'),
+            backgroundColor: AppColors.brandSoft,
+            side: BorderSide.none,
             onDeleted: enabled ? onRemoveHotspot : null,
+          ),
+        if (topic == null)
+          _AuxiliaryAction(
+            icon: Icons.tag,
+            label: '添加话题',
+            onPressed: onSelectTopic,
+          ),
+        if (hotspot == null)
+          _AuxiliaryAction(
+            icon: Icons.local_fire_department_outlined,
+            label: '关联热点事件',
+            onPressed: onSelectHotspot,
           ),
       ],
     );
   }
 }
 
-class _PostImageTile extends StatelessWidget {
+class _AuxiliaryAction extends StatelessWidget {
+  const _AuxiliaryAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => ActionChip(
+    avatar: Icon(icon, size: 20),
+    label: Text(label),
+    onPressed: onPressed,
+    side: BorderSide.none,
+    backgroundColor: AppColors.surfaceMuted,
+    labelStyle: const TextStyle(fontSize: 15, color: AppColors.ink),
+  );
+}
+
+class _ImageAddTile extends StatelessWidget {
+  const _ImageAddTile({
+    required this.enabled,
+    required this.onPressed,
+    super.key,
+  });
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 80,
+    height: 80,
+    child: InkWell(
+      onTap: enabled ? onPressed : null,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F8F9),
+          border: Border.all(color: const Color(0xFFE3E5EA)),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: const Center(
+          child: Icon(Icons.add, size: 32, color: Color(0xFFC8CDD4)),
+        ),
+      ),
+    ),
+  );
+}
+
+class _PostImageTile extends StatefulWidget {
   const _PostImageTile({
     required this.image,
     required this.enabled,
@@ -353,41 +422,81 @@ class _PostImageTile extends StatelessWidget {
   final VoidCallback onRemove;
 
   @override
+  State<_PostImageTile> createState() => _PostImageTileState();
+}
+
+class _PostImageTileState extends State<_PostImageTile> {
+  late Future<Uint8List> _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _bytes = widget.image.file.readAsBytes();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PostImageTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.image.file.path != widget.image.file.path) {
+      _bytes = widget.image.file.readAsBytes();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) => Stack(
-    fit: StackFit.expand,
     children: [
-      ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        child: Image.file(
-          File(image.file.path),
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => const ColoredBox(
-            color: AppColors.surfaceMuted,
-            child: Icon(Icons.broken_image_outlined),
+      SizedBox(
+        width: 80,
+        height: 80,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          child: FutureBuilder<Uint8List>(
+            future: _bytes,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                return Image.memory(snapshot.data!, fit: BoxFit.cover);
+              }
+              if (snapshot.hasError) {
+                return const ColoredBox(
+                  color: AppColors.surfaceMuted,
+                  child: Icon(Icons.broken_image_outlined),
+                );
+              }
+              return const ColoredBox(
+                color: AppColors.surfaceMuted,
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              );
+            },
           ),
         ),
       ),
-      if (image.status == UploadStatus.uploading)
+      if (widget.image.status == UploadStatus.uploading)
         const ColoredBox(
           color: Color(0x66000000),
           child: Center(child: CircularProgressIndicator()),
         ),
-      if (image.status == UploadStatus.failure)
+      if (widget.image.status == UploadStatus.failure)
         ColoredBox(
           color: const Color(0x88000000),
           child: Center(
             child: TextButton(
-              onPressed: enabled ? onRetry : null,
+              onPressed: widget.enabled ? widget.onRetry : null,
               child: const Text('重试', style: TextStyle(color: Colors.white)),
             ),
           ),
         ),
       Positioned(
-        top: 0,
-        right: 0,
-        child: IconButton.filled(
-          onPressed: enabled ? onRemove : null,
-          icon: const Icon(Icons.close, size: 16),
+        top: -6,
+        right: -6,
+        child: IconButton(
+          onPressed: widget.enabled ? widget.onRemove : null,
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.brand,
+            foregroundColor: Colors.white,
+            minimumSize: const Size(28, 28),
+            padding: EdgeInsets.zero,
+          ),
+          icon: const Icon(Icons.close, size: 15),
         ),
       ),
     ],

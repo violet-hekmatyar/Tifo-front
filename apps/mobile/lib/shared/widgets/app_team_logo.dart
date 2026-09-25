@@ -22,6 +22,7 @@ class AppTeamLogo extends StatelessWidget {
     semanticLabel: '$name 球队标识',
     fallbackIcon: Icons.shield_outlined,
     fallbackText: name.trim().characters.firstOrNull,
+    fallbackAsset: 'assets/ui/home/neutral-team-crest.png',
     imageUrl: imageUrl,
     size: size,
     circular: false,

@@ -77,7 +77,10 @@ void main() {
             'player_tab_matches',
             find.byKey(const ValueKey('schedule_match_70')),
           ),
-          ('player_tab_career', find.text('职业生涯总计')),
+          (
+            'player_tab_career',
+            find.byKey(const ValueKey('player_national_career_state')),
+          ),
         ];
         for (final tab in tabs) {
           final tabFinder = find.byKey(ValueKey(tab.$1));

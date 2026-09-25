@@ -16,6 +16,7 @@ import 'package:tifo/features/onboarding/data/onboarding_repository.dart';
 import 'package:tifo/features/onboarding/domain/onboarding_models.dart';
 import 'package:tifo/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:tifo/shared/widgets/app_player_avatar.dart';
+import 'package:tifo/shared/widgets/app_entity_avatar.dart';
 import 'package:tifo/shared/widgets/app_selection_card.dart';
 import 'package:tifo/shared/widgets/app_team_logo.dart';
 
@@ -104,11 +105,11 @@ void main() {
 
       await tester.binding.handlePopRoute();
       await tester.pump();
-      expect(find.text('关注球队'), findsOneWidget);
+      expect(find.text('关注的球队'), findsOneWidget);
       expect(_offset(tester, followList), closeTo(followOffset, .1));
       await tester.binding.handlePopRoute();
       await tester.pump();
-      expect(find.text('选择我的主队'), findsOneWidget);
+      expect(find.text('我的主队'), findsOneWidget);
       expect(_offset(tester, mainList), closeTo(mainOffset, .1));
       expect(
         tester
@@ -196,9 +197,7 @@ void main() {
       );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
-      expect(find.text('超长球队名称超长球队名称超长球队名称'.characters.first), findsOneWidget);
-      expect(find.text('球'), findsOneWidget);
-      expect(find.text('失'), findsOneWidget);
+      expect(find.byType(AppEntityAvatar), findsNWidgets(3));
       expect(tester.takeException(), isNull);
     },
   );

@@ -97,9 +97,16 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('rate_player_50')));
       await tester.pumpAndSettle();
       expect(find.text('7.5'), findsOneWidget);
-      await tester.tap(find.text('提交'));
+      await tester.tap(find.byKey(const ValueKey('match_rating_submit_input')));
       await tester.pumpAndSettle();
       expect(matchRepository.lastSubmitted, 7.5);
+
+      await tester.tap(find.byKey(const ValueKey('rating_player_50')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('rating_detail_back')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('rating_detail_back')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('rating_player_50')), findsOneWidget);
     },
   );
 }
@@ -178,6 +185,13 @@ final class _MatchRepository implements MatchDetailRepositoryContract {
   );
   @override
   Future<MatchLineups> lineups(int matchId) async => _lineups;
+  @override
+  Future<FootballPage<MatchRelatedContent>> contents(
+    int matchId, {
+    int page = 1,
+    int size = 10,
+    String? contentType,
+  }) async => const FootballPage(records: [], pageNum: 1, pages: 0, total: 0);
   @override
   Future<List<MatchTeamStatItem>> stats(int matchId) async => const [
     MatchTeamStatItem(

@@ -34,10 +34,42 @@ void main() {
         await tester.tap(find.byKey(ValueKey(key)));
         await _pumpSettled(tester);
         expect(find.byKey(ValueKey(key)), findsOneWidget);
+        if (key == 'match_tab_lineups') {
+          await _expectRealLineupGeometry(tester);
+        }
         expect(tester.takeException(), isNull);
       }
     }
   });
+}
+
+Future<void> _expectRealLineupGeometry(WidgetTester tester) async {
+  final field = tester.getRect(
+    find.byKey(const ValueKey('match_lineup_pitch_field')),
+  );
+  final rects = [
+    for (final id in [
+      ...List.generate(11, (index) => 100 + index),
+      ...List.generate(11, (index) => 200 + index),
+    ])
+      tester.getRect(find.byKey(ValueKey('lineup_player_$id'))),
+  ];
+  expect(rects, hasLength(22));
+  for (final rect in rects) {
+    expect(rect.left, greaterThanOrEqualTo(field.left));
+    expect(rect.right, lessThanOrEqualTo(field.right));
+    expect(rect.top, greaterThanOrEqualTo(field.top));
+    expect(rect.bottom, lessThanOrEqualTo(field.bottom));
+  }
+  for (var first = 0; first < rects.length; first++) {
+    for (var second = first + 1; second < rects.length; second++) {
+      expect(
+        rects[first].overlaps(rects[second]),
+        isFalse,
+        reason: '真实 11+11 阵容节点发生重叠: $first/$second',
+      );
+    }
+  }
 }
 
 Future<void> _pumpSettled(WidgetTester tester) async {
@@ -115,15 +147,22 @@ final class _Football implements FootballRepositoryContract {
 
 final class _Details implements MatchDetailRepositoryContract {
   @override
-  Future<MatchOverviewV1> overview(int id) async => const MatchOverviewV1(
+  Future<MatchOverviewV1> overview(int id) async => MatchOverviewV1(
     matchId: 70,
-    lineups: MatchLineups(),
+    lineups: _responsiveLineups,
     teamStats: [],
     playerStats: FootballPage(records: [], pageNum: 1, pages: 0, total: 0),
     ratings: [],
   );
   @override
-  Future<MatchLineups> lineups(int id) async => const MatchLineups();
+  Future<MatchLineups> lineups(int id) async => _responsiveLineups;
+  @override
+  Future<FootballPage<MatchRelatedContent>> contents(
+    int id, {
+    int page = 1,
+    int size = 10,
+    String? contentType,
+  }) async => const FootballPage(records: [], pageNum: 1, pages: 0, total: 0);
   @override
   Future<List<MatchTeamStatItem>> stats(int id) async => const [];
   @override
@@ -147,3 +186,63 @@ final class _Details implements MatchDetailRepositoryContract {
   Future<MatchRatingResult> cancelRating(int matchId, int playerId) =>
       throw UnimplementedError();
 }
+
+const _responsiveLineupX = [
+  50.0,
+  15.0,
+  38.0,
+  62.0,
+  85.0,
+  25.0,
+  50.0,
+  75.0,
+  25.0,
+  50.0,
+  75.0,
+];
+const _responsiveLineupY = [
+  92.0,
+  72.0,
+  72.0,
+  72.0,
+  72.0,
+  52.0,
+  52.0,
+  52.0,
+  32.0,
+  32.0,
+  32.0,
+];
+
+final _responsiveLineups = MatchLineups(
+  home: MatchTeamLineup(
+    teamId: 40,
+    teamName: '主队',
+    formation: '4-3-3',
+    starters: [
+      for (var index = 0; index < 11; index++)
+        MatchLineupPlayer(
+          playerId: 100 + index,
+          playerName: '主队球员 ${index + 1}',
+          shirtNumber: index + 1,
+          fieldX: _responsiveLineupX[index],
+          fieldY: _responsiveLineupY[index],
+        ),
+    ],
+  ),
+  away: MatchTeamLineup(
+    teamId: 41,
+    teamName: '客队',
+    formation: '4-3-3',
+    starters: [
+      for (var index = 0; index < 11; index++)
+        MatchLineupPlayer(
+          playerId: 200 + index,
+          playerName: '客队球员 ${index + 1}',
+          shirtNumber: index + 1,
+          fieldX: _responsiveLineupX[index],
+          fieldY: _responsiveLineupY[index],
+        ),
+    ],
+  ),
+);

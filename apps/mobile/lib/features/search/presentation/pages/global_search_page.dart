@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -132,171 +134,215 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
               )
               .toList(growable: false)
         : state.records;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.selectionMode ? '选择关联内容' : '全局搜索'),
-        actions: [
-          if (widget.selectionMode)
-            TextButton(
-              key: const ValueKey('relation_selection_done'),
-              onPressed: () {
-                final result = _selected.values.toList()
-                  ..sort((a, b) => a.stableKey.compareTo(b.stableKey));
-                context.pop(result);
-              },
-              child: Text(
-                '完成 ${_selected.length}/10',
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-        ],
+    final showSearchFilters = state.status != GlobalSearchStatus.empty;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.white,
+        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarDividerColor: Colors.white,
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.sm,
-                AppSpacing.lg,
-                0,
-              ),
-              child: TextField(
-                key: const ValueKey('global_search_input'),
-                controller: _textController,
-                autofocus: state.keyword.isEmpty,
-                textInputAction: TextInputAction.search,
-                onChanged: _onChanged,
-                onSubmitted: (_) => _submit(),
-                decoration: InputDecoration(
-                  hintText: '搜索球队、球员、比赛或内容',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: IconButton(
-                    key: const ValueKey('global_search_submit'),
-                    tooltip: '搜索',
-                    onPressed: _submit,
-                    icon: const Icon(Icons.arrow_forward_rounded),
-                  ),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.ink,
+          elevation: 0,
+          centerTitle: true,
+          title: Text(widget.selectionMode ? '选择关联内容' : '搜索'),
+          actions: [
+            if (widget.selectionMode)
+              TextButton(
+                key: const ValueKey('relation_selection_done'),
+                onPressed: () {
+                  final result = _selected.values.toList()
+                    ..sort((a, b) => a.stableKey.compareTo(b.stableKey));
+                  context.pop(result);
+                },
+                child: Text(
+                  '完成 ${_selected.length}/10',
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
-            ),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.sm,
-              ),
-              child: Row(
-                children: [
-                  _FilterChip(
-                    key: const ValueKey('search_filter_all'),
-                    label: '全部',
-                    selected: state.entityType == null,
-                    onSelected: () =>
-                        unawaited(activeController.selectType(null)),
-                  ),
-                  for (final type in SearchEntityType.values.where(
-                    (value) =>
-                        value != SearchEntityType.unknown &&
-                        (!widget.selectionMode ||
-                            value != SearchEntityType.content),
-                  )) ...[
-                    const SizedBox(width: AppSpacing.xs),
-                    _FilterChip(
-                      key: ValueKey('search_filter_${type.wireValue}'),
-                      label: _typeLabel(type),
-                      selected: state.entityType == type,
-                      onSelected: () =>
-                          unawaited(activeController.selectType(type)),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            Expanded(
-              child: switch (state.status) {
-                GlobalSearchStatus.idle => _IdleSearchView(
-                  history: history,
-                  onUse: (keyword) {
-                    _textController.text = keyword;
-                    _textController.selection = TextSelection.collapsed(
-                      offset: keyword.length,
-                    );
-                    unawaited(activeController.search(keyword));
-                  },
-                  onRemove: history.remove,
-                  onClear: history.clear,
-                ),
-                GlobalSearchStatus.loading => const AppStateView(
-                  key: ValueKey('search_loading'),
-                  kind: AppStateKind.loading,
-                  title: '正在搜索',
-                  message: '正在查找真实球队、球员、比赛和内容…',
-                ),
-                GlobalSearchStatus.empty => AppStateView(
-                  key: const ValueKey('search_empty'),
-                  kind: AppStateKind.empty,
-                  title: '没有找到相关结果',
-                  message: '可以更换关键词或搜索分类。',
-                  onRetry: activeController.retry,
-                ),
-                GlobalSearchStatus.failure => AppStateView(
-                  key: const ValueKey('search_error'),
-                  kind: AppStateKind.error,
-                  title: '搜索失败',
-                  message: state.message ?? '请稍后重试。',
-                  onRetry: activeController.retry,
-                ),
-                GlobalSearchStatus.ready
-                    when widget.selectionMode && records.isEmpty =>
-                  AppStateView(
-                    key: const ValueKey('search_selection_empty'),
-                    kind: AppStateKind.empty,
-                    title: '没有可关联的实体',
-                    message: state.hasMore
-                        ? '当前页没有球队、球员或比赛。继续加载更多结果。'
-                        : '没有找到可关联的球队、球员或比赛。',
-                    onRetry: state.hasMore
-                        ? activeController.loadMore
-                        : activeController.retry,
-                  ),
-                GlobalSearchStatus.ready => ListView.separated(
-                  key: const PageStorageKey('global_search_results'),
-                  controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.lg,
-                    0,
-                    AppSpacing.lg,
-                    AppSpacing.xxl,
-                  ),
-                  itemCount: records.length + 1,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(height: AppSpacing.sm),
-                  itemBuilder: (context, index) {
-                    if (index == records.length) {
-                      return _LoadMoreState(
-                        state: state,
-                        onRetry: activeController.loadMore,
-                      );
-                    }
-                    final entity = records[index];
-                    final selected = _selected.containsKey(entity.stableKey);
-                    return SearchResultTile(
-                      key: ValueKey(entity.stableKey),
-                      entity: entity,
-                      config: config,
-                      selected: selected,
-                      onTap: widget.selectionMode
-                          ? () => _toggleSelection(entity)
-                          : searchEntityLocation(entity) == null
-                          ? null
-                          : () => context.push(searchEntityLocation(entity)!),
-                    );
-                  },
-                ),
-              },
-            ),
           ],
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                child: SizedBox(
+                  height: 40,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: widget.selectionMode
+                          ? Colors.white
+                          : const Color(0xFFF4F4F5),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: TextField(
+                      key: const ValueKey('global_search_input'),
+                      controller: _textController,
+                      autofocus: state.keyword.isEmpty,
+                      textInputAction: TextInputAction.search,
+                      onChanged: _onChanged,
+                      onSubmitted: (_) => _submit(),
+                      decoration: InputDecoration(
+                        hintText: widget.selectionMode
+                            ? '搜索球队、球员或比赛'
+                            : '输入关键词搜索',
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: AppColors.inkMuted,
+                        ),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 40,
+                        ),
+                        suffixIcon: widget.selectionMode
+                            ? IconButton(
+                                key: const ValueKey('global_search_submit'),
+                                tooltip: '搜索',
+                                onPressed: _submit,
+                                icon: const Icon(Icons.arrow_forward_rounded),
+                              )
+                            : null,
+                        suffixIconConstraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 40,
+                        ),
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.transparent,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (showSearchFilters)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.sm,
+                  ),
+                  child: Row(
+                    children: [
+                      _FilterChip(
+                        key: const ValueKey('search_filter_all'),
+                        label: '全部',
+                        selected: state.entityType == null,
+                        onSelected: () =>
+                            unawaited(activeController.selectType(null)),
+                      ),
+                      for (final type in SearchEntityType.values.where(
+                        (value) =>
+                            value != SearchEntityType.unknown &&
+                            (!widget.selectionMode ||
+                                value != SearchEntityType.content),
+                      )) ...[
+                        const SizedBox(width: AppSpacing.xs),
+                        _FilterChip(
+                          key: ValueKey('search_filter_${type.wireValue}'),
+                          label: _typeLabel(type),
+                          selected: state.entityType == type,
+                          onSelected: () =>
+                              unawaited(activeController.selectType(type)),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: switch (state.status) {
+                  GlobalSearchStatus.idle => _IdleSearchView(
+                    history: history,
+                    onUse: (keyword) {
+                      _textController.text = keyword;
+                      _textController.selection = TextSelection.collapsed(
+                        offset: keyword.length,
+                      );
+                      unawaited(activeController.search(keyword));
+                    },
+                    onRemove: history.remove,
+                    onClear: history.clear,
+                  ),
+                  GlobalSearchStatus.loading => const AppStateView(
+                    key: ValueKey('search_loading'),
+                    kind: AppStateKind.loading,
+                    title: '正在搜索',
+                    message: '正在查找真实球队、球员、比赛和内容…',
+                  ),
+                  GlobalSearchStatus.empty => const _SearchEmptyView(
+                    key: ValueKey('search_empty'),
+                  ),
+                  GlobalSearchStatus.failure => AppStateView(
+                    key: const ValueKey('search_error'),
+                    kind: AppStateKind.error,
+                    title: '搜索失败',
+                    message: state.message ?? '请稍后重试。',
+                    onRetry: activeController.retry,
+                  ),
+                  GlobalSearchStatus.ready
+                      when widget.selectionMode && records.isEmpty =>
+                    AppStateView(
+                      key: const ValueKey('search_selection_empty'),
+                      kind: AppStateKind.empty,
+                      title: '没有可关联的实体',
+                      message: state.hasMore
+                          ? '当前页没有球队、球员或比赛。继续加载更多结果。'
+                          : '没有找到可关联的球队、球员或比赛。',
+                      onRetry: state.hasMore
+                          ? activeController.loadMore
+                          : activeController.retry,
+                    ),
+                  GlobalSearchStatus.ready => ListView.separated(
+                    key: const PageStorageKey('global_search_results'),
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      0,
+                      AppSpacing.lg,
+                      AppSpacing.xxl,
+                    ),
+                    itemCount: records.length + 1,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (context, index) {
+                      if (index == records.length) {
+                        return _LoadMoreState(
+                          state: state,
+                          onRetry: activeController.loadMore,
+                        );
+                      }
+                      final entity = records[index];
+                      final selected = _selected.containsKey(entity.stableKey);
+                      return SearchResultTile(
+                        key: ValueKey(entity.stableKey),
+                        entity: entity,
+                        config: config,
+                        selected: selected,
+                        onTap: widget.selectionMode
+                            ? () => _toggleSelection(entity)
+                            : searchEntityLocation(entity) == null
+                            ? null
+                            : () => context.push(searchEntityLocation(entity)!),
+                      );
+                    },
+                  ),
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -314,6 +360,103 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
       _selected[entity.stableKey] = entity;
     });
   }
+}
+
+class _SearchEmptyView extends StatelessWidget {
+  const _SearchEmptyView({super.key});
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => Align(
+      key: const ValueKey('search_empty_group'),
+      alignment: const Alignment(0, -.53),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          SizedBox(
+            key: ValueKey('search_empty_illustration'),
+            width: 58,
+            height: 58,
+            child: _SearchEmptyIllustration(),
+          ),
+          SizedBox(height: 10),
+          Text(
+            '搜索无结果',
+            style: TextStyle(
+              color: Color(0xFF747474),
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _SearchEmptyIllustration extends StatelessWidget {
+  const _SearchEmptyIllustration();
+
+  @override
+  Widget build(BuildContext context) =>
+      CustomPaint(painter: _SearchEmptyPainter());
+}
+
+class _SearchEmptyPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width * .45, size.height * .52);
+    final radius = size.width * .27;
+    final green = Paint()
+      ..color = AppColors.brand
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .085
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(center, radius, green);
+    final shadow = Paint()
+      ..color = const Color(0xFF4A4A4A)
+      ..strokeWidth = size.width * .1
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      center + Offset(radius * .95, radius * .95),
+      center + Offset(radius * 1.35, radius * 1.35),
+      shadow,
+    );
+    canvas.drawLine(
+      center + Offset(radius * .7, radius * .7),
+      center + Offset(radius * 1.25, radius * 1.25),
+      green,
+    );
+    final ray = Paint()
+      ..color = AppColors.accent
+      ..strokeWidth = size.width * .055
+      ..strokeCap = StrokeCap.round;
+    for (final pair in [
+      (Offset(.28, .16), Offset(.25, .04)),
+      (Offset(.47, .13), Offset(.49, .01)),
+      (Offset(.65, .2), Offset(.72, .09)),
+    ]) {
+      canvas.drawLine(
+        Offset(size.width * pair.$1.dx, size.height * pair.$1.dy),
+        Offset(size.width * pair.$2.dx, size.height * pair.$2.dy),
+        ray,
+      );
+    }
+    final dottedRing = Paint()
+      ..color = const Color(0xFF777777)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius * 1.2),
+      math.pi * .7,
+      math.pi * 1.35,
+      false,
+      dottedRing,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _IdleSearchView extends StatelessWidget {

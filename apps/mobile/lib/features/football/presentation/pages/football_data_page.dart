@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../shared/design_system/app_design_tokens.dart';
 import '../../../../core/network/media_url_resolver.dart';
 import '../../../../core/network/network_providers.dart';
 import '../../../../shared/widgets/app_state_view.dart';
 import '../../../../shared/widgets/app_team_logo.dart';
+import '../../../feed/data/feed_repository.dart';
+import '../../../feed/domain/feed_page.dart';
+import '../../../feed/presentation/widgets/followed_team_bar.dart';
 import '../../domain/football_models.dart';
 import '../../domain/football_ranking_models.dart';
 import '../controllers/football_data_controller.dart';
@@ -14,6 +20,11 @@ import '../widgets/football_widgets.dart';
 import '../widgets/football_rankings_widgets.dart';
 
 enum _DataSection { schedule, standings, players, teams }
+
+final footballFollowedTeamsProvider =
+    FutureProvider.autoDispose<List<FollowedTeam>>(
+      (ref) => ref.watch(feedRepositoryProvider).loadFollowedTeams(),
+    );
 
 class FootballDataPage extends ConsumerStatefulWidget {
   const FootballDataPage({super.key});
@@ -54,15 +65,60 @@ class _FootballDataPageState extends ConsumerState<FootballDataPage> {
     final state = controller.state;
     final rankings = ref.watch(footballRankingsControllerProvider);
     final rankingState = rankings.state;
+    final showFollowedTeams =
+        state.source is FollowingSource || state.source is TeamSource;
+    final followedTeams = showFollowedTeams
+        ? ref
+              .watch(footballFollowedTeamsProvider)
+              .when(
+                data: (teams) => teams,
+                loading: () => const <FollowedTeam>[],
+                error: (_, _) => const <FollowedTeam>[],
+              )
+        : const <FollowedTeam>[];
+    final selectedTeamId = switch (state.source) {
+      TeamSource(:final teamId) => teamId,
+      _ => null,
+    };
+    final activeLeagueId = _section == _DataSection.schedule
+        ? switch (state.source) {
+            LeagueSource(:final leagueId) => leagueId,
+            _ => null,
+          }
+        : rankingState.selectedLeagueId;
     return Scaffold(
-      appBar: AppBar(title: const Text('数据')),
+      backgroundColor: AppColors.page,
       body: Column(
         children: [
-          _SectionBar(section: _section, onSelected: _selectSection),
-          if (_section == _DataSection.schedule)
-            _SourceBar(state: state, onSelected: controller.selectSource)
-          else
-            FootballRankingFilters(state: rankingState, controller: rankings),
+          _CompetitionNav(
+            state: state,
+            activeLeagueId: activeLeagueId,
+            onImportant: () => controller.selectSource(const ImportantSource()),
+            onFollowing: () => controller.selectSource(const FollowingSource()),
+            onLeague: (league) {
+              controller.selectSource(LeagueSource(league.id));
+              unawaited(rankings.selectLeague(league.id));
+            },
+          ),
+          if (showFollowedTeams)
+            FollowedTeamBar(
+              teams: followedTeams,
+              selectedTeamId: selectedTeamId,
+              onSelected: (teamId) => controller.selectSource(
+                teamId == null ? const FollowingSource() : TeamSource(teamId),
+              ),
+            ),
+          if (_section != _DataSection.schedule || state.source is LeagueSource)
+            _SectionBar(
+              section: _section,
+              state: rankingState,
+              controller: rankings,
+              onSelected: _selectSection,
+            ),
+          if (_section == _DataSection.schedule &&
+              state.source is! LeagueSource &&
+              !showFollowedTeams)
+            _ScheduleSourceHint(state: state),
           Expanded(
             child: _section == _DataSection.schedule
                 ? switch (state.status) {
@@ -157,93 +213,133 @@ class _FootballDataPageState extends ConsumerState<FootballDataPage> {
   };
 }
 
-class _SectionBar extends StatelessWidget {
-  const _SectionBar({required this.section, required this.onSelected});
-  final _DataSection section;
-  final ValueChanged<_DataSection> onSelected;
+class _CompetitionNav extends StatelessWidget {
+  const _CompetitionNav({
+    required this.state,
+    required this.activeLeagueId,
+    required this.onImportant,
+    required this.onFollowing,
+    required this.onLeague,
+  });
 
-  @override
-  Widget build(BuildContext context) => Material(
-    color: AppColors.surface,
-    child: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        AppSpacing.sm,
-        AppSpacing.md,
-        0,
-      ),
-      child: Row(
-        children: [
-          for (final entry in const {
-            _DataSection.schedule: '赛程',
-            _DataSection.standings: '积分榜',
-            _DataSection.players: '球员榜',
-            _DataSection.teams: '球队榜',
-          }.entries) ...[
-            ChoiceChip(
-              key: ValueKey('data_section_${entry.key.name}'),
-              label: Text(entry.value),
-              selected: section == entry.key,
-              onSelected: (_) => onSelected(entry.key),
-            ),
-            const SizedBox(width: AppSpacing.xs),
-          ],
-        ],
-      ),
-    ),
-  );
-}
-
-class _SourceBar extends StatelessWidget {
-  const _SourceBar({required this.state, required this.onSelected});
   final FootballDataState state;
-  final ValueChanged<FootballSource> onSelected;
+  final int? activeLeagueId;
+  final VoidCallback onImportant;
+  final VoidCallback onFollowing;
+  final ValueChanged<League> onLeague;
 
   @override
   Widget build(BuildContext context) => Material(
     color: AppColors.surface,
-    child: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        AppSpacing.sm,
-        AppSpacing.md,
-        AppSpacing.sm,
-      ),
-      child: Row(
-        children: [
-          ChoiceChip(
-            key: const ValueKey('data_source_important'),
-            label: const Text('重要'),
-            selected: state.source is ImportantSource,
-            onSelected: (_) => onSelected(const ImportantSource()),
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          ChoiceChip(
-            key: const ValueKey('data_source_following'),
-            label: const Text('关注'),
-            selected: state.source is FollowingSource,
-            onSelected: (_) => onSelected(const FollowingSource()),
-          ),
-          for (final league in state.leagues) ...[
-            const SizedBox(width: AppSpacing.xs),
-            _LeagueChip(
-              league: league,
-              selected:
-                  state.source is LeagueSource &&
-                  (state.source as LeagueSource).leagueId == league.id,
-              onTap: () => onSelected(LeagueSource(league.id)),
+    child: SafeArea(
+      bottom: false,
+      child: SizedBox(
+        height: 58,
+        child: Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(left: AppSpacing.md),
+                child: Row(
+                  children: [
+                    _NavItem(
+                      key: const ValueKey('data_source_important'),
+                      label: '重要',
+                      selected: state.source is ImportantSource,
+                      onTap: onImportant,
+                    ),
+                    _NavItem(
+                      key: const ValueKey('data_source_following'),
+                      label: '关注',
+                      selected:
+                          state.source is FollowingSource ||
+                          state.source is TeamSource,
+                      onTap: onFollowing,
+                    ),
+                    const _NavDivider(),
+                    for (final league in state.leagues)
+                      _LeagueNavItem(
+                        league: league,
+                        selected: activeLeagueId == league.id,
+                        onTap: () => onLeague(league),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            PopupMenuButton<String>(
+              key: const ValueKey('knockout_tree_entry'),
+              tooltip: '更多数据',
+              icon: const Icon(Icons.menu_rounded, size: 28),
+              onSelected: (value) {
+                if (value == 'knockout') {
+                  context.push('/football/knockout-tree');
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(value: 'knockout', child: Text('淘汰树')),
+              ],
             ),
           ],
-        ],
+        ),
       ),
     ),
   );
 }
 
-class _LeagueChip extends ConsumerWidget {
-  const _LeagueChip({
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    super.key,
+  });
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    child: Container(
+      constraints: const BoxConstraints(minWidth: 62),
+      margin: const EdgeInsets.only(right: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: selected ? AppColors.brand : Colors.transparent,
+            width: 3,
+          ),
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: selected ? AppColors.ink : AppColors.inkMuted,
+          fontSize: 17,
+          fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+        ),
+      ),
+    ),
+  );
+}
+
+class _NavDivider extends StatelessWidget {
+  const _NavDivider();
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 1,
+    height: 24,
+    margin: const EdgeInsets.only(right: AppSpacing.sm),
+    color: AppColors.border,
+  );
+}
+
+class _LeagueNavItem extends ConsumerWidget {
+  const _LeagueNavItem({
     required this.league,
     required this.selected,
     required this.onTap,
@@ -251,19 +347,119 @@ class _LeagueChip extends ConsumerWidget {
   final League league;
   final bool selected;
   final VoidCallback onTap;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) => ActionChip(
-    key: ValueKey('data_source_league_${league.id}'),
-    backgroundColor: selected ? AppColors.brandSoft : null,
-    side: BorderSide(color: selected ? AppColors.brand : AppColors.border),
-    avatar: AppTeamLogo(
-      identity: 'league:${league.id}',
-      name: league.name,
-      imageUrl: resolveMediaUrl(ref.watch(appConfigProvider), league.logoUrl),
-      size: 24,
+  Widget build(BuildContext context, WidgetRef ref) => InkWell(
+    onTap: onTap,
+    child: Container(
+      height: 58,
+      margin: const EdgeInsets.only(right: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: selected ? AppColors.brand : Colors.transparent,
+            width: 3,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          AppTeamLogo(
+            identity: 'league:${league.id}',
+            name: league.name,
+            imageUrl: resolveMediaUrl(
+              ref.watch(appConfigProvider),
+              league.logoUrl,
+            ),
+            size: 28,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            league.name,
+            style: TextStyle(
+              color: selected ? AppColors.ink : AppColors.inkMuted,
+              fontSize: 16,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     ),
-    label: Text(league.name),
-    onPressed: onTap,
+  );
+}
+
+class _ScheduleSourceHint extends StatelessWidget {
+  const _ScheduleSourceHint({required this.state});
+  final FootballDataState state;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    color: AppColors.surface,
+    padding: const EdgeInsets.fromLTRB(
+      AppSpacing.md,
+      AppSpacing.xs,
+      AppSpacing.md,
+      AppSpacing.sm,
+    ),
+    alignment: Alignment.centerLeft,
+    child: Text(
+      state.source is FollowingSource ? '关注球队赛程' : '重要比赛',
+      style: const TextStyle(color: AppColors.inkMuted, fontSize: 12),
+    ),
+  );
+}
+
+class _SectionBar extends StatelessWidget {
+  const _SectionBar({
+    required this.section,
+    required this.state,
+    required this.controller,
+    required this.onSelected,
+  });
+  final _DataSection section;
+  final FootballRankingsState state;
+  final FootballRankingsController controller;
+  final ValueChanged<_DataSection> onSelected;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: AppColors.surface,
+    child: RankingContextBar(
+      state: state,
+      controller: controller,
+      trailing: [
+        const SizedBox(width: AppSpacing.xs),
+        SectionButton(
+          key: const ValueKey('data_section_schedule'),
+          label: '赛程',
+          selected: section == _DataSection.schedule,
+          onTap: () => onSelected(_DataSection.schedule),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        SectionButton(
+          key: const ValueKey('data_section_standings'),
+          label: '积分榜',
+          selected: section == _DataSection.standings,
+          onTap: () => onSelected(_DataSection.standings),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        SectionButton(
+          key: const ValueKey('data_section_players'),
+          label: '球员榜',
+          selected: section == _DataSection.players,
+          onTap: () => onSelected(_DataSection.players),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        SectionButton(
+          key: const ValueKey('data_section_teams'),
+          label: '球队榜',
+          selected: section == _DataSection.teams,
+          onTap: () => onSelected(_DataSection.teams),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+      ],
+    ),
   );
 }
 

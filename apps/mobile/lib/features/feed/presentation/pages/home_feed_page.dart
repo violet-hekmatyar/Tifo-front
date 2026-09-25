@@ -15,7 +15,7 @@ import '../models/feed_display_sections.dart';
 import '../widgets/feed_card_renderer.dart';
 import '../widgets/feed_filter_bar.dart';
 import '../widgets/feed_load_more.dart';
-import '../widgets/followed_team_bar.dart';
+import '../widgets/content_card.dart';
 
 class HomeFeedPage extends ConsumerStatefulWidget {
   const HomeFeedPage({super.key});
@@ -142,15 +142,15 @@ class _HomeFeedPageState extends ConsumerState<HomeFeedPage> {
               onSearch: () => context.push('/search'),
               onPublish: () => context.push('/publish'),
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: 2),
             FeedFilterBar(
               selected: state.filter,
               onSelected: (value) => unawaited(controller.selectFilter(value)),
-            ),
-            FollowedTeamBar(
               teams: state.followedTeams,
               selectedTeamId: state.teamId,
-              onSelected: (value) => unawaited(controller.selectTeam(value)),
+              onTeamSelected: (value) =>
+                  unawaited(controller.selectTeam(value)),
+              onManageTeams: () => context.push('/users/me/followed-teams'),
             ),
             Expanded(child: _body(context, controller)),
           ],
@@ -175,17 +175,24 @@ class _HomeFeedPageState extends ConsumerState<HomeFeedPage> {
         message: state.message ?? '请稍后重试。',
         onRetry: controller.loadInitial,
       ),
-      FeedLoadStatus.empty => AppStateView(
-        key: const ValueKey('feed_empty'),
-        kind: AppStateKind.empty,
-        title: _emptyTitle(state.filter, state.teamId),
-        message: '当前没有可展示的真实内容，下拉或稍后重试。',
-        onRetry: controller.loadInitial,
-      ),
+      FeedLoadStatus.empty =>
+        state.filter == FeedFilter.following && state.teamId == null
+            ? _FollowingEmptyState(
+                key: const ValueKey('following_empty'),
+                onFindTeams: () => context.push('/search'),
+              )
+            : AppStateView(
+                key: const ValueKey('feed_empty'),
+                kind: AppStateKind.empty,
+                title: _emptyTitle(state.filter, state.teamId),
+                message: '当前没有可展示的真实内容，下拉或稍后重试。',
+                onRetry: controller.loadInitial,
+              ),
       FeedLoadStatus.ready => RefreshIndicator(
         onRefresh: _refreshPreservingAnchor,
         child: _ReadyFeed(
           cards: state.cards,
+          filter: state.filter,
           controller: _scrollController,
           scrollViewKey: _scrollViewKey,
           cardKey: _cardKey,
@@ -206,6 +213,7 @@ class _HomeFeedPageState extends ConsumerState<HomeFeedPage> {
 class _ReadyFeed extends StatelessWidget {
   const _ReadyFeed({
     required this.cards,
+    required this.filter,
     required this.controller,
     required this.scrollViewKey,
     required this.cardKey,
@@ -215,6 +223,7 @@ class _ReadyFeed extends StatelessWidget {
   });
 
   final List<FeedCard> cards;
+  final FeedFilter filter;
   final ScrollController controller;
   final GlobalKey scrollViewKey;
   final GlobalKey Function(FeedCard card) cardKey;
@@ -225,7 +234,13 @@ class _ReadyFeed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sections = FeedDisplaySections.fromCards(cards);
-    final visualEntries = _visualEntries(sections.entries);
+    final contentLayout = filter == FeedFilter.news
+        ? ContentCardLayout.news
+        : ContentCardLayout.grid;
+    final visualEntries = _visualEntries(
+      sections.entries,
+      singleColumn: contentLayout == ContentCardLayout.news,
+    );
     return CustomScrollView(
       key: scrollViewKey,
       controller: controller,
@@ -233,12 +248,7 @@ class _ReadyFeed extends StatelessWidget {
       slivers: [
         if (refreshMessage != null)
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.sm,
-              AppSpacing.lg,
-              0,
-            ),
+            padding: const EdgeInsets.fromLTRB(8, AppSpacing.xs, 8, 0),
             sliver: SliverToBoxAdapter(
               child: Material(
                 key: const ValueKey('feed_refresh_error'),
@@ -257,24 +267,19 @@ class _ReadyFeed extends StatelessWidget {
           ),
         SliverPadding(
           key: const ValueKey('feed_ordered_section'),
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.sm,
-            AppSpacing.lg,
-            0,
-          ),
+          padding: const EdgeInsets.fromLTRB(8, AppSpacing.xs, 8, 0),
           sliver: SliverList.separated(
             itemCount: visualEntries.length,
-            separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+            separatorBuilder: (_, _) => const SizedBox(height: 6),
             itemBuilder: (context, index) =>
-                _entry(visualEntries[index], cardKey),
+                _entry(visualEntries[index], cardKey, contentLayout),
           ),
         ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.sm,
-            AppSpacing.lg,
+            8,
+            AppSpacing.xs,
+            8,
             AppSpacing.xxl,
           ),
           sliver: SliverToBoxAdapter(child: loadMore),
@@ -284,53 +289,64 @@ class _ReadyFeed extends StatelessWidget {
   }
 }
 
-List<Object> _visualEntries(List<FeedDisplayEntry> entries) {
+List<Object> _visualEntries(
+  List<FeedDisplayEntry> entries, {
+  bool singleColumn = false,
+}) {
   final result = <Object>[];
-  for (var index = 0; index < entries.length; index++) {
-    final entry = entries[index];
-    if (entry is FeedContentRowEntry) {
-      final cards = <ContentFeedCard>[entry.left];
-      if (entry.right case final right?) cards.add(right);
-      while (index + 1 < entries.length &&
-          entries[index + 1] is FeedContentRowEntry) {
-        final next = entries[++index] as FeedContentRowEntry;
-        cards.add(next.left);
-        if (next.right case final right?) cards.add(right);
+  if (singleColumn) {
+    for (final entry in entries) {
+      if (entry is FeedContentRowEntry) {
+        result.add(FeedSingleEntry(entry.left));
+        if (entry.right case final right?) result.add(FeedSingleEntry(right));
+      } else {
+        result.add(entry);
       }
-      result.add(_ContentMasonryEntry(cards));
-    } else {
-      result.add(entry);
+    }
+    return result;
+  }
+  final cards = <FeedCard>[];
+  for (final entry in entries) {
+    if (entry is FeedContentRowEntry) {
+      cards.add(entry.left);
+      if (entry.right case final right?) cards.add(right);
+    } else if (entry is FeedSingleEntry) {
+      cards.add(entry.card);
     }
   }
-  return result;
+  return cards.isEmpty ? const [] : [_FeedMasonryEntry(cards)];
 }
 
-Widget _entry(Object entry, GlobalKey Function(FeedCard card) cardKey) =>
-    switch (entry) {
-      FeedSingleEntry(:final card) => FeedCardRenderer(
-        key: cardKey(card),
-        card: card,
-      ),
-      _ContentMasonryEntry(:final cards) => _ContentMasonry(
-        cards: cards,
-        cardKey: cardKey,
-      ),
-      _ => const SizedBox.shrink(),
-    };
+Widget _entry(
+  Object entry,
+  GlobalKey Function(FeedCard card) cardKey,
+  ContentCardLayout contentLayout,
+) => switch (entry) {
+  FeedSingleEntry(:final card) => FeedCardRenderer(
+    key: cardKey(card),
+    card: card,
+    contentLayout: contentLayout,
+  ),
+  _FeedMasonryEntry(:final cards) => _FeedMasonry(
+    cards: cards,
+    cardKey: cardKey,
+  ),
+  _ => const SizedBox.shrink(),
+};
 
-final class _ContentMasonryEntry {
-  const _ContentMasonryEntry(this.cards);
-  final List<ContentFeedCard> cards;
+final class _FeedMasonryEntry {
+  const _FeedMasonryEntry(this.cards);
+  final List<FeedCard> cards;
 }
 
-class _ContentMasonry extends StatelessWidget {
-  const _ContentMasonry({required this.cards, required this.cardKey});
-  final List<ContentFeedCard> cards;
+class _FeedMasonry extends StatelessWidget {
+  const _FeedMasonry({required this.cards, required this.cardKey});
+  final List<FeedCard> cards;
   final GlobalKey Function(FeedCard card) cardKey;
 
   @override
   Widget build(BuildContext context) {
-    final columns = <List<ContentFeedCard>>[[], []];
+    final columns = <List<FeedCard>>[[], []];
     for (var index = 0; index < cards.length; index++) {
       columns[index.isEven ? 0 : 1].add(cards[index]);
     }
@@ -338,7 +354,7 @@ class _ContentMasonry extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (var index = 0; index < columns.length; index++) ...[
-          if (index > 0) const SizedBox(width: AppSpacing.sm),
+          if (index > 0) const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -348,10 +364,11 @@ class _ContentMasonry extends StatelessWidget {
                   cardIndex < columns[index].length;
                   cardIndex++
                 ) ...[
-                  if (cardIndex > 0) const SizedBox(height: AppSpacing.sm),
+                  if (cardIndex > 0) const SizedBox(height: 6),
                   FeedCardRenderer(
                     key: cardKey(columns[index][cardIndex]),
                     card: columns[index][cardIndex],
+                    contentLayout: ContentCardLayout.grid,
                   ),
                 ],
               ],
@@ -371,32 +388,34 @@ class _HomeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(
-      AppSpacing.lg,
-      AppSpacing.lg,
-      AppSpacing.lg,
+      AppSpacing.sm,
+      AppSpacing.sm,
+      AppSpacing.sm,
       0,
     ),
     child: Row(
       children: [
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppColors.brand,
-            shape: BoxShape.circle,
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(AppSpacing.xs),
-            child: Icon(Icons.sports_soccer_rounded, color: Colors.white),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.xs),
         Expanded(
-          child: Text('南看台', style: Theme.of(context).textTheme.headlineSmall),
-        ),
-        IconButton.filledTonal(
-          key: const ValueKey('home_search'),
-          tooltip: '搜索',
-          onPressed: onSearch,
-          icon: const Icon(Icons.search_rounded),
+          child: OutlinedButton.icon(
+            key: const ValueKey('home_search'),
+            onPressed: onSearch,
+            icon: const Icon(Icons.search_rounded, size: 18),
+            label: const Align(
+              alignment: Alignment.centerLeft,
+              child: Text('搜索球队、球员或内容'),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.inkMuted,
+              backgroundColor: AppColors.surfaceMuted,
+              minimumSize: const Size(0, 44),
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              side: BorderSide.none,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(26),
+              ),
+            ),
+          ),
         ),
         const SizedBox(width: AppSpacing.xs),
         FilledButton.icon(
@@ -407,7 +426,93 @@ class _HomeHeader extends StatelessWidget {
           style: FilledButton.styleFrom(
             minimumSize: const Size(0, 44),
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+            ),
           ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _FollowingEmptyState extends StatelessWidget {
+  const _FollowingEmptyState({required this.onFindTeams, super.key});
+
+  final VoidCallback onFindTeams;
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+    color: AppColors.page,
+    child: Align(
+      alignment: const Alignment(0, -0.2),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const _FollowingEmptyIllustration(),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              '暂无关注球队',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: AppColors.inkMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            LayoutBuilder(
+              builder: (context, constraints) => SizedBox(
+                width: constraints.maxWidth * .42,
+                height: 42,
+                child: FilledButton(
+                  onPressed: onFindTeams,
+                  style: FilledButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.xl),
+                    ),
+                  ),
+                  child: const Text('快去关注'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _FollowingEmptyIllustration extends StatelessWidget {
+  const _FollowingEmptyIllustration();
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 86,
+    height: 86,
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        const Icon(Icons.shield_rounded, size: 76, color: AppColors.brand),
+        const Icon(Icons.star_rounded, size: 32, color: Colors.white),
+        const Positioned(
+          top: 0,
+          child: Icon(
+            Icons.wb_sunny_outlined,
+            size: 16,
+            color: AppColors.brand,
+          ),
+        ),
+        const Positioned(
+          right: 8,
+          top: 10,
+          child: Icon(Icons.brightness_1, size: 7, color: AppColors.brand),
+        ),
+        const Positioned(
+          left: 7,
+          top: 10,
+          child: Icon(Icons.brightness_1, size: 7, color: AppColors.brand),
         ),
       ],
     ),

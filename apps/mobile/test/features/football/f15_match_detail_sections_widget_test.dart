@@ -89,7 +89,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('球队统计'), findsOneWidget);
       expect(find.text('控球率'), findsOneWidget);
-      expect(find.text('POSSESSION'), findsOneWidget);
+      expect(find.text('组织'), findsOneWidget);
+      expect(find.text('POSSESSION'), findsNothing);
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('match_team_stat_EXTREME')),
@@ -113,7 +114,6 @@ void main() {
       expect(find.textContaining('官方 8.0'), findsOneWidget);
       expect(find.textContaining('用户 8.5'), findsOneWidget);
       expect(find.textContaining('我的 7.5'), findsOneWidget);
-      expect(find.textContaining('8.5-10.0: 2'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -703,6 +703,14 @@ final class _DetailRepository implements MatchDetailRepositoryContract {
     }
     return lineupsVersion == 1 ? _lineups : _updatedLineups;
   }
+
+  @override
+  Future<FootballPage<MatchRelatedContent>> contents(
+    int matchId, {
+    int page = 1,
+    int size = 10,
+    String? contentType,
+  }) async => const FootballPage(records: [], pageNum: 1, pages: 0, total: 0);
 
   @override
   Future<List<MatchTeamStatItem>> stats(int matchId) async {

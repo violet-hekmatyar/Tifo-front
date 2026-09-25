@@ -14,7 +14,7 @@ import 'package:tifo/features/interaction/presentation/controllers/comment_contr
 import 'package:tifo/features/interaction/presentation/widgets/comment_section.dart';
 
 void main() {
-  testWidgets('CMT-01 detail bottom action scrolls to input and focuses it', (
+  testWidgets('CMT-01 content detail opens the full comments composer', (
     tester,
   ) async {
     final repo = _FakeComments()..roots = [_comment(1)];
@@ -31,18 +31,23 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    final scrollable = tester.state<ScrollableState>(
-      find.byType(Scrollable).first,
-    );
-    expect(scrollable.position.pixels, 0);
     await tester.tap(
       find.byKey(const ValueKey('content_detail_comment_action')),
     );
     await tester.pumpAndSettle();
-    expect(scrollable.position.pixels, greaterThan(0));
-    expect(find.byKey(const ValueKey('comment_input')), findsOneWidget);
+    expect(find.text('评论（9）'), findsOneWidget);
+    final inputCapsule = find.byKey(
+      const ValueKey('content_comments_input_capsule'),
+    );
+    final inputTap = find.descendant(
+      of: inputCapsule,
+      matching: find.byType(InkWell),
+    );
+    tester.widget<InkWell>(inputTap).onTap!.call();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('content_comment_input')), findsOneWidget);
     final commentInput = tester.widget<TextField>(
-      find.byKey(const ValueKey('comment_input')),
+      find.byKey(const ValueKey('content_comment_input')),
     );
     expect(commentInput.focusNode?.hasFocus, isTrue);
   });
@@ -501,6 +506,7 @@ final class _DetailRepository implements ContentRepositoryContract {
     required String title,
     required String body,
     required List<int> mediaFileIds,
+    List<ContentRelationInput> relations = const [],
   }) => throw UnimplementedError();
 
   @override

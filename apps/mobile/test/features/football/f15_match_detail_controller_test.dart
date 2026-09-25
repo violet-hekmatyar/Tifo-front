@@ -226,6 +226,13 @@ final class _RatingsRaceRepository implements MatchDetailRepositoryContract {
   @override
   Future<MatchLineups> lineups(int matchId) => throw UnimplementedError();
   @override
+  Future<FootballPage<MatchRelatedContent>> contents(
+    int matchId, {
+    int page = 1,
+    int size = 10,
+    String? contentType,
+  }) => throw UnimplementedError();
+  @override
   Future<List<MatchTeamStatItem>> stats(int matchId) =>
       throw UnimplementedError();
   @override

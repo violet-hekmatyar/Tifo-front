@@ -38,6 +38,14 @@ final commentControllerProvider = ChangeNotifierProvider.autoDispose
             ..load(),
     );
 
+final playerRatingCommentControllerProvider = ChangeNotifierProvider.autoDispose
+    .family<CommentController, int>(
+      (ref, id) => CommentController(
+        id,
+        ref.watch(playerRatingInteractionRepositoryProvider),
+      )..load(),
+    );
+
 final class CommentController extends ChangeNotifier {
   CommentController(this.contentId, this.repository);
   final int contentId;

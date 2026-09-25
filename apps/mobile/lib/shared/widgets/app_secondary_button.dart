@@ -5,12 +5,14 @@ class AppSecondaryButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
+    this.shrinkLabel = false,
     super.key,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
+  final bool shrinkLabel;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -18,7 +20,9 @@ class AppSecondaryButton extends StatelessWidget {
     child: OutlinedButton.icon(
       onPressed: onPressed,
       icon: Icon(icon ?? Icons.arrow_back_rounded),
-      label: Text(label),
+      label: shrinkLabel
+          ? FittedBox(fit: BoxFit.scaleDown, child: Text(label, maxLines: 1))
+          : Text(label),
     ),
   );
 }

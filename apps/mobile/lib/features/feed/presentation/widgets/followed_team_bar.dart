@@ -24,7 +24,7 @@ class FollowedTeamBar extends ConsumerWidget {
     if (teams.isEmpty) return const SizedBox.shrink();
     final config = ref.watch(appConfigProvider);
     return SizedBox(
-      height: 86,
+      height: 72,
       child: ListView.separated(
         key: const ValueKey('followed_team_bar'),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -54,7 +54,7 @@ class FollowedTeamBar extends ConsumerWidget {
               identity: 'team:${team.teamId}',
               name: team.teamName,
               imageUrl: resolveMediaUrl(config, team.logoUrl),
-              size: 42,
+              size: 32,
             ),
           );
         },
@@ -88,8 +88,11 @@ class _TeamButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: Container(
-        width: 66,
-        padding: const EdgeInsets.all(AppSpacing.xs),
+        width: 68,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xs,
+          vertical: 4,
+        ),
         decoration: BoxDecoration(
           color: selected ? AppColors.brandSoft : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -100,7 +103,7 @@ class _TeamButton extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox.square(dimension: 42, child: Center(child: child)),
+            SizedBox.square(dimension: 32, child: Center(child: child)),
             const SizedBox(height: 3),
             Text(
               label,

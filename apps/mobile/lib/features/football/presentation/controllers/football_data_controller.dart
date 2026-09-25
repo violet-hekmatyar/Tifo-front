@@ -18,6 +18,11 @@ final class FollowingSource extends FootballSource {
   const FollowingSource();
 }
 
+final class TeamSource extends FootballSource {
+  const TeamSource(this.teamId);
+  final int teamId;
+}
+
 final class LeagueSource extends FootballSource {
   const LeagueSource(this.leagueId);
   final int leagueId;
@@ -167,6 +172,11 @@ final class FootballDataController extends ChangeNotifier {
       switch (_state.source) {
         ImportantSource() => _repository.importantMatches(page, pageSize),
         FollowingSource() => _repository.followingMatches(page, pageSize),
+        TeamSource(:final teamId) => _repository.teamMatches(
+          teamId,
+          page,
+          pageSize,
+        ),
         LeagueSource(:final leagueId) => _repository.leagueMatches(
           leagueId,
           page,
@@ -215,7 +225,8 @@ final class FootballDataController extends ChangeNotifier {
 
   bool _sameSource(FootballSource a, FootballSource b) =>
       a.runtimeType == b.runtimeType &&
-      (a is! LeagueSource || b is! LeagueSource || a.leagueId == b.leagueId);
+      (a is! LeagueSource || b is! LeagueSource || a.leagueId == b.leagueId) &&
+      (a is! TeamSource || b is! TeamSource || a.teamId == b.teamId);
 
   void _set(FootballDataState value) {
     _state = value;

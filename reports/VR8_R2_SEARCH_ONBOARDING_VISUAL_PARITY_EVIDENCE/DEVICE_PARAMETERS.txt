@@ -1,0 +1,7 @@
+Device: emulator-5554
+ADB: C:\Users\hekmatyar\AppData\Local\Android\Sdk\platform-tools\adb.exe
+Standard physical size: 1080x2400
+360dp evidence physical size: 945x2400 at density 420 (945 / 420 * 160 = 360dp)
+Density after capture: 420
+Font scale after capture: 1.0
+Evidence APK SHA-256: AA726522D8A9AFC6FD6CBA3A9EAC609E521D18E00DABE6C2FF74A991228798F9

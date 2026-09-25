@@ -4,8 +4,13 @@ import '../../../../shared/widgets/app_content_image.dart';
 import '../../domain/content_detail.dart';
 
 class ContentMediaGallery extends StatefulWidget {
-  const ContentMediaGallery({required this.mediaUrls, super.key});
+  const ContentMediaGallery({
+    required this.mediaUrls,
+    this.aspectRatio = 4 / 3,
+    super.key,
+  });
   final List<String> mediaUrls;
+  final double aspectRatio;
   @override
   State<ContentMediaGallery> createState() => _ContentMediaGalleryState();
 }
@@ -18,13 +23,14 @@ class _ContentMediaGalleryState extends State<ContentMediaGallery> {
     return Column(
       children: [
         AspectRatio(
-          aspectRatio: 4 / 3,
+          key: const ValueKey('content_media_hero'),
+          aspectRatio: widget.aspectRatio,
           child: PageView.builder(
             itemCount: widget.mediaUrls.length,
             onPageChanged: (v) => setState(() => index = v),
             itemBuilder: (_, i) => AppContentImage(
               imageUrl: widget.mediaUrls[i],
-              aspectRatio: 4 / 3,
+              aspectRatio: widget.aspectRatio,
             ),
           ),
         ),

@@ -10,6 +10,7 @@ import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../search/domain/search_models.dart';
 import '../../data/content_repository.dart';
 import '../../domain/content_detail.dart';
+import '../../domain/publish_subject.dart';
 import 'publish_post_controller.dart';
 
 enum ArticleEditorStatus { loading, ready, failure }
@@ -62,6 +63,7 @@ final class ArticleEditorState {
     this.cover,
     this.blocks = const [],
     this.relations = const [],
+    this.auxiliaryRelations = const [],
     this.submitting = false,
     this.dirty = false,
     this.message,
@@ -73,6 +75,7 @@ final class ArticleEditorState {
   final ArticleDraftAsset? cover;
   final List<ArticleDraftBlock> blocks;
   final List<SearchEntity> relations;
+  final List<PublishAuxiliaryItem> auxiliaryRelations;
   final bool submitting;
   final bool dirty;
   final String? message;
@@ -161,6 +164,24 @@ final class ArticleEditorController extends ChangeNotifier {
           ),
         );
       }
+      final auxiliaryRelations = detail.relations
+          .where(
+            (relation) =>
+                relation.type == PublishAuxiliaryKind.topic.wireValue ||
+                relation.type == PublishAuxiliaryKind.hotspot.wireValue,
+          )
+          .map((relation) {
+            final kind = relation.type == PublishAuxiliaryKind.topic.wireValue
+                ? PublishAuxiliaryKind.topic
+                : PublishAuxiliaryKind.hotspot;
+            return PublishAuxiliaryItem(
+              id: relation.id,
+              name: relation.name,
+              count: 0,
+              kind: kind,
+            );
+          })
+          .toList(growable: false);
       _setState(
         ArticleEditorState(
           status: ArticleEditorStatus.ready,
@@ -176,6 +197,11 @@ final class ArticleEditorController extends ChangeNotifier {
                 ),
           blocks: blocks,
           relations: detail.relations
+              .where(
+                (relation) =>
+                    relation.type != PublishAuxiliaryKind.topic.wireValue &&
+                    relation.type != PublishAuxiliaryKind.hotspot.wireValue,
+              )
               .map(
                 (relation) => SearchEntity(
                   type: SearchEntityType.fromWire(relation.type),
@@ -185,6 +211,7 @@ final class ArticleEditorController extends ChangeNotifier {
                 ),
               )
               .toList(growable: false),
+          auxiliaryRelations: auxiliaryRelations,
         ),
       );
     } on AppNetworkException catch (error) {
@@ -323,6 +350,28 @@ final class ArticleEditorController extends ChangeNotifier {
     );
   }
 
+  void setAuxiliaryRelation(PublishAuxiliaryItem item) {
+    final next = <PublishAuxiliaryKind, PublishAuxiliaryItem>{
+      for (final relation in state.auxiliaryRelations) relation.kind: relation,
+      item.kind: item,
+    };
+    _copy(
+      auxiliaryRelations: next.values.toList(growable: false),
+      dirty: true,
+      clearMessage: true,
+    );
+  }
+
+  void removeAuxiliaryRelation(PublishAuxiliaryKind kind) {
+    _copy(
+      auxiliaryRelations: state.auxiliaryRelations
+          .where((item) => item.kind != kind)
+          .toList(growable: false),
+      dirty: true,
+      clearMessage: true,
+    );
+  }
+
   Future<int?> submit(String title, String summary) async {
     if (state.submitting) return null;
     final normalizedTitle = title.trim();
@@ -433,15 +482,17 @@ final class ArticleEditorController extends ChangeNotifier {
         summary: normalizedSummary.isEmpty ? null : normalizedSummary,
         coverFileId: cover?.fileId,
         blocks: inputs,
-        relations: state.relations
-            .where((entity) => entity.entityId != null)
-            .map(
-              (entity) => ContentRelationInput(
-                type: entity.type.wireValue,
-                id: entity.entityId!,
+        relations: [
+          ...state.relations
+              .where((entity) => entity.entityId != null)
+              .map(
+                (entity) => ContentRelationInput(
+                  type: entity.type.wireValue,
+                  id: entity.entityId!,
+                ),
               ),
-            )
-            .toList(growable: false),
+          ...state.auxiliaryRelations.map((item) => item.toRelation()),
+        ],
       );
       final id = contentId;
       final result = id == null
@@ -491,6 +542,7 @@ final class ArticleEditorController extends ChangeNotifier {
     ArticleDraftAsset? cover,
     List<ArticleDraftBlock>? blocks,
     List<SearchEntity>? relations,
+    List<PublishAuxiliaryItem>? auxiliaryRelations,
     bool? submitting,
     bool? dirty,
     String? message,
@@ -505,6 +557,7 @@ final class ArticleEditorController extends ChangeNotifier {
         cover: clearCover ? null : cover ?? state.cover,
         blocks: blocks ?? state.blocks,
         relations: relations ?? state.relations,
+        auxiliaryRelations: auxiliaryRelations ?? state.auxiliaryRelations,
         submitting: submitting ?? state.submitting,
         dirty: dirty ?? state.dirty,
         message: clearMessage ? null : message ?? state.message,

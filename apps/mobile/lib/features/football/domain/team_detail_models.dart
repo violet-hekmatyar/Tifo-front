@@ -123,6 +123,50 @@ final class TeamStandingSummary {
   final int? points;
 }
 
+final class TeamCompetitionStanding {
+  const TeamCompetitionStanding({
+    required this.leagueId,
+    required this.leagueName,
+    this.seasonId,
+    this.seasonName,
+    this.stageId,
+    this.rank,
+    this.played,
+    this.won,
+    this.drawn,
+    this.lost,
+    this.goalsFor,
+    this.goalsAgainst,
+    this.goalDifference,
+    this.points,
+  });
+  final int leagueId;
+  final String leagueName;
+  final int? seasonId;
+  final String? seasonName;
+  final int? stageId;
+  final int? rank;
+  final int? played;
+  final int? won;
+  final int? drawn;
+  final int? lost;
+  final int? goalsFor;
+  final int? goalsAgainst;
+  final int? goalDifference;
+  final int? points;
+}
+
+final class TeamLeaderboard {
+  const TeamLeaderboard({
+    required this.rankType,
+    required this.title,
+    this.players = const [],
+  });
+  final String rankType;
+  final String title;
+  final List<TeamRosterPlayer> players;
+}
+
 final class TeamHonor {
   const TeamHonor({
     required this.id,
@@ -183,6 +227,9 @@ final class TeamOverview {
     this.recentMatches = const [],
     this.nextMatch,
     this.recentContents = const [],
+    this.competitionStandings = const [],
+    this.leaderboards = const [],
+    this.honors = const [],
   });
   final int teamId;
   final String teamName;
@@ -202,4 +249,7 @@ final class TeamOverview {
   final List<FootballMatch> recentMatches;
   final FootballMatch? nextMatch;
   final List<TeamContentSummary> recentContents;
+  final List<TeamCompetitionStanding> competitionStandings;
+  final List<TeamLeaderboard> leaderboards;
+  final List<TeamHonor> honors;
 }

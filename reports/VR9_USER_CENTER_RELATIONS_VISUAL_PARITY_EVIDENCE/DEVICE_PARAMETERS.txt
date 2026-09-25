@@ -1,0 +1,19 @@
+ADB: C:\Users\hekmatyar\AppData\Local\Android\Sdk\platform-tools\adb.exe
+Device: emulator-5554 / Pixel_8_API_36
+Standard physical size: 1080x2400
+Density: 420 dpi
+Standard font scale: 1.0
+
+360dp evidence mode:
+- Override size: 945x2100
+- Density: 420 dpi
+- Width calculation: 945 / 420 * 160 = 360dp
+- Font scale: 1.0
+
+140% evidence mode:
+- Physical size: 1080x2400
+- Density: 420 dpi
+- Font scale: 1.4
+
+After evidence capture the emulator was restored to 1080x2400, density 420, font scale 1.0.
+No account password or token is recorded here.

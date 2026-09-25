@@ -52,7 +52,7 @@ void main() {
       expect(tester.takeException(), isNull);
 
       final tabs = <(String, Finder)>[
-        ('team_tab_overview', find.text('当前排名')),
+        ('team_tab_overview', find.text('赛事排名')),
         ('team_tab_contents', find.byKey(const ValueKey('team_content_80'))),
         ('team_tab_players', find.byKey(const ValueKey('team_player_50'))),
         ('team_tab_stats', find.text('射正率')),
@@ -113,6 +113,16 @@ final class _TeamFake implements TeamDetailRepositoryContract {
         teamName: '测试球队',
         leagueName: '测试联赛',
         seasonName: '2026 赛季',
+        competitionStandings: const [
+          TeamCompetitionStanding(
+            leagueId: 10,
+            leagueName: '测试联赛',
+            seasonId: 20,
+            stageId: 30,
+            rank: 2,
+            points: 20,
+          ),
+        ],
         city: '上海',
         stadium: '测试体育场',
         standing: TeamStandingSummary(

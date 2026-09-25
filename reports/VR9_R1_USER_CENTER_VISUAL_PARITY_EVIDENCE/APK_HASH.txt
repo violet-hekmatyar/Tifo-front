@@ -1,0 +1,5 @@
+APK: D:\Football-APP-Front\apps\mobile\build\app\outputs\flutter-apk\app-debug.apk
+SHA-256: AAA8D9E23A8C228BC991D85BA93C52868110C60291D4334EE827CCEDD3A4239A
+Size: 213449431 bytes
+Built: 2026-09-24 09:32:09
+All formal screenshots and comparison images in this directory were generated from this APK.

@@ -1,0 +1,4 @@
+APK: D:\Football-APP-Front\apps\mobile\build\app\outputs\flutter-apk\app-debug.apk
+SHA-256: 59D1334705A3DC0D7C020DA76E0C48CBF5FDB64FCEDAD1E21520FB073F166880
+Build source: current VR9 frontend source, externally built debug APK
+All formal screenshots in this directory were captured from this APK after installation.

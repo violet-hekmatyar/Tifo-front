@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_entity_avatar.dart';
 import '../../../../shared/widgets/app_state_view.dart';
 import '../../domain/user_center_models.dart';
 import '../controllers/user_center_controllers.dart';
+import '../widgets/profile_hero.dart';
 import 'user_list_page.dart';
 
 class MyProfilePage extends ConsumerStatefulWidget {
@@ -49,23 +50,7 @@ class _MyProfilePageState extends ConsumerState<MyProfilePage>
     final controller = ref.watch(myProfileControllerProvider);
     final state = controller.state;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('我的'),
-        actions: [
-          IconButton(
-            key: const ValueKey('my_profile_settings'),
-            tooltip: '设置',
-            onPressed: () => context.push('/settings'),
-            icon: const Icon(Icons.settings_outlined),
-          ),
-          IconButton(
-            key: const ValueKey('my_profile_refresh'),
-            tooltip: '刷新个人主页',
-            onPressed: state.refreshing ? null : controller.refresh,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
-      ),
+      backgroundColor: AppColors.page,
       body: _body(context, controller, state),
     );
   }
@@ -77,67 +62,92 @@ class _MyProfilePageState extends ConsumerState<MyProfilePage>
   ) {
     if (state.summary == null &&
         state.summaryStatus == MyProfileResourceStatus.loading) {
-      return const AppStateView(
-        kind: AppStateKind.loading,
-        title: '正在加载个人主页',
-        message: '正在读取你的资料与统计。',
+      return const SafeArea(
+        child: AppStateView(
+          kind: AppStateKind.loading,
+          title: '正在加载个人主页',
+          message: '正在读取你的资料与统计。',
+        ),
       );
     }
     if (state.summary == null &&
         state.summaryStatus == MyProfileResourceStatus.failure) {
-      return AppStateView(
-        kind: AppStateKind.error,
-        title: '个人主页加载失败',
-        message: state.summaryMessage ?? '请检查网络后重试。',
-        onRetry: controller.retrySummary,
+      return SafeArea(
+        child: AppStateView(
+          kind: AppStateKind.error,
+          title: '个人主页加载失败',
+          message: state.summaryMessage ?? '请检查网络后重试。',
+          onRetry: controller.retrySummary,
+        ),
       );
     }
     final summary = state.summary!;
+    final actions = [
+      ProfileHeroAction(
+        label: '编辑资料',
+        icon: Icons.edit_outlined,
+        onPressed: () => context.push('/users/me/edit', extra: summary),
+      ),
+      ProfileHeroAction(
+        label: '我的关注',
+        icon: Icons.favorite_border_rounded,
+        onPressed: () => context.push('/users/me/relations'),
+      ),
+      ProfileHeroAction(
+        label: '我的粉丝',
+        icon: Icons.people_outline_rounded,
+        onPressed: () => context.push('/users/me/relations'),
+      ),
+    ];
     return Column(
       children: [
-        if (state.refreshing) const LinearProgressIndicator(minHeight: 2),
-        _Header(summary: summary),
-        if (state.summaryMessage != null)
-          _ErrorStrip(
-            message: state.summaryMessage!,
-            onRetry: controller.retrySummary,
-          ),
-        TabBar(
-          controller: _tabs,
-          isScrollable: true,
-          tabs: const [
-            Tab(key: ValueKey('my_tab_stand'), text: '看台'),
-            Tab(key: ValueKey('my_tab_posts'), text: '发布'),
-            Tab(key: ValueKey('my_tab_likes'), text: '点赞'),
-            Tab(key: ValueKey('my_tab_favorites'), text: '收藏'),
-            Tab(key: ValueKey('my_tab_comments'), text: '评论'),
-          ],
+        UserProfileHero(
+          key: const ValueKey('my_profile_hero'),
+          userId: summary.userId,
+          nickname: summary.nickname,
+          username: summary.username,
+          avatarUrl: summary.avatarUrl,
+          bio: summary.bio,
+          mainTeam: summary.mainTeam,
+          contentCount: summary.postCount,
+          followingCount: summary.followingCount,
+          followerCount: summary.followerCount,
+          likeReceivedCount: summary.favoriteCount,
+          actions: actions,
+          onSettings: () => context.push('/settings'),
         ),
+        if (state.summaryMessage case final message?)
+          _ErrorStrip(message: message, onRetry: controller.retrySummary),
+        _ProfileTabs(controller: _tabs),
         Expanded(
           child: PageStorage(
             bucket: _pageStorage,
             child: TabBarView(
               controller: _tabs,
               children: [
-                _StandView(state: state, retry: controller.retryStand),
+                _StandView(
+                  summary: summary,
+                  state: state,
+                  retry: controller.retryStand,
+                ),
                 UserListView(
                   key: const ValueKey('my_list_posts'),
-                  request: UserListRequest(UserListKind.myContents),
+                  request: const UserListRequest(UserListKind.myContents),
                   active: _tabs.index == 1,
                 ),
                 UserListView(
                   key: const ValueKey('my_list_likes'),
-                  request: UserListRequest(UserListKind.myLikes),
+                  request: const UserListRequest(UserListKind.myLikes),
                   active: _tabs.index == 2,
                 ),
                 UserListView(
                   key: const ValueKey('my_list_favorites'),
-                  request: UserListRequest(UserListKind.myFavorites),
+                  request: const UserListRequest(UserListKind.myFavorites),
                   active: _tabs.index == 3,
                 ),
                 UserListView(
                   key: const ValueKey('my_list_comments'),
-                  request: UserListRequest(UserListKind.myComments),
+                  request: const UserListRequest(UserListKind.myComments),
                   active: _tabs.index == 4,
                 ),
               ],
@@ -149,195 +159,39 @@ class _MyProfilePageState extends ConsumerState<MyProfilePage>
   }
 }
 
-class _Header extends ConsumerWidget {
-  const _Header({required this.summary});
-  final MySummary summary;
+class _ProfileTabs extends StatelessWidget {
+  const _ProfileTabs({required this.controller});
+  final TabController controller;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final config = ref.watch(appConfigProvider);
-    final avatar = ref.watch(avatarUpdateControllerProvider);
-    final initial = summary.nickname.trim().isEmpty
-        ? '我'
-        : summary.nickname.characters.first;
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.brandDark, AppColors.brand],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.md,
-          AppSpacing.lg,
-          AppSpacing.lg,
-        ),
-        child: Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppEntityAvatar(
-                  identity: 'user:${summary.userId}',
-                  semanticLabel: '${summary.nickname}头像',
-                  fallbackIcon: Icons.person_outline_rounded,
-                  fallbackText: initial,
-                  imageUrl: resolveMediaUrl(
-                    config,
-                    avatar.state.avatarUrl ?? summary.avatarUrl,
-                  ),
-                  size: 72,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        summary.nickname,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      Text(
-                        '@${summary.username}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                      if (summary.bio case final bio?)
-                        Text(
-                          bio,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      if (summary.mainTeam case final team?)
-                        TextButton.icon(
-                          key: const ValueKey('my_profile_main_team'),
-                          onPressed: team.id > 0
-                              ? () => context.push('/teams/${team.id}')
-                              : null,
-                          icon: const Icon(
-                            Icons.shield_outlined,
-                            color: Colors.white,
-                          ),
-                          label: Text(
-                            '主队：${team.name}',
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              children: [
-                _Count('发布', summary.postCount),
-                _Count(
-                  '关注',
-                  summary.followingCount,
-                  onTap: () => context.push('/users/me/relations'),
-                ),
-                _Count(
-                  '粉丝',
-                  summary.followerCount,
-                  onTap: () => context.push('/users/me/relations'),
-                ),
-                _Count('收藏', summary.favoriteCount),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    key: const ValueKey('edit_profile'),
-                    onPressed: () =>
-                        context.push('/users/me/edit', extra: summary),
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('编辑资料'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    key: const ValueKey('change_avatar'),
-                    onPressed: avatar.state.busy
-                        ? null
-                        : avatar.chooseAndUpload,
-                    icon: avatar.state.busy
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.add_a_photo_outlined),
-                    label: Text(avatar.state.busy ? '上传中' : '换头像'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (avatar.state.message case final message?)
-              Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.sm),
-                child: Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Count extends StatelessWidget {
-  const _Count(this.label, this.value, {this.onTap});
-  final String label;
-  final int value;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => Expanded(
-    child: InkWell(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Text(
-            '$value',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          Text(label, style: const TextStyle(color: Colors.white70)),
-        ],
-      ),
+  Widget build(BuildContext context) => Material(
+    color: AppColors.surface,
+    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+    child: TabBar(
+      controller: controller,
+      labelColor: AppColors.brand,
+      unselectedLabelColor: AppColors.inkMuted,
+      indicatorColor: AppColors.brand,
+      indicatorWeight: 3,
+      indicatorSize: TabBarIndicatorSize.label,
+      tabs: const [
+        Tab(key: ValueKey('my_tab_stand'), text: '看台'),
+        Tab(key: ValueKey('my_tab_posts'), text: '发布'),
+        Tab(key: ValueKey('my_tab_likes'), text: '点赞'),
+        Tab(key: ValueKey('my_tab_favorites'), text: '收藏'),
+        Tab(key: ValueKey('my_tab_comments'), text: '评论'),
+      ],
     ),
   );
 }
 
 class _StandView extends StatelessWidget {
-  const _StandView({required this.state, required this.retry});
+  const _StandView({
+    required this.summary,
+    required this.state,
+    required this.retry,
+  });
+  final MySummary summary;
   final MyProfileState state;
   final VoidCallback retry;
 
@@ -357,82 +211,160 @@ class _StandView extends StatelessWidget {
       );
     }
     final stand = state.stand!;
-    if (stand.teams.isEmpty && stand.players.isEmpty) {
-      return const AppStateView(
-        kind: AppStateKind.empty,
-        title: '看台还是空的',
-        message: '关注球队或球员后，它们会出现在这里。',
-      );
-    }
     return ListView(
       key: const ValueKey('my_stand_scroll'),
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
+        120,
+      ),
       children: [
         if (state.standMessage case final message?)
           _ErrorStrip(message: message, onRetry: retry),
-        _StandSection(
-          title: '关注的球队',
-          items: stand.teams,
-          route: '/teams',
-          icon: Icons.shield_outlined,
+        _StandCard(
+          actionKey: const ValueKey('my_profile_main_team'),
+          title: '我的主队',
+          description: '你心中的那支球队，始终与你同在',
+          icon: Icons.star_rounded,
+          items: summary.mainTeam == null ? const [] : [summary.mainTeam!],
+          onTap: summary.mainTeam == null || summary.mainTeam!.id <= 0
+              ? null
+              : () => context.push('/teams/${summary.mainTeam!.id}'),
         ),
-        _StandSection(
-          title: '关注的球员',
+        _StandCard(
+          title: '我关注的球队',
+          description: '支持的球队，一起见证每一次胜利',
+          icon: Icons.checkroom_rounded,
+          items: stand.teams,
+          onTap: () => context.push('/teams'),
+        ),
+        _StandCard(
+          title: '我关注的球星',
+          description: '那些闪耀的名字，激励着我们前行',
+          icon: Icons.person_rounded,
           items: stand.players,
-          route: '/players',
-          icon: Icons.sports_soccer_rounded,
+          onTap: () => context.push('/players'),
         ),
       ],
     );
   }
 }
 
-class _StandSection extends StatelessWidget {
-  const _StandSection({
+class _StandCard extends ConsumerWidget {
+  const _StandCard({
+    this.actionKey,
     required this.title,
-    required this.items,
-    required this.route,
+    required this.description,
     required this.icon,
+    required this.items,
+    required this.onTap,
   });
+  final Key? actionKey;
   final String title;
-  final List<EntityBrief> items;
-  final String route;
+  final String description;
   final IconData icon;
+  final List<EntityBrief> items;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Card(
-    margin: const EdgeInsets.only(bottom: AppSpacing.md),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(appConfigProvider);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Material(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(22),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                DecoratedBox(
+                  decoration: const BoxDecoration(
+                    color: AppColors.brandSoft,
+                    shape: BoxShape.circle,
+                  ),
+                  child: SizedBox.square(
+                    dimension: 40,
+                    child: Icon(icon, color: AppColors.brand, size: 24),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.inkMuted,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (items.isNotEmpty)
+                  SizedBox(
+                    width: 84,
+                    height: 32,
+                    child: Stack(
+                      alignment: Alignment.centerRight,
+                      children: [
+                        for (var i = 0; i < items.take(3).length; i++)
+                          Positioned(
+                            right: i * 17,
+                            child: AppEntityAvatar(
+                              identity: '$title:${items[i].id}',
+                              semanticLabel: '${items[i].name}图片',
+                              fallbackIcon: Icons.shield_outlined,
+                              fallbackText: items[i].name.characters.first,
+                              imageUrl: resolveMediaUrl(
+                                config,
+                                items[i].imageUrl,
+                              ),
+                              size: 32,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                if (actionKey case final key?)
+                  TextButton(
+                    key: key,
+                    onPressed: onTap,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(40, 40),
+                      padding: EdgeInsets.zero,
+                      foregroundColor: AppColors.inkMuted,
+                    ),
+                    child: const Icon(Icons.chevron_right_rounded),
+                  )
+                else
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.inkMuted,
+                  ),
+              ],
+            ),
+          ),
         ),
-        if (items.isEmpty)
-          const Padding(
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              0,
-              AppSpacing.md,
-              AppSpacing.md,
-            ),
-            child: Text('暂无关注', style: TextStyle(color: AppColors.inkMuted)),
-          )
-        else
-          for (final item in items)
-            ListTile(
-              leading: Icon(icon, color: AppColors.brand),
-              title: Text(item.name),
-              subtitle: item.subtitle == null ? null : Text(item.subtitle!),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: item.id > 0
-                  ? () => context.push('$route/${item.id}')
-                  : null,
-            ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class _ErrorStrip extends StatelessWidget {

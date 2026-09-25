@@ -1,0 +1,83 @@
+{
+  "endpoint": "/api/app/users/me/contents?pageNum=1&pageSize=10",
+  "account": "demo_user_01",
+  "capturedAt": "2026-09-16T18:07:00+08:00",
+  "response": {
+    "code": 0,
+    "message": "success",
+    "data": {
+      "records": [
+        {
+          "contentId": 16000000000000201,
+          "contentType": "POST",
+          "title": "圣西罗夜场的压迫感从哪里开始",
+          "summary": "从边路推进到中场回收，AC米兰的比赛节奏值得细看。",
+          "coverUrl": "/demo/p1-media/cover-stadium.png",
+          "status": "PUBLISHED",
+          "likeCount": 18,
+          "commentCount": 2,
+          "favoriteCount": 7,
+          "publishTime": "2026-09-16T09:20:00",
+          "createTime": "2026-09-16T17:09:25"
+        },
+        {
+          "contentId": 16000000000000001,
+          "contentType": "POST",
+          "title": "阿森纳赛前训练完成，年轻球员进入大名单",
+          "summary": "围绕阿森纳近期表现整理的演示内容，包含比赛背景、关键节点与看台观点。",
+          "coverUrl": "/demo/p1-media/cover-stadium.png",
+          "status": "PUBLISHED",
+          "likeCount": 8,
+          "commentCount": 44,
+          "favoriteCount": 5,
+          "publishTime": "2026-07-20T12:00:00",
+          "createTime": "2026-08-01T14:05:57"
+        },
+        {
+          "contentId": 16000000000000036,
+          "contentType": "ARTICLE",
+          "title": "看台观察：尤文图斯的边路配合渐入佳境",
+          "summary": "围绕尤文图斯近期表现整理的演示内容，包含比赛背景、关键节点与看台观点。",
+          "coverUrl": "/demo/contents/cover-16.svg",
+          "status": "PUBLISHED",
+          "likeCount": 7,
+          "commentCount": 2,
+          "favoriteCount": 8,
+          "publishTime": "2026-07-16T03:00:00",
+          "createTime": "2026-08-01T14:05:57"
+        },
+        {
+          "contentId": 16000000000000071,
+          "contentType": "NEWS",
+          "title": "你认为本场最佳球员是谁？",
+          "summary": "围绕东方十一人近期表现整理的演示内容，包含比赛背景、关键节点与看台观点。",
+          "coverUrl": "/demo/contents/cover-11.svg",
+          "status": "PUBLISHED",
+          "likeCount": 7,
+          "commentCount": 2,
+          "favoriteCount": 5,
+          "publishTime": "2026-07-11T18:00:00",
+          "createTime": "2026-08-01T14:05:57"
+        },
+        {
+          "contentId": 16000000000000106,
+          "contentType": "REPORT",
+          "title": "比赛最后十分钟的节奏变化值得复盘",
+          "summary": "围绕国际米兰近期表现整理的演示内容，包含比赛背景、关键节点与看台观点。",
+          "coverUrl": "/demo/contents/cover-06.svg",
+          "status": "PUBLISHED",
+          "likeCount": 7,
+          "commentCount": 2,
+          "favoriteCount": 4,
+          "publishTime": "2026-07-07T09:00:00",
+          "createTime": "2026-08-01T14:05:57"
+        }
+      ],
+      "total": 0,
+      "pageNum": 1,
+      "pageSize": 10,
+      "pages": 0
+    },
+    "traceId": "5c41b21adc9b4f2bab330e86294e5ae2"
+  }
+}

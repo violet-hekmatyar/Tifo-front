@@ -23,24 +23,24 @@ class MatchCard extends StatelessWidget {
     final status = _status(card.matchStatus);
     return Material(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(AppRadius.md),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: DecoratedBox(
           decoration: BoxDecoration(
             border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
           child: Column(
             children: [
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
+                  horizontal: AppSpacing.sm,
                   vertical: AppSpacing.xs,
                 ),
-                color: AppColors.brand,
+                color: AppColors.brandDark,
                 child: Row(
                   children: [
                     Expanded(
@@ -60,8 +60,8 @@ class MatchCard extends StatelessWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                        color: Colors.white.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(AppRadius.xl),
                       ),
                       child: Text(
                         status.label,
@@ -75,7 +75,10 @@ class MatchCard extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xs,
+                  vertical: AppSpacing.xs,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -85,23 +88,29 @@ class MatchCard extends StatelessWidget {
                     Flexible(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
+                          horizontal: AppSpacing.xs,
                         ),
                         child: Column(
                           children: [
                             Text(
                               card.hasScore
                                   ? '${card.homeScore} : ${card.awayScore}'
-                                  : _time(card.matchTime),
-                              style: Theme.of(context).textTheme.titleLarge
+                                  : _compactTime(card.matchTime),
+                              maxLines: 2,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.headlineSmall
                                   ?.copyWith(
                                     color: status.color,
                                     fontWeight: FontWeight.w800,
+                                    fontSize: 16,
+                                    height: 1.05,
                                   ),
                             ),
                             if (card.hasScore && card.matchTime != null)
                               Text(
-                                _time(card.matchTime),
+                                _compactTime(card.matchTime),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                           ],
@@ -118,12 +127,12 @@ class MatchCard extends StatelessWidget {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.md,
-                    AppSpacing.xs,
-                    AppSpacing.md,
                     AppSpacing.sm,
+                    AppSpacing.xs,
+                    AppSpacing.sm,
+                    AppSpacing.xs,
                   ),
-                  color: AppColors.surfaceMuted,
+                  color: AppColors.brandSoft,
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -131,7 +140,7 @@ class MatchCard extends StatelessWidget {
                         padding: EdgeInsets.only(top: 2),
                         child: Icon(
                           Icons.event_note_outlined,
-                          size: 16,
+                          size: 14,
                           color: AppColors.inkMuted,
                         ),
                       ),
@@ -166,7 +175,7 @@ class _Team extends StatelessWidget {
         identity: 'team:${team.teamId ?? team.teamName}',
         name: team.teamName,
         imageUrl: logoUrl,
-        size: 44,
+        size: 32,
       ),
       const SizedBox(height: AppSpacing.xs),
       Text(
@@ -174,7 +183,7 @@ class _Team extends StatelessWidget {
         textAlign: TextAlign.center,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.labelLarge,
+        style: Theme.of(context).textTheme.labelSmall,
       ),
     ],
   );
@@ -187,8 +196,8 @@ class _Team extends StatelessWidget {
   _ => (label: raw, color: AppColors.inkMuted),
 };
 
-String _time(DateTime? value) {
-  if (value == null) return '时间待定';
-  return '${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')} '
+String _compactTime(DateTime? value) {
+  if (value == null) return '待定';
+  return '${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}\n'
       '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
 }

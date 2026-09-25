@@ -29,15 +29,26 @@ class HotCommentCard extends StatelessWidget {
           label: '热门评论',
         ),
         const SizedBox(height: AppSpacing.sm),
-        Text(
-          '“${card.commentText}”',
-          style: Theme.of(context).textTheme.titleMedium,
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.xs),
+          decoration: BoxDecoration(
+            color: AppColors.brandSoft,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          child: Text(
+            '“${card.commentText}”',
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
         ),
-        if (card.contentTitle case final title?) ...[
+        if (card.contentTitle case final title?
+            when title.trim().isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),
           Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
         ],
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         Row(
           children: [
             AppEntityAvatar(
@@ -98,15 +109,17 @@ class DiscussionCard extends StatelessWidget {
             context,
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
         ),
-        if (card.summary case final summary?) ...[
+        if (card.summary case final summary?
+            when summary.trim().isNotEmpty) ...[
           const SizedBox(height: AppSpacing.xs),
           Text(summary, maxLines: 2, overflow: TextOverflow.ellipsis),
         ],
-        if (card.hotComment case final comment?) ...[
+        if (card.hotComment case final comment?
+            when comment.content.trim().isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.sm),
+            padding: const EdgeInsets.all(AppSpacing.xs),
             decoration: BoxDecoration(
               color: AppColors.surfaceMuted,
               borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -118,7 +131,7 @@ class DiscussionCard extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         Row(
           children: [
             AppEntityAvatar(
@@ -216,7 +229,7 @@ class RankingCard extends StatelessWidget {
               ),
               onTap: onTap,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Row(
                   children: [
                     SizedBox(
@@ -382,16 +395,16 @@ class _CardSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: AppColors.surface,
-    borderRadius: BorderRadius.circular(AppRadius.md),
+    borderRadius: BorderRadius.circular(AppRadius.sm),
     clipBehavior: Clip.antiAlias,
     child: InkWell(
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.sm),
         decoration: BoxDecoration(
           border: Border.all(color: AppColors.border),
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           boxShadow: AppShadows.card,
         ),
         child: child,
@@ -409,8 +422,8 @@ class _CardHeading extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Icon(icon, size: 20, color: AppColors.brand),
-      const SizedBox(width: AppSpacing.xs),
+      Icon(icon, size: 17, color: AppColors.brand),
+      const SizedBox(width: 5),
       Expanded(
         child: Text(
           label,
