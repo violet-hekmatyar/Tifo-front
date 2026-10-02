@@ -1,0 +1,24 @@
+VR9-R2 Android evidence device parameters
+
+Device: emulator-5554 / Pixel_8_API_36
+Density: 420 dpi throughout
+
+Primary comparison screenshots:
+- Physical canvas: 984x2132 px
+- Conversion: 984 / (420/160) = 374.86 dp; 2132 / (420/160) = 811.24 dp
+- Target logical canvas: 375x812 dp; rounding error is below 0.2%
+
+360dp evidence:
+- Physical canvas: 945x2100 px
+- Conversion: 945 / (420/160) = 360 dp
+- Font scale: 1.0
+
+140% evidence:
+- Physical canvas: 1080x2400 px
+- Density: 420 dpi
+- Font scale: 1.4
+
+Restored after capture:
+- Physical size: 1080x2400 px
+- Physical density: 420 dpi
+- Font scale: 1.0
