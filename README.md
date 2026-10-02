@@ -1,76 +1,131 @@
 # 南看台前端 / Tifo Frontend
 
-## F08 Vue 管理员认证与后台框架
+南看台（Tifo）是一款**卡片化足球内容流 + 赛事数据 + 社区互动** App。本仓库为前端工程，包含面向普通用户的 Flutter 移动客户端，以及仅供内部管理员使用的 Vue 管理后台。
 
-Vue 管理后台已接通真实 `/api/auth/login` 与 `/api/auth/me`，仅允许 `roleType=ADMIN` 进入 `/admin/**`。Access Token 集中保存在 `sessionStorage`，Axios 统一注入 Bearer；普通 USER 进入 403。后台包含登录页、可折叠侧栏、顶部管理员菜单、工作台及后续业务模块占位，不展示假统计。
+后端仓库：[violet-hekmatyar/Tifo](https://github.com/violet-hekmatyar/Tifo)
+
+## 产品形态
+
+| 端 | 说明 | 路径 |
+|---|---|---|
+| 移动客户端（Android） | 用户主端，全部业务功能 | `apps/mobile/` |
+| 管理后台（Web） | 内部管理员内容/用户管理 | `apps/admin/` |
+
+当前不建设面向用户的 H5、PWA 或小程序。
+
+## 已实现功能
+
+### 账号与首次偏好
+
+- 用户名密码注册 / 登录，JWT 会话保持与过期引导
+- 登录前用户协议与隐私政策弹层确认
+- 首次进入选择主队、关注球队与关注球星（可随时返回修改）
+
+| 登录 | 首次偏好选择 |
+|---|---|
+| ![登录](docs/images/readme/login.png) | ![首次偏好](docs/images/readme/onboarding.png) |
+
+### 首页推荐流
+
+- 混合信息流：比赛卡、图文资讯、**转会快讯**、积分榜、赛后球员评分、话题讨论、热门评论，按后端组合策略双列瀑布呈现
+- 频道切换：推荐 / 资讯 / 关注；顶部关注球队快捷筛选（横向滚动、完整队名）
+- 搜索与发布入口常驻；比赛卡区分进行中 / 未开始（含日期）/ 已结束
+
+| 推荐流 | 未开始比赛日期显示 |
+|---|---|
+| ![首页推荐流](docs/images/readme/home_feed.png) | ![未开始比赛卡](docs/images/readme/home_scheduled_card_date.png) |
+
+### 数据中心
+
+- 重要 / 关注两个视角，联赛 / 欧冠 / 杯赛三类赛事入口
+- 单行文字球队筛选（选中实心、横向滚动）
+- 赛程按"进行中 → 未开始 → 已结束"分组排序；积分榜 / 球员榜 / 球队榜
+- 杯赛淘汰树入口（当前为"正在开发"占位页，见未实现功能）
+
+| 数据页（关注 + 球队筛选） |
+|---|
+| ![数据中心](docs/images/readme/data_center.png) |
+
+### 比赛 / 球队 / 球员详情
+
+- 比赛详情：总览、事件、统计、**阵型阵容**（双方 11 人按阵型落位）、赛后评分
+- 球队详情：总览（下一场、赛事排名、最新资讯）、帖子、球员、数据、赛程
+- 球员详情：总览、动态、比赛、数据、生涯（按球队 / 赛季）
+
+| 比赛总览 | 阵型阵容 | 球队详情 | 球员详情 |
+|---|---|---|---|
+| ![比赛详情](docs/images/readme/match_detail.png) | ![阵型阵容](docs/images/readme/match_lineup.png) | ![球队详情](docs/images/readme/team_detail.png) | ![球员详情](docs/images/readme/player_detail.png) |
+
+### 内容与社区互动
+
+- 内容详情（图文 / 文章）、评论区与发表评论、点赞 / 收藏、分享面板
+- 发布：帖子与文章两种编辑器，支持图片、话题与热点关联
+- 全局搜索（球队 / 球员 / 内容），搜索空态引导
+
+| 内容详情 | 评论区 | 发布编辑器 | 搜索 |
+|---|---|---|---|
+| ![内容详情](docs/images/readme/content_detail.png) | ![评论](docs/images/readme/comments.png) | ![发布](docs/images/readme/publish.png) | ![搜索](docs/images/readme/search.png) |
+
+### 用户中心与消息
+
+- 我的：看台（主队 / 关注的球队 / 关注的球星）、发布 / 点赞 / 收藏 / 评论分页列表
+- 关注与粉丝列表、关注 / 取关、公开用户主页
+- 消息中心：互动通知（点赞等）
+- 设置与账号安全
+
+| 我的 | 关注列表 | 消息 | 设置 |
+|---|---|---|---|
+| ![我的](docs/images/readme/profile.png) | ![关注列表](docs/images/readme/relations.png) | ![消息](docs/images/readme/messages.png) | ![设置](docs/images/readme/settings.png) |
+
+### 工程与体验能力
+
+- 全部页面由真实后端 API 驱动，不在客户端写死业务数据；演示数据均明确标注"演示"
+- 统一空态插画体系（加载 / 空 / 错误 / 重试 / 无权限）
+- 媒体降级：图片缺失或失败时使用本地中性占位图，不影响布局
+- 响应式：360dp 窄屏与 140% 大字体验证无溢出、无遮挡
+- 视觉以原型逐页验收：60 张原型 53 张通过、7 张既定排除、0 未决
+
+| 空态插画体系 |
+|---|
+| ![空态体系](docs/images/readme/empty_states.png) |
+
+## 未实现功能
+
+以下能力**本期明确不实现**，客户端不提供入口或显示占位，不以假接口伪装完成：
+
+- 手机号验证码登录 / 一键手机号登录
+- 微信登录
+- 私信、聊天会话、IM
+- WebSocket 与 Push 推送
+- 注销账号、修改密码
+- **完整杯赛淘汰树**（后续独立专项：当前仅保留入口与"正在开发"占位页，需后端先建设淘汰树数据模型与查询接口）
+
+已知登记项（不影响使用，见 `reports/VR14_R4_FINAL_EVIDENCE/HOME_DATA_DEVIATION_TABLE.md`）：数据页比赛卡暂无"轮次"信息（后端契约未提供该字段）、数据页日期分组为状态优先排序（产品决策待定）。
+
+## 技术栈（简要）
+
+- 移动客户端：Flutter 3.44 + Dart 3.12，Riverpod 状态管理，go_router 路由
+- 管理后台：Vue 3 + TypeScript + Element Plus
+- 接口契约以后端 Backend V1 为权威，前端只消费不修改
+
+## 快速开始
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f08.ps1
-```
+# 移动客户端（需先启动后端，见后端仓库 README）
+cd apps/mobile
+flutter pub get
+flutter run --debug `
+  --dart-define=APP_ENV=development `
+  --dart-define=API_BASE_URL=http://10.0.2.2:8080
 
-## F07 用户中心、关注与消息基础
-
-Flutter “我的”已接通真实个人摘要、我的发布/收藏/评论、公开用户主页、关注与粉丝分页，以及球队/球员关注管理；内容作者可进入用户主页。我的发布使用专用 `/api/app/users/me/contents`，不依赖推荐 Feed。当前后端没有“我的点赞”列表及消息/通知接口，对应页面明确显示能力暂不可用，不生成假记录。
-
-F07 使用加速检查链，不递归运行 F01–F06 聚合脚本：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f07.ps1
-```
-
-## F06 人工阻塞修正
-
-正式 `/matches/`、`/teams/`、`/players/` 已加入认证路由白名单并使用根 Navigator，详情覆盖主框架且返回来源页。比赛展示统一按“进行中 → 即将开始 → 已结束 → 其他状态”排序；未开始按时间升序，已结束按时间降序，前端不修改后端状态。真实数据不足时由 Mock 多页测试验证自动分页，不向生产环境写假比赛。
-
-南看台前端包含面向普通用户的 Flutter 原生移动 App，以及仅供内部管理员使用的 Vue 3 + TypeScript 管理后台。当前不建设面向用户的 H5、PWA 或小程序。
-
-- 当前阶段：F08（Vue 管理员认证与后台框架）
-- Flutter：`apps/mobile`
-- Vue 管理后台：`apps/admin`
-- 文档入口：[docs/00_DOCUMENT_MAP.md](docs/00_DOCUMENT_MAP.md)
-- 完整结构树：[docs/04_FRONTEND_ARCHITECTURE.md](docs/04_FRONTEND_ARCHITECTURE.md)
-- 本机环境与预览：[docs/12_LOCAL_DEVELOPMENT_ENVIRONMENT.md](docs/12_LOCAL_DEVELOPMENT_ENVIRONMENT.md)
-
-## 日常运行
-
-```powershell
-cd D:\Football-APP-Front\apps\mobile
-flutter devices
-flutter run -d <android-device-id>
-
-cd D:\Football-APP-Front\apps\admin
+# 管理后台
+cd apps/admin
 npm ci
 npm run dev
 ```
 
-## F03 本地后端与客户端预览
+## 文档入口
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\status-local-backend-f03.ps1
-cd apps\mobile
-flutter run -d Pixel_8_API_36 `
-  --dart-define=APP_ENV=development `
-  --dart-define=API_BASE_URL=http://10.0.2.2:8080
-```
-
-F03 已为 Flutter 接入本机真实后端的注册、登录、Access Token 安全存储、冷启动恢复、Bearer 注入、首次偏好选择和本地退出。F04 已将认证完成入口替换为正式四栏主框架，并通过真实 Feed 接口提供首页混合卡片流。Vue 管理后台登录尚未开始，留待 F08。
-
-F03.1 建立的 Design Token、共享组件和稳定图片占位继续作为视觉基础。F04/F05 已接通首页 Feed、内容发布与互动。F06 已将数据 Tab 替换为真实联赛/赛程页，并接通 `/teams/:teamId`、`/players/:playerId`、`/matches/:matchId`。搜索、消息和我的完整业务仍是明确占位。
-
-后端状态管理入口为 `ensure-local-backend-f03.ps1`、`status-local-backend-f03.ps1` 和 `stop-local-backend-f03.ps1`。F06 移动端检查、真实 football smoke 与完整验收分别运行 `check-mobile-f06.ps1`、`smoke-mobile-football-f06.ps1` 和 `check-f06.ps1`。
-
-F05 人工复验修正后，发布成功只替换发布页，详情返回原首页并触发一次真实 Feed 刷新。首页展示按“连续比赛区 → 双列内容区 → 兼容区”分组；这只改变跨类型展示顺序，同类型仍保持后端与分页到达顺序，不修改接口或推荐结果。
-
-F06 只展示后端真实字段。当前后端没有积分榜、球队阵容列表、球员赛季统计、比赛阵容或复杂统计接口，对应页签使用正式空状态；实时比分推送、评分、视频与高级统计均未实现。
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f06.ps1
-```
-
-F06 最终收口取消了首页关注球队卡右上角的独立箭头：真实球队整卡直接进入 `/teams/:teamId`，不会先改变 Feed 球队筛选；“全部”仍只负责恢复全部 Feed。返回后由原页面实例保留 Feed tab、球队筛选、列表与滚动位置。
-
-现实足球文字核验仅输出 `reports/F06_REAL_WORLD_TEXT_DATA_AUDIT.md` 与机器可读 corrections；运行时仍以本机后端 API 为唯一事实源。本轮未处理视觉/媒体资源，未修改后端或数据库，现实数据修正必须另建获授权的后端任务。
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\check-f06-text-data-audit.ps1
-```
+- 文档地图：[docs/00_DOCUMENT_MAP.md](docs/00_DOCUMENT_MAP.md)
+- 项目接手简报：[PROJECT_HANDOFF_KIMI.md](PROJECT_HANDOFF_KIMI.md)
+- 验收报告与证据索引：[reports/README.md](reports/README.md)
