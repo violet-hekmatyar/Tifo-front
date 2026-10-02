@@ -48,9 +48,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('南看台'), findsOneWidget);
     expect(find.byKey(const ValueKey('home_search')), findsOneWidget);
     expect(find.byKey(const ValueKey('home_publish')), findsOneWidget);
+    expect(find.text('搜索球队、球员或内容'), findsOneWidget);
     for (final label in ['推荐', '资讯', '关注']) {
       expect(find.text(label), findsOneWidget);
     }
@@ -62,6 +62,110 @@ void main() {
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -1200));
     await tester.pumpAndSettle();
     expect(find.byType(UnknownCard), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('home toolbar actions and filter tabs remain actionable', (
+    tester,
+  ) async {
+    final controller = FeedController(_TrackingRepository());
+    final router = GoRouter(
+      initialLocation: '/app/home',
+      routes: [
+        GoRoute(path: '/app/home', builder: (_, _) => const HomeFeedPage()),
+        GoRoute(path: '/search', builder: (_, _) => const Text('搜索页')),
+        GoRoute(path: '/publish', builder: (_, _) => const Text('发布页')),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          feedControllerProvider.overrideWith((_) => controller),
+          appConfigProvider.overrideWithValue(
+            AppConfig.fromValues(apiBaseUrl: 'http://localhost:8080'),
+          ),
+        ],
+        child: MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('home_search')));
+    await tester.pumpAndSettle();
+    expect(find.text('搜索页'), findsOneWidget);
+
+    router.go('/app/home');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home_publish')));
+    await tester.pumpAndSettle();
+    expect(find.text('发布页'), findsOneWidget);
+
+    router.go('/app/home');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('feed_filter_news')));
+    await tester.pumpAndSettle();
+    expect(controller.state.filter, FeedFilter.news);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('team navigation keeps management menu visible at 360dp', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final controller = FeedController(_TrackingRepository());
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          feedControllerProvider.overrideWith((_) => controller),
+          appConfigProvider.overrideWithValue(
+            AppConfig.fromValues(apiBaseUrl: 'http://localhost:8080'),
+          ),
+        ],
+        child: MaterialApp(theme: AppTheme.light, home: const HomeFeedPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final menu = find.byKey(const ValueKey('manage_followed_teams'));
+    expect(menu, findsOneWidget);
+    expect(tester.getRect(menu).right, closeTo(358.5, 0.1));
+    expect(find.byType(Image), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('news uses compact single-column cards with optional summaries', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(412, 915);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final controller = FeedController(_NewsRepository());
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          feedControllerProvider.overrideWith((_) => controller),
+          appConfigProvider.overrideWithValue(
+            AppConfig.fromValues(apiBaseUrl: 'http://localhost:8080'),
+          ),
+        ],
+        child: MaterialApp(theme: AppTheme.light, home: const HomeFeedPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('feed_filter_news')));
+    await tester.pumpAndSettle();
+
+    final cards = find.byType(ContentCard);
+    expect(cards, findsNWidgets(2));
+    expect(tester.getSize(cards.first).width, closeTo(396, 0.1));
+    expect(find.textContaining('长摘要'), findsOneWidget);
+    expect(find.text('无摘要资讯'), findsOneWidget);
+    expect(find.byKey(const ValueKey('content_comment_slot')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -79,7 +183,10 @@ void main() {
       final title = tester.widget<Text>(find.text(card.title));
       expect(title.maxLines, 2);
       expect(find.byIcon(Icons.sports_soccer_rounded), findsOneWidget);
-      expect(find.text('帖子'), findsOneWidget);
+      expect(
+        find.image(const AssetImage('assets/ui/home/neutral-football-cover.png')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -154,7 +261,7 @@ void main() {
   }
 
   testWidgets(
-    'scheduled match without score shows time rather than fake score',
+    'scheduled match without score shows date and clock rather than fake score',
     (tester) async {
       await _pumpWidget(
         tester,
@@ -163,10 +270,33 @@ void main() {
           onTap: () {},
         ),
       );
-      expect(find.text('07-17 20:00'), findsOneWidget);
+      expect(find.text('07-17'), findsOneWidget);
+      expect(find.text('20:00'), findsOneWidget);
+      expect(find.byKey(const ValueKey('match_date_label')), findsOneWidget);
+      expect(find.byKey(const ValueKey('match_score_or_clock')), findsOneWidget);
       expect(find.textContaining('0 : 0'), findsNothing);
     },
   );
+
+  testWidgets('compact match keeps scheduled date and clock visible', (
+    tester,
+  ) async {
+    await _pumpWidget(
+      tester,
+      SizedBox(
+        width: 186,
+        child: MatchCard(
+          card: _match(status: 'SCHEDULED'),
+          onTap: () {},
+        ),
+      ),
+    );
+    final match = find.byType(MatchCard);
+    expect(tester.getSize(match).width, closeTo(186, 0.1));
+    expect(find.text('07-17'), findsOneWidget);
+    expect(find.text('20:00'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('unknown card is isolated and readable', (tester) async {
     await _pumpWidget(
@@ -247,7 +377,7 @@ void main() {
   });
 
   testWidgets(
-    'home preserves backend order with full-width non-content cards',
+    'home preserves backend order with mixed cards in the same masonry grid',
     (tester) async {
       tester.view.physicalSize = const Size(412, 2000);
       tester.view.devicePixelRatio = 1;
@@ -273,20 +403,54 @@ void main() {
       );
       expect(find.byType(MatchCard), findsNWidgets(2));
       expect(find.byType(ContentCard), findsNWidgets(2));
-      final firstContentTop = tester
-          .getTopLeft(find.byType(ContentCard).first)
-          .dy;
-      final firstMatchTop = tester.getTopLeft(find.byType(MatchCard).first).dy;
-      expect(firstContentTop, lessThan(firstMatchTop));
-      expect(
-        tester.getSize(find.byType(MatchCard).first).width,
-        greaterThan(tester.getSize(find.byType(ContentCard).first).width * 1.8),
+      expect(find.byType(UnknownCard), findsOneWidget);
+      final masonry = find.byKey(const ValueKey('home_feed_masonry'));
+      expect(masonry, findsOneWidget);
+      final masonryCards = find.descendant(
+        of: masonry,
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is ContentCard ||
+              widget is MatchCard ||
+              widget is UnknownCard,
+        ),
       );
+      expect(masonryCards, findsNWidgets(5));
+      final masonryRect = tester.getRect(masonry);
+      final centerX = masonryRect.center.dx;
+      final leftCards = <Element>[];
+      final rightCards = <Element>[];
+      for (final element in masonryCards.evaluate()) {
+        final rect = tester.getRect(find.byElementPredicate((e) => e == element));
+        if (rect.center.dx < centerX) {
+          leftCards.add(element);
+        } else {
+          rightCards.add(element);
+        }
+      }
+      expect(leftCards, isNotEmpty);
+      expect(rightCards, isNotEmpty);
+      final leftTops = leftCards
+          .map((e) => tester.getRect(find.byElementPredicate((el) => el == e)).top)
+          .toList()
+        ..sort();
+      final rightTops = rightCards
+          .map((e) => tester.getRect(find.byElementPredicate((el) => el == e)).top)
+          .toList()
+        ..sort();
+      expect(leftTops.first, closeTo(rightTops.first, 0.1));
+      final leftWidths = leftCards
+          .map((e) => tester.getRect(find.byElementPredicate((el) => el == e)).width)
+          .toSet();
+      final rightWidths = rightCards
+          .map((e) => tester.getRect(find.byElementPredicate((el) => el == e)).width)
+          .toSet();
+      expect(leftWidths.single, closeTo(rightWidths.single, 0.1));
       expect(tester.takeException(), isNull);
     },
   );
 
-  testWidgets('content masonry keeps independent columns and full-width gaps', (
+  testWidgets('mixed masonry keeps independent columns and compact gaps', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(412, 2400);
@@ -331,9 +495,9 @@ void main() {
     final matches = find.byType(MatchCard);
     expect(matches, findsNWidgets(1));
     final matchRect = tester.getRect(matches.first);
-    expect(matchRect.width, greaterThan(m5.width * 1.8));
-    expect(matchRect.top, greaterThan(m5.bottom));
-    expect(matchRect.bottom, lessThan(m6.top));
+    expect(matchRect.width, closeTo(m5.width, 0.1));
+    expect(matchRect.top, greaterThan(m4.bottom));
+    expect(matchRect.bottom, greaterThan(matchRect.top));
     expect(m7.left, isNot(m6.left));
     expect(m8.left, m6.left);
     expect(find.byType(IntrinsicHeight), findsNothing);
@@ -435,6 +599,45 @@ final class _TrackingRepository implements FeedRepositoryContract {
   Future<List<FollowedTeam>> loadFollowedTeams() async => const [
     FollowedTeam(teamId: 7, teamName: '主队'),
   ];
+}
+
+final class _NewsRepository implements FeedRepositoryContract {
+  @override
+  Future<FeedPage> loadFeed({
+    required FeedFilter filter,
+    required int pageNum,
+    required int pageSize,
+    int? teamId,
+  }) async => FeedPage(
+    cards: [
+      ContentFeedCard(
+        cardId: 'news-1',
+        rawCardType: 'CONTENT',
+        contentId: 101,
+        contentType: 'ARTICLE',
+        title: '资讯标题',
+        summary: '长摘要' * 20,
+        likeCount: 2,
+        commentCount: 1,
+      ),
+      const ContentFeedCard(
+        cardId: 'news-2',
+        rawCardType: 'CONTENT',
+        contentId: 102,
+        contentType: 'ARTICLE',
+        title: '无摘要资讯',
+        likeCount: 1,
+        commentCount: 0,
+      ),
+    ],
+    total: 2,
+    pageNum: 1,
+    pageSize: pageSize,
+    pages: 1,
+  );
+
+  @override
+  Future<List<FollowedTeam>> loadFollowedTeams() async => const [];
 }
 
 ContentFeedCard _content(String id, {String? title}) => ContentFeedCard(

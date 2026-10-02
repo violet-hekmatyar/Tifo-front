@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/network/media_url_resolver.dart';
 import '../../../../core/network/network_exceptions.dart';
-import '../../../../core/network/network_providers.dart';
 import '../../../../shared/design_system/app_design_tokens.dart';
-import '../../../../shared/widgets/app_entity_avatar.dart';
-import '../../../auth/domain/auth_user.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
-import '../../domain/user_center_models.dart';
-import '../controllers/user_center_controllers.dart';
+
+const _settingsSystemUiStyle = SystemUiOverlayStyle(
+  statusBarColor: AppColors.page,
+  statusBarIconBrightness: Brightness.dark,
+  statusBarBrightness: Brightness.light,
+  systemNavigationBarColor: AppColors.page,
+  systemNavigationBarIconBrightness: Brightness.dark,
+  systemNavigationBarDividerColor: AppColors.page,
+  systemNavigationBarContrastEnforced: false,
+);
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({required this.authController, super.key});
@@ -24,22 +29,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _logoutBusy = false;
   String? _message;
 
-  Future<void> _openEditor() async {
-    MySummary? summary = ref.read(mySummaryProvider).value;
-    if (summary == null) {
-      try {
-        summary = await ref.read(mySummaryProvider.future);
-      } on AppNetworkException catch (error) {
-        if (mounted) {
-          setState(() => _message = error.message);
-        }
-        return;
-      } catch (_) {
-        if (mounted) setState(() => _message = '资料加载失败，请稍后重试。');
-        return;
-      }
-    }
-    if (mounted) context.push('/users/me/edit', extra: summary);
+  void _showUnavailable(String title) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('$title暂未开放'),
+          duration: const Duration(milliseconds: 1600),
+        ),
+      );
   }
 
   Future<void> _logout() async {
@@ -70,7 +68,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     });
     try {
       await widget.authController.logout();
-      // GoRouter observes AuthController and redirects to /login.
     } on AppNetworkException catch (error) {
       if (mounted) {
         setState(() {
@@ -90,101 +87,226 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.page,
-      appBar: AppBar(title: const Text('设置')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          children: [
-            _SettingsGroup(
-              children: [
-                _SettingsEntry(
-                  key: const ValueKey('settings_account'),
-                  icon: Icons.account_circle_outlined,
-                  title: '账号与安全',
-                  subtitle: '查看账号信息',
-                  onTap: () => context.push('/settings/account'),
-                ),
-                _SettingsEntry(
-                  key: const ValueKey('settings_edit_profile'),
-                  icon: Icons.edit_outlined,
-                  title: '编辑资料',
-                  subtitle: '修改昵称和简介',
-                  onTap: _openEditor,
-                ),
-                _SettingsEntry(
-                  key: const ValueKey('settings_notifications'),
-                  icon: Icons.notifications_none_rounded,
-                  title: '互动通知',
-                  subtitle: '查看点赞、评论、回复和关注',
-                  onTap: () => context.push('/settings/notifications'),
-                ),
-                _SettingsEntry(
-                  key: const ValueKey('settings_logout'),
-                  icon: Icons.logout_rounded,
-                  title: _logoutBusy ? '退出中…' : '退出登录',
-                  subtitle: _logoutBusy ? '正在清理本地会话' : null,
-                  onTap: _logoutBusy ? null : _logout,
-                  destructive: true,
-                ),
-              ],
-            ),
-            if (_message case final message?)
-              Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.md),
-                child: Text(
-                  message,
-                  key: const ValueKey('settings_feedback'),
-                  style: const TextStyle(color: AppColors.error),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      key: const ValueKey('settings_system_ui'),
+      value: _settingsSystemUiStyle,
+      child: Scaffold(
+        backgroundColor: AppColors.page,
+        body: SafeArea(
+          child: Column(
+            children: [
+              const _SettingsHeader(
+                title: '设置',
+                key: ValueKey('settings_header'),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(10, 26, 10, 32),
+                  children: [
+                    _SettingsGroup(
+                      key: const ValueKey('settings_group'),
+                      dividerPrefix: 'settings_divider',
+                      children: [
+                        _SettingsEntry(
+                          key: const ValueKey('settings_account'),
+                          icon: Icons.shield_outlined,
+                          title: '账号与安全',
+                          onTap: () => context.push('/settings/account'),
+                        ),
+                        _SettingsEntry(
+                          key: const ValueKey('settings_general'),
+                          icon: Icons.settings_outlined,
+                          title: '通用设置',
+                          onTap: () => _showUnavailable('通用设置'),
+                        ),
+                        _SettingsEntry(
+                          key: const ValueKey('settings_notifications'),
+                          icon: Icons.notifications_none_rounded,
+                          title: '通知设置',
+                          onTap: () => _showUnavailable('通知设置'),
+                        ),
+                        _SettingsEntry(
+                          key: const ValueKey('settings_language'),
+                          icon: Icons.translate_rounded,
+                          title: '语言设置',
+                          onTap: () => _showUnavailable('语言设置'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: _LogoutCard(
+                        cardKey: const ValueKey('settings_logout'),
+                        busy: _logoutBusy,
+                        onTap: _logoutBusy ? null : _logout,
+                      ),
+                    ),
+                    if (_message case final message?)
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.md),
+                        child: Text(
+                          message,
+                          key: const ValueKey('settings_feedback'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppColors.error),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class AccountInfoPage extends ConsumerWidget {
+class AccountInfoPage extends StatelessWidget {
   const AccountInfoPage({required this.authController, super.key});
   final AuthController authController;
 
+  void _showUnavailable(BuildContext context, String title) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('$title暂未开放'),
+          duration: const Duration(milliseconds: 1600),
+        ),
+      );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final user = authController.state.user;
-    return Scaffold(
-      backgroundColor: AppColors.page,
-      appBar: AppBar(title: const Text('账号与安全')),
-      body: SafeArea(
-        child: user == null
-            ? const Center(child: Text('账号信息暂不可用'))
-            : ListView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                children: [
-                  _AccountCard(user: user),
-                  const SizedBox(height: AppSpacing.md),
-                  const Text(
-                    '账号安全相关的敏感信息和操作暂不在当前版本开放。',
-                    style: TextStyle(color: AppColors.inkMuted),
-                  ),
-                ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      key: const ValueKey('account_system_ui'),
+      value: _settingsSystemUiStyle,
+      child: Scaffold(
+        backgroundColor: AppColors.page,
+        body: SafeArea(
+          child: Column(
+            children: [
+              const _SettingsHeader(
+                title: '设置',
+                backKey: 'account_back',
+                key: ValueKey('account_header'),
               ),
+              Expanded(
+                child: user == null
+                    ? const Center(child: Text('账号信息暂不可用'))
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(10, 26, 10, 32),
+                        children: [
+                          _SettingsGroup(
+                            key: const ValueKey('account_security_group'),
+                            dividerPrefix: 'account_divider',
+                            children: [
+                              _SecurityEntry(
+                                key: const ValueKey('account_phone'),
+                                label: '手机号',
+                                value: user.phoneMasked ?? '未绑定',
+                                onTap: () => _showUnavailable(context, '手机号换绑'),
+                              ),
+                              _SecurityEntry(
+                                key: const ValueKey('account_password'),
+                                label: '修改密码',
+                                onTap: () => _showUnavailable(context, '修改密码'),
+                              ),
+                              _SecurityEntry(
+                                key: const ValueKey('account_delete'),
+                                label: '注销账号',
+                                onTap: () => _showUnavailable(context, '注销账号'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
+class _SettingsHeader extends StatelessWidget {
+  const _SettingsHeader({
+    required this.title,
+    this.backKey = 'settings_back',
+    super.key,
+  });
+  final String title;
+  final String backKey;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: 56,
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: IconButton(
+            key: ValueKey(backKey),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 19),
+            color: AppColors.ink,
+            onPressed: () {
+              if (context.canPop()) context.pop();
+            },
+          ),
+        ),
+        Text(
+          title,
+          style: const TextStyle(
+            color: AppColors.ink,
+            fontSize: 19.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class _SettingsGroup extends StatelessWidget {
-  const _SettingsGroup({required this.children});
+  const _SettingsGroup({
+    required this.children,
+    required this.dividerPrefix,
+    super.key,
+  });
   final List<Widget> children;
+  final String dividerPrefix;
 
   @override
   Widget build(BuildContext context) => Material(
     color: AppColors.surface,
-    borderRadius: BorderRadius.circular(AppRadius.lg),
+    borderRadius: BorderRadius.circular(AppRadius.md),
     clipBehavior: Clip.antiAlias,
-    child: Column(children: children),
+    child: SizedBox(
+      width: double.infinity,
+      height: children.length * 50,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Column(children: children),
+          for (var index = 1; index < children.length; index++)
+            Positioned(
+              top: index * 50 - 0.5,
+              left: 15,
+              right: 0,
+              child: SizedBox(
+                key: ValueKey('${dividerPrefix}_$index'),
+                height: 1,
+                child: ColoredBox(color: AppColors.border),
+              ),
+            ),
+        ],
+      ),
+    ),
   );
 }
 
@@ -193,109 +315,174 @@ class _SettingsEntry extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.onTap,
-    this.subtitle,
-    this.destructive = false,
     super.key,
   });
   final IconData icon;
   final String title;
-  final String? subtitle;
-  final VoidCallback? onTap;
-  final bool destructive;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => ListTile(
+  Widget build(BuildContext context) => _FixedEntry(
     onTap: onTap,
-    leading: Icon(icon, color: destructive ? AppColors.error : AppColors.brand),
-    title: Text(title),
-    subtitle: subtitle == null ? null : Text(subtitle!),
-    trailing: onTap == null
-        ? const SizedBox.square(
-            dimension: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
-        : const Icon(Icons.chevron_right_rounded),
+    leading: Icon(icon, color: AppColors.ink, size: 21),
+    label: title,
   );
 }
 
-class _AccountCard extends ConsumerWidget {
-  const _AccountCard({required this.user});
-  final AuthUser user;
+class _SecurityEntry extends StatelessWidget {
+  const _SecurityEntry({
+    required this.label,
+    required this.onTap,
+    this.value,
+    super.key,
+  });
+  final String label;
+  final String? value;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final nickname = user.nickname?.trim();
-    final initial = nickname == null || nickname.isEmpty
-        ? user.username.characters.firstOrNull
-        : nickname.characters.first;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Row(
-              children: [
-                AppEntityAvatar(
-                  identity: 'user:${user.id}',
-                  semanticLabel: '${nickname ?? user.username}头像',
-                  fallbackIcon: Icons.person_outline_rounded,
-                  fallbackText: initial,
-                  imageUrl: resolveMediaUrl(
-                    ref.watch(appConfigProvider),
-                    user.avatarUrl,
-                  ),
-                  size: 56,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
+  Widget build(BuildContext context) {
+    final isPhone = key == const ValueKey('account_phone');
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 15, right: 11),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: 120,
                   child: Text(
-                    nickname == null || nickname.isEmpty ? '未设置昵称' : nickname,
-                    maxLines: 2,
+                    label,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: const TextStyle(color: AppColors.ink, fontSize: 15),
                   ),
                 ),
-              ],
-            ),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (value != null)
+                      SizedBox(
+                        width: 132,
+                        child: Text(
+                          value!,
+                          key: isPhone
+                              ? const ValueKey('account_phone_value')
+                              : null,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            color: AppColors.inkMuted,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      key: isPhone
+                          ? const ValueKey('account_phone_arrow')
+                          : null,
+                      color: AppColors.inkMuted,
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          if (nickname != null && nickname.isNotEmpty)
-            _AccountRow(label: '昵称', value: nickname),
-          _AccountRow(label: '用户名', value: user.username),
-          _AccountRow(label: '角色', value: user.roleType),
-          _AccountRow(label: '账号状态', value: user.status),
-          _AccountRow(label: '用户 ID', value: '${user.id}'),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _AccountRow extends StatelessWidget {
-  const _AccountRow({required this.label, required this.value});
+class _FixedEntry extends StatelessWidget {
+  const _FixedEntry({
+    required this.onTap,
+    required this.label,
+    required this.leading,
+  });
+  final VoidCallback onTap;
   final String label;
-  final String value;
+  final Widget leading;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(
-      horizontal: AppSpacing.lg,
-      vertical: AppSpacing.md,
+  Widget build(BuildContext context) => SizedBox(
+    width: double.infinity,
+    height: 50,
+    child: InkWell(
+      onTap: onTap,
+      child: Row(
+        children: [
+          const SizedBox(width: 16),
+          SizedBox(width: 28, child: Center(child: leading)),
+          const SizedBox(width: 7),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.ink,
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ),
+        ],
+      ),
     ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 76,
-          child: Text(label, style: const TextStyle(color: AppColors.inkMuted)),
+  );
+}
+
+class _LogoutCard extends StatelessWidget {
+  const _LogoutCard({
+    required this.busy,
+    required this.onTap,
+    required this.cardKey,
+  });
+  final bool busy;
+  final VoidCallback? onTap;
+  final Key cardKey;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    key: cardKey,
+    width: double.infinity,
+    height: 54,
+    child: Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Center(
+          child: busy
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text(
+                  '退出登录',
+                  style: TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
         ),
-        Expanded(
-          child: Text(value, maxLines: 3, overflow: TextOverflow.ellipsis),
-        ),
-      ],
+      ),
     ),
   );
 }

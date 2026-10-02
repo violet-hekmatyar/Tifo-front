@@ -6,6 +6,7 @@ import 'package:tifo/core/network/backend_v1_contract.dart';
 import 'package:tifo/core/network/network_exceptions.dart';
 import 'package:tifo/features/content/data/content_repository.dart';
 import 'package:tifo/features/content/domain/content_detail.dart';
+import 'package:tifo/features/content/domain/publish_subject.dart';
 import 'package:tifo/features/content/presentation/controllers/article_editor_controller.dart';
 import 'package:tifo/features/content/presentation/controllers/publish_post_controller.dart';
 import 'package:tifo/features/file_upload/data/file_upload_repository.dart';
@@ -41,6 +42,14 @@ void main() {
         _entity(SearchEntityType.player, 10),
         _entity(SearchEntityType.content, 11),
       ]);
+      controller.setAuxiliaryRelation(
+        const PublishAuxiliaryItem(
+          id: 701,
+          name: '英超焦点',
+          count: 12,
+          kind: PublishAuxiliaryKind.topic,
+        ),
+      );
 
       final id = await controller.submit('标题', '摘要');
       final request = contents.created!;
@@ -52,6 +61,7 @@ void main() {
       expect(request.relations.map((relation) => relation.type), [
         'TEAM',
         'PLAYER',
+        'TOPIC',
       ]);
       expect(files.uploads, 2);
     },
@@ -207,6 +217,7 @@ final class _Contents implements ContentRepositoryContract {
     required String title,
     required String body,
     required List<int> mediaFileIds,
+    List<ContentRelationInput> relations = const [],
   }) => throw UnimplementedError();
 }
 

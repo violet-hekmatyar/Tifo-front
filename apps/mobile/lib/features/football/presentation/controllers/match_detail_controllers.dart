@@ -122,6 +122,18 @@ final matchTeamStatsControllerProvider = ChangeNotifierProvider.autoDispose
       ),
     );
 
+final matchContentsControllerProvider = ChangeNotifierProvider.autoDispose
+    .family<MatchResourceController<FootballPage<MatchRelatedContent>>, int>((
+      ref,
+      id,
+    ) {
+      final repository = ref.watch(matchDetailRepositoryProvider);
+      return MatchResourceController(
+        target: '比赛资讯',
+        loader: () => repository.contents(id),
+      );
+    });
+
 final matchPlayerStatsControllerProvider = ChangeNotifierProvider.autoDispose
     .family<MatchPlayerStatsController, int>((ref, id) {
       final repository = ref.watch(matchDetailRepositoryProvider);

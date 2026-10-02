@@ -58,6 +58,8 @@ final class ContentFeedCard extends FeedCard {
     required this.commentCount,
     super.cardKey,
     super.attribution,
+    this.displayType,
+    this.transferBrief,
     this.summary,
     this.coverUrl,
     this.author,
@@ -67,6 +69,8 @@ final class ContentFeedCard extends FeedCard {
 
   final int contentId;
   final String contentType;
+  final String? displayType;
+  final FeedTransferBrief? transferBrief;
   final String title;
   final String? summary;
   final String? coverUrl;
@@ -75,6 +79,36 @@ final class ContentFeedCard extends FeedCard {
   final DateTime? publishTime;
   final int likeCount;
   final int commentCount;
+}
+
+final class FeedTransferBrief {
+  const FeedTransferBrief({
+    required this.playerId,
+    required this.playerName,
+    required this.fromTeamId,
+    required this.fromTeamName,
+    required this.toTeamId,
+    required this.toTeamName,
+    required this.feeLabel,
+    required this.durationLabel,
+    this.playerAvatarUrl,
+    this.fromTeamLogoUrl,
+    this.toTeamLogoUrl,
+    this.playerMeta,
+  });
+
+  final int playerId;
+  final String playerName;
+  final int fromTeamId;
+  final String fromTeamName;
+  final String? fromTeamLogoUrl;
+  final int toTeamId;
+  final String toTeamName;
+  final String? toTeamLogoUrl;
+  final String? playerAvatarUrl;
+  final String? playerMeta;
+  final String feeLabel;
+  final String durationLabel;
 }
 
 final class FeedTeam {

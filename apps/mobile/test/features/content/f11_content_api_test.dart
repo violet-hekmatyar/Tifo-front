@@ -96,6 +96,35 @@ void main() {
       'ARTICLE_FORMAT',
     );
   });
+
+  test('create post sends selected topic and hot-event relations', () async {
+    final body = {
+      'title': '带关联的帖子',
+      'body': '正文',
+      'mediaFileIds': [3],
+      'relationList': [
+        {'relationType': 'TOPIC', 'relationId': 701},
+        {'relationType': 'HOT_EVENT', 'relationId': 715},
+      ],
+    };
+    adapter.onPost(
+      '$base/api/app/contents/posts',
+      (server) =>
+          server.reply(200, _envelope({'contentId': 8, 'title': '带关联的帖子'})),
+      data: body,
+    );
+
+    final result = await api.createPost(
+      title: '带关联的帖子',
+      body: '正文',
+      mediaFileIds: const [3],
+      relations: const [
+        ContentRelationInput(type: 'TOPIC', id: 701),
+        ContentRelationInput(type: 'HOT_EVENT', id: 715),
+      ],
+    );
+    expect(result.contentId, 8);
+  });
 }
 
 Map<String, Object?> _envelope(Object? data) => {

@@ -73,7 +73,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('login_submit')));
       await tester.pumpAndSettle();
-      expect(find.text('请确认协议'), findsOneWidget);
+      expect(find.text('服务协议及隐私保护'), findsOneWidget);
       expect(repository.loginCalls, 0);
       await tester.tap(find.byKey(const ValueKey('auth_agreement_decline')));
       await tester.pumpAndSettle();

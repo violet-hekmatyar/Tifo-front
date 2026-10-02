@@ -12,6 +12,8 @@ final class MatchLineupPlayer {
     this.appeared = false,
     this.substitutedInMinute,
     this.substitutedOutMinute,
+    this.fieldX,
+    this.fieldY,
   });
   final int playerId;
   final String playerName;
@@ -23,6 +25,8 @@ final class MatchLineupPlayer {
   final bool appeared;
   final int? substitutedInMinute;
   final int? substitutedOutMinute;
+  final double? fieldX;
+  final double? fieldY;
 }
 
 final class MatchTeamLineup {
@@ -75,8 +79,8 @@ final class MatchPlayerStat {
     required this.playerId,
     required this.playerName,
     required this.teamId,
-    this.teamName,
     this.avatarUrl,
+    this.teamName,
     this.position,
     this.shirtNumber,
     this.starter = false,
@@ -103,8 +107,8 @@ final class MatchPlayerStat {
   final int playerId;
   final String playerName;
   final int teamId;
-  final String? teamName;
   final String? avatarUrl;
+  final String? teamName;
   final String? position;
   final int? shirtNumber;
   final bool starter;
@@ -134,20 +138,24 @@ final class MatchRatingSummary {
     required this.playerId,
     required this.playerName,
     required this.teamId,
+    this.avatarUrl,
     this.officialRating,
     this.averageRating,
     this.ratingCount = 0,
     this.currentUserRating,
     this.distribution = const {},
+    this.ratingTargetId,
   });
   final int playerId;
   final String playerName;
   final int teamId;
+  final String? avatarUrl;
   final double? officialRating;
   final double? averageRating;
   final int ratingCount;
   final double? currentUserRating;
   final Map<String, int> distribution;
+  final int? ratingTargetId;
 
   MatchRatingSummary copyWith({
     double? myRating,
@@ -159,12 +167,37 @@ final class MatchRatingSummary {
     playerId: playerId,
     playerName: playerName,
     teamId: teamId,
+    avatarUrl: avatarUrl,
     officialRating: officialRating,
     averageRating: clearAverage ? null : average ?? averageRating,
     ratingCount: count ?? ratingCount,
     currentUserRating: clearMine ? null : myRating ?? currentUserRating,
     distribution: distribution,
+    ratingTargetId: ratingTargetId,
   );
+}
+
+final class MatchRelatedContent {
+  const MatchRelatedContent({
+    required this.contentId,
+    this.contentType,
+    required this.title,
+    this.summary,
+    this.coverUrl,
+    this.publishTime,
+    this.likeCount = 0,
+    this.commentCount = 0,
+    this.favoriteCount = 0,
+  });
+  final int contentId;
+  final String? contentType;
+  final String title;
+  final String? summary;
+  final String? coverUrl;
+  final DateTime? publishTime;
+  final int likeCount;
+  final int commentCount;
+  final int favoriteCount;
 }
 
 final class MatchRatingResult {

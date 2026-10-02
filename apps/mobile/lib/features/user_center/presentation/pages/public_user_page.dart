@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/network/media_url_resolver.dart';
-import '../../../../core/network/network_providers.dart';
 import '../../../../shared/design_system/app_design_tokens.dart';
-import '../../../../shared/widgets/app_entity_avatar.dart';
 import '../../../../shared/widgets/app_state_view.dart';
 import '../../domain/user_center_models.dart';
 import '../controllers/user_center_controllers.dart';
+import '../widgets/profile_hero.dart';
 import 'user_list_page.dart';
 
 class PublicUserPage extends ConsumerStatefulWidget {
@@ -52,39 +50,36 @@ class _PublicUserPageState extends ConsumerState<PublicUserPage>
     );
     final state = controller.state;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('用户主页'),
-        actions: [
-          IconButton(
-            key: const ValueKey('public_user_refresh'),
-            tooltip: '刷新用户主页',
-            onPressed: state.refreshing ? null : controller.refresh,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
-      ),
+      backgroundColor: AppColors.page,
       body: switch (state.status) {
-        PublicProfileStatus.loading => const AppStateView(
-          kind: AppStateKind.loading,
-          title: '正在加载用户主页',
-          message: '正在读取公开资料。',
+        PublicProfileStatus.loading => const SafeArea(
+          child: AppStateView(
+            kind: AppStateKind.loading,
+            title: '正在加载用户主页',
+            message: '正在读取公开资料。',
+          ),
         ),
-        PublicProfileStatus.notFound => const AppStateView(
-          kind: AppStateKind.empty,
-          title: '用户不存在',
-          message: '该用户不存在或已停用。',
+        PublicProfileStatus.notFound => const SafeArea(
+          child: AppStateView(
+            kind: AppStateKind.empty,
+            title: '用户不存在',
+            message: '该用户不存在或已停用。',
+          ),
         ),
-        PublicProfileStatus.failure => AppStateView(
-          kind: AppStateKind.error,
-          title: '用户主页加载失败',
-          message: state.message ?? '请稍后重试。',
-          onRetry: controller.load,
+        PublicProfileStatus.failure => SafeArea(
+          child: AppStateView(
+            kind: AppStateKind.error,
+            title: '用户主页加载失败',
+            message: state.message ?? '请稍后重试。',
+            onRetry: controller.load,
+          ),
         ),
         PublicProfileStatus.ready => _Body(
           controller: controller,
           tabs: _tabs,
           activeTab: _tabs.index,
           bucket: _pageStorage,
+          onBack: () => context.pop(),
         ),
       },
     );
@@ -97,30 +92,89 @@ class _Body extends StatelessWidget {
     required this.tabs,
     required this.activeTab,
     required this.bucket,
+    required this.onBack,
   });
   final PublicProfileController controller;
   final TabController tabs;
   final int activeTab;
   final PageStorageBucket bucket;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
     final p = controller.state.profile!;
+    final canFollow =
+        !p.isSelf &&
+        {
+          'NONE',
+          'FOLLOWING',
+          'FOLLOWED_BY',
+          'MUTUAL',
+        }.contains(p.relationStatus);
+    final actions = [
+      ProfileHeroAction(
+        label: p.isSelf ? '本人' : _followActionLabel(p),
+        icon: p.followed
+            ? Icons.person_remove_outlined
+            : Icons.person_add_alt_rounded,
+        busy: controller.state.followBusy,
+        key: canFollow ? const ValueKey('public_user_follow') : null,
+        onPressed: canFollow
+            ? () => _confirmFollow(context, controller, p)
+            : null,
+      ),
+      ProfileHeroAction(
+        label: '他的关注',
+        icon: Icons.favorite_border_rounded,
+        onPressed: () => context.push('/users/${p.userId}/relations'),
+      ),
+      ProfileHeroAction(
+        label: '他的粉丝',
+        icon: Icons.people_outline_rounded,
+        onPressed: () => context.push('/users/${p.userId}/relations'),
+      ),
+    ];
     return Column(
       children: [
-        if (controller.state.refreshing)
-          const LinearProgressIndicator(minHeight: 2),
-        _Header(profile: p, controller: controller),
+        const Text(
+          '用户主页',
+          style: TextStyle(fontSize: 0, height: 0, color: Colors.transparent),
+        ),
+        UserProfileHero(
+          key: const ValueKey('public_profile_hero'),
+          userId: p.userId,
+          nickname: p.nickname,
+          username: p.username,
+          avatarUrl: p.avatarUrl,
+          bio: p.bio,
+          mainTeam: p.mainTeam,
+          contentCount: p.contentCount,
+          followingCount: p.followingCount,
+          followerCount: p.followerCount,
+          likeReceivedCount: p.likeReceivedCount,
+          actions: actions,
+          relationLabel: p.isSelf ? null : p.relationLabel,
+          onBack: onBack,
+          followBusy: controller.state.followBusy,
+        ),
         if (controller.state.message case final message?)
           _ErrorStrip(message: message, onRetry: controller.refresh),
-        TabBar(
-          controller: tabs,
-          isScrollable: true,
-          tabs: const [
-            Tab(key: ValueKey('public_tab_posts'), text: '发布'),
-            Tab(key: ValueKey('public_tab_favorites'), text: '收藏'),
-            Tab(key: ValueKey('public_tab_comments'), text: '评论'),
-          ],
+        Material(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: TabBar(
+            controller: tabs,
+            labelColor: AppColors.brand,
+            unselectedLabelColor: AppColors.inkMuted,
+            indicatorColor: AppColors.brand,
+            indicatorWeight: 3,
+            indicatorSize: TabBarIndicatorSize.label,
+            tabs: const [
+              Tab(key: ValueKey('public_tab_posts'), text: '发布'),
+              Tab(key: ValueKey('public_tab_favorites'), text: '收藏'),
+              Tab(key: ValueKey('public_tab_comments'), text: '评论'),
+            ],
+          ),
         ),
         Expanded(
           child: PageStorage(
@@ -164,127 +218,6 @@ class _Body extends StatelessWidget {
   }
 }
 
-class _Header extends ConsumerWidget {
-  const _Header({required this.profile, required this.controller});
-  final UserProfile profile;
-  final PublicProfileController controller;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final config = ref.watch(appConfigProvider);
-    final canFollow =
-        !profile.isSelf &&
-        {
-          'NONE',
-          'FOLLOWING',
-          'FOLLOWED_BY',
-          'MUTUAL',
-        }.contains(profile.relationStatus);
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.brandDark, AppColors.brand],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          children: [
-            AppEntityAvatar(
-              identity: 'user:${profile.userId}',
-              semanticLabel: '${profile.nickname}头像',
-              fallbackIcon: Icons.person_outline_rounded,
-              fallbackText: profile.nickname,
-              imageUrl: resolveMediaUrl(config, profile.avatarUrl),
-              size: 78,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              profile.nickname,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            Text(
-              '@${profile.username}',
-              style: const TextStyle(color: Colors.white70),
-            ),
-            Text(
-              profile.isSelf ? '本人' : profile.relationLabel,
-              style: const TextStyle(color: Colors.white),
-            ),
-            if (profile.bio case final bio?)
-              Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.sm),
-                child: Text(
-                  bio,
-                  textAlign: TextAlign.center,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            if (profile.mainTeam case final team?)
-              TextButton.icon(
-                key: const ValueKey('public_user_main_team'),
-                onPressed: team.id > 0
-                    ? () => context.push('/teams/${team.id}')
-                    : null,
-                icon: const Icon(Icons.shield_outlined, color: Colors.white),
-                label: Text(
-                  '主队：${team.name}',
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              children: [
-                _Stat('${profile.contentCount}', '发布'),
-                _Stat(
-                  '${profile.followingCount}',
-                  '关注',
-                  onTap: () =>
-                      context.push('/users/${profile.userId}/relations'),
-                ),
-                _Stat(
-                  '${profile.followerCount}',
-                  '粉丝',
-                  onTap: () =>
-                      context.push('/users/${profile.userId}/relations'),
-                ),
-                _Stat('${profile.likeReceivedCount}', '获赞'),
-              ],
-            ),
-            if (canFollow) ...[
-              const SizedBox(height: AppSpacing.md),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  key: const ValueKey('public_user_follow'),
-                  onPressed: controller.state.followBusy
-                      ? null
-                      : () => _confirmFollow(context, controller, profile),
-                  icon: Icon(
-                    profile.followed
-                        ? Icons.person_remove_outlined
-                        : Icons.person_add_alt_rounded,
-                  ),
-                  label: Text(_followActionLabel(profile)),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 String _followActionLabel(UserProfile profile) =>
     switch (profile.relationStatus) {
       'FOLLOWED_BY' => '回关',
@@ -319,34 +252,6 @@ Future<void> _confirmFollow(
     ),
   );
   if (confirmed == true) await controller.toggleFollow();
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat(this.value, this.label, {this.onTap});
-  final String value;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => Expanded(
-    child: InkWell(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          Text(label, style: const TextStyle(color: Colors.white70)),
-        ],
-      ),
-    ),
-  );
 }
 
 class _ErrorStrip extends StatelessWidget {

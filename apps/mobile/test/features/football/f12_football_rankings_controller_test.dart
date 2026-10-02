@@ -81,27 +81,61 @@ void main() {
       expect(controller.state.status, FootballRankingsStatus.ready);
     },
   );
+
+  test(
+    'VR2 selecting a second league keeps all ranking requests on it',
+    () async {
+      final repository = _RankingsRepository();
+      final controller = FootballRankingsController(repository);
+
+      await controller.loadInitial();
+      final initialRequestCount = repository.requestedLeagueIds.length;
+      await controller.selectLeague(11);
+      await controller.selectView(FootballRankingView.players);
+
+      expect(controller.state.selectedLeagueId, 11);
+      expect(
+        repository.requestedLeagueIds.length,
+        greaterThan(initialRequestCount),
+      );
+      expect(
+        repository.requestedLeagueIds.sublist(initialRequestCount),
+        everyElement(11),
+      );
+    },
+  );
 }
 
 final class _RankingsRepository implements FootballRankingsRepositoryContract {
   final List<int> playerPages = [];
+  final List<int> requestedLeagueIds = [];
   PlayerRankType? lastPlayerType;
   Completer<FootballPage<PlayerRankRecord>>? deferredPlayers;
   AppNetworkException? standingError;
   bool emptyStandings = false;
 
   @override
-  Future<List<League>> leagues() async => const [League(id: 10, name: '联赛')];
-
-  @override
-  Future<List<FootballSeason>> seasons(int leagueId) async => const [
-    FootballSeason(id: 21, leagueId: 10, name: '旧赛季', current: false),
-    FootballSeason(id: 20, leagueId: 10, name: '当前赛季', current: true),
+  Future<List<League>> leagues() async => const [
+    League(id: 10, name: '联赛一'),
+    League(id: 11, name: '联赛二'),
   ];
 
   @override
-  Future<List<FootballStage>> stages(int leagueId, int seasonId) async =>
-      seasonId == 20 ? const [FootballStage(id: 30, name: '联赛阶段')] : const [];
+  Future<List<FootballSeason>> seasons(int leagueId) async {
+    requestedLeagueIds.add(leagueId);
+    return [
+      FootballSeason(id: 21, leagueId: leagueId, name: '旧赛季', current: false),
+      FootballSeason(id: 20, leagueId: leagueId, name: '当前赛季', current: true),
+    ];
+  }
+
+  @override
+  Future<List<FootballStage>> stages(int leagueId, int seasonId) async {
+    requestedLeagueIds.add(leagueId);
+    return seasonId == 20
+        ? const [FootballStage(id: 30, name: '联赛阶段')]
+        : const [];
+  }
 
   @override
   Future<StandingTable> standings({
@@ -110,6 +144,7 @@ final class _RankingsRepository implements FootballRankingsRepositoryContract {
     int? stageId,
     String? groupCode,
   }) async {
+    requestedLeagueIds.add(leagueId);
     if (standingError case final error?) throw error;
     return StandingTable(
       leagueId: 10,
@@ -144,6 +179,7 @@ final class _RankingsRepository implements FootballRankingsRepositoryContract {
     required int size,
     int? stageId,
   }) {
+    requestedLeagueIds.add(leagueId);
     playerPages.add(page);
     lastPlayerType = rankType;
     if (deferredPlayers case final deferred?) {
@@ -170,12 +206,15 @@ final class _RankingsRepository implements FootballRankingsRepositoryContract {
     required int page,
     required int size,
     int? stageId,
-  }) async => const FootballPage(
-    records: [TeamRankRecord(rank: 1, teamId: 40, teamName: '球队')],
-    pageNum: 1,
-    pages: 1,
-    total: 1,
-  );
+  }) async {
+    requestedLeagueIds.add(leagueId);
+    return const FootballPage(
+      records: [TeamRankRecord(rank: 1, teamId: 40, teamName: '球队')],
+      pageNum: 1,
+      pages: 1,
+      total: 1,
+    );
+  }
 }
 
 FootballPage<PlayerRankRecord> _playerPage(

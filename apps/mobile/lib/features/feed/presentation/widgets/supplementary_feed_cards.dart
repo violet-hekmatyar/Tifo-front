@@ -28,16 +28,27 @@ class HotCommentCard extends StatelessWidget {
           icon: Icons.local_fire_department_rounded,
           label: '热门评论',
         ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          '“${card.commentText}”',
-          style: Theme.of(context).textTheme.titleMedium,
+        const SizedBox(height: 6),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.xs),
+          decoration: BoxDecoration(
+            color: AppColors.brandSoft,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          child: Text(
+            '“${card.commentText}”',
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
         ),
-        if (card.contentTitle case final title?) ...[
+        if (card.contentTitle case final title?
+            when title.trim().isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),
           Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
         ],
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         Row(
           children: [
             AppEntityAvatar(
@@ -90,35 +101,78 @@ class DiscussionCard extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _CardHeading(icon: Icons.forum_rounded, label: '正在热议'),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          card.title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+        Container(
+          key: const ValueKey('discussion_topic_panel'),
+          width: double.infinity,
+          padding: const EdgeInsets.all(9),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF2355BA), Color(0xFF3975E5)],
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.add_circle_outline, color: Colors.white, size: 14),
+                  SizedBox(width: 4),
+                  Text(
+                    '话题讨论',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                card.title,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  height: 1.3,
+                ),
+              ),
+              if (card.summary case final summary?
+                  when summary.trim().isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  summary,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white70, fontSize: 10),
+                ),
+              ],
+            ],
+          ),
         ),
-        if (card.summary case final summary?) ...[
-          const SizedBox(height: AppSpacing.xs),
-          Text(summary, maxLines: 2, overflow: TextOverflow.ellipsis),
-        ],
-        if (card.hotComment case final comment?) ...[
-          const SizedBox(height: AppSpacing.sm),
+        if (card.hotComment case final comment?
+            when comment.content.trim().isNotEmpty) ...[
+          const SizedBox(height: 6),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.sm),
+            padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: AppColors.surfaceMuted,
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.border),
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Text(
-              '${comment.nickname ?? '用户'}：${comment.content}',
+              '热门评论  ${comment.nickname ?? '用户'}：${comment.content}',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 10, height: 1.3),
             ),
           ),
         ],
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: 7),
         Row(
           children: [
             AppEntityAvatar(
@@ -179,20 +233,43 @@ class RankingCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _CardHeading(icon: Icons.leaderboard_rounded, label: card.title),
-        if (card.leagueName case final league?) ...[
-          const SizedBox(height: AppSpacing.xxs),
-          Text(
-            league,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: AppColors.inkMuted),
-          ),
-        ],
         const SizedBox(height: AppSpacing.sm),
+        Row(
+          children: [
+            SizedBox(
+              width: 28,
+              child: Text(
+                '排名',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.inkMuted,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: Text(
+                '球队',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.inkMuted,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Text(
+              '积分',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.inkMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xs),
         if (card.items.isEmpty)
           const Text('当前暂无排名数据')
         else
-          ...card.items.take(5).map((item) {
+          ...card.items.take(4).map((item) {
             final isPlayer = card.rankingType == 'PLAYER';
             final isTeam =
                 card.rankingType == 'STANDING' || card.rankingType == 'TEAM';
@@ -216,7 +293,7 @@ class RankingCard extends StatelessWidget {
               ),
               onTap: onTap,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                padding: const EdgeInsets.symmetric(vertical: 3),
                 child: Row(
                   children: [
                     SizedBox(
@@ -244,8 +321,8 @@ class RankingCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         item.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                        softWrap: true,
                       ),
                     ),
                     Text(
@@ -283,7 +360,7 @@ class PlayerRatingCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _CardHeading(icon: Icons.star_rounded, label: '赛后球员评分'),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: 6),
         Row(
           children: [
             Expanded(
@@ -302,7 +379,7 @@ class PlayerRatingCard extends StatelessWidget {
                     : '${card.homeScore} : ${card.awayScore}',
                 style: Theme.of(
                   context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
             ),
             Expanded(
@@ -314,7 +391,7 @@ class PlayerRatingCard extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: 6),
         if (card.topPlayers.isEmpty)
           const Text('当前暂无球员评分')
         else
@@ -326,16 +403,14 @@ class PlayerRatingCard extends StatelessWidget {
                       ? null
                       : () => onPlayerTap!(player.playerId),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppSpacing.xs,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 3),
                     child: Row(
                       children: [
                         AppPlayerAvatar(
                           identity: 'player:${player.playerId}',
                           name: player.playerName,
                           imageUrl: resolveImage(player.avatarUrl),
-                          size: 32,
+                          size: 36,
                         ),
                         const SizedBox(width: AppSpacing.xs),
                         Expanded(
@@ -359,15 +434,55 @@ class PlayerRatingCard extends StatelessWidget {
                   ),
                 ),
               ),
-        if (card.ratingUserCount > 0) ...[
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            '${card.ratingUserCount} 人参与评分',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: AppColors.inkMuted),
+        if (card.topPlayers.isNotEmpty) ...[
+          const SizedBox(height: 3),
+          Row(
+            children: [
+              for (var index = 0; index < 5; index++)
+                Icon(
+                  Icons.star_rounded,
+                  size: 15,
+                  color:
+                      index <
+                          ((card.topPlayers.first.userRatingAverage ??
+                                      card.topPlayers.first.officialRating ??
+                                      0) /
+                                  2)
+                              .round()
+                      ? const Color(0xFFFFC928)
+                      : AppColors.border,
+                ),
+              const SizedBox(width: 4),
+              Text(
+                (card.topPlayers.first.userRatingAverage ??
+                            card.topPlayers.first.officialRating)
+                        ?.toStringAsFixed(1) ??
+                    '暂无',
+                style: const TextStyle(
+                  color: AppColors.brand,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              if (card.ratingUserCount > 0)
+                Text(
+                  '${card.ratingUserCount} 人评分',
+                  style: const TextStyle(
+                    color: AppColors.inkMuted,
+                    fontSize: 9,
+                  ),
+                ),
+            ],
           ),
         ],
+        const SizedBox(height: 5),
+        Text(
+          '${card.leagueName ?? '比赛'}  ${card.homeTeam.teamName} ${card.homeScore ?? '-'} : ${card.awayScore ?? '-'} ${card.awayTeam.teamName}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: AppColors.inkMuted, fontSize: 9),
+        ),
       ],
     ),
   );
@@ -382,16 +497,16 @@ class _CardSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: AppColors.surface,
-    borderRadius: BorderRadius.circular(AppRadius.md),
+    borderRadius: BorderRadius.circular(AppRadius.sm),
     clipBehavior: Clip.antiAlias,
     child: InkWell(
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           border: Border.all(color: AppColors.border),
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           boxShadow: AppShadows.card,
         ),
         child: child,
@@ -409,8 +524,8 @@ class _CardHeading extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Icon(icon, size: 20, color: AppColors.brand),
-      const SizedBox(width: AppSpacing.xs),
+      Icon(icon, size: 17, color: AppColors.brand),
+      const SizedBox(width: 5),
       Expanded(
         child: Text(
           label,

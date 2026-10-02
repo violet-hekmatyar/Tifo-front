@@ -28,7 +28,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.path, '/messages');
-    expect(find.text('暂无互动通知'), findsOneWidget);
+    expect(find.text('暂无互动消息'), findsOneWidget);
   });
 
   testWidgets('my likes route uses the real paged page', (tester) async {

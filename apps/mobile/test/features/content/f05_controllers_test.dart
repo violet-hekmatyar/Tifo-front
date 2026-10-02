@@ -195,6 +195,7 @@ final class _ContentRepo implements ContentRepositoryContract {
     required String title,
     required String body,
     required List<int> mediaFileIds,
+    List<ContentRelationInput> relations = const [],
   }) async {
     created++;
     lastMedia = mediaFileIds;

@@ -86,6 +86,11 @@ void main() {
           (server) => server.reply(200, _result(null)),
           data: {'nickname': '新昵称', 'bio': '新简介'},
         )
+        ..onPut(
+          '$base/api/app/users/me/profile',
+          (server) => server.reply(200, _result(null)),
+          data: {'mainTeamId': 40},
+        )
         ..onPost(
           '$base/api/app/users/me/avatar',
           (server) =>
@@ -165,6 +170,7 @@ void main() {
       final stand = await api.stand();
       final profile = await api.profile(22);
       await api.updateProfile(nickname: '新昵称', bio: '新简介');
+      await api.setMainTeam(40);
       expect(summary.bio, isNull);
       expect(summary.playerFollowCount, 8);
       expect(stand.teams.single.id, 40);

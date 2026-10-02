@@ -6,12 +6,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tifo/app/config/app_config.dart';
 import 'package:tifo/app/theme/app_theme.dart';
+import 'package:tifo/shared/widgets/app_team_logo.dart';
 import 'package:tifo/core/network/network_exceptions.dart';
 import 'package:tifo/core/network/network_providers.dart';
 import 'package:tifo/features/football/data/football_repository.dart';
 import 'package:tifo/features/football/data/team_detail_repository.dart';
 import 'package:tifo/features/football/domain/football_models.dart';
 import 'package:tifo/features/football/domain/team_detail_models.dart';
+import 'package:tifo/features/feed/data/feed_repository.dart';
+import 'package:tifo/features/feed/domain/feed_filter.dart';
+import 'package:tifo/features/feed/domain/feed_page.dart';
 import 'package:tifo/features/football/presentation/controllers/football_data_controller.dart';
 import 'package:tifo/features/football/presentation/pages/football_data_page.dart';
 import 'package:tifo/features/football/presentation/pages/match_detail_page.dart';
@@ -27,16 +31,109 @@ void main() {
     final controller = FootballDataController(repository);
     await _pumpData(tester, repository, controller);
     await tester.pumpAndSettle();
-    expect(find.text('数据'), findsOneWidget);
     expect(find.text('重要'), findsOneWidget);
     expect(find.text('关注'), findsOneWidget);
-    expect(find.text('测试联赛'), findsWidgets);
+    expect(find.text('联赛'), findsOneWidget);
+    expect(find.byKey(const ValueKey('knockout_tree_entry')), findsOneWidget);
     expect(find.text('2026-07-18'), findsOneWidget);
     expect(find.text('足球数据入口已建立'), findsNothing);
 
-    await tester.tap(find.text('测试联赛').first);
+    await tester.tap(find.byKey(const ValueKey('data_competition_league')));
+    await tester.pumpAndSettle();
+    expect(find.text('测试联赛'), findsNWidgets(2));
+    await tester.tap(find.byKey(const ValueKey('data_league_10003')));
     await tester.pumpAndSettle();
     expect(repository.leagueLoads, 1);
+  });
+
+  testWidgets('VR2 data shell keeps the fixed menu visible at 360dp', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = _WidgetFootballRepository();
+    final controller = FootballDataController(repository);
+    await _pumpData(tester, repository, controller);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('knockout_tree_entry')), findsOneWidget);
+    expect(find.text('重要'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('VR2 following schedule exposes team filters and team source', (
+    tester,
+  ) async {
+    final repository = _WidgetFootballRepository();
+    final controller = FootballDataController(repository);
+    await _pumpData(
+      tester,
+      repository,
+      controller,
+      feedRepository: _WidgetFeedRepository(),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('关注'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('followed_team_bar')), findsOneWidget);
+    expect(find.text('阿森纳'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('followed_team_30001')));
+    await tester.pumpAndSettle();
+    expect(controller.state.source, isA<TeamSource>());
+    expect(repository.teamLoads, 1);
+
+    await tester.tap(find.text('全部'));
+    await tester.pumpAndSettle();
+    expect(controller.state.source, isA<FollowingSource>());
+  });
+
+  testWidgets('VR14 R2 keeps following controls compact with menu visible', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(375, 891);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = _WidgetFootballRepository();
+    final controller = FootballDataController(repository);
+    await _pumpData(
+      tester,
+      repository,
+      controller,
+      feedRepository: _WidgetFeedRepository(),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('关注').first);
+    await tester.pumpAndSettle();
+    final leagueEntry = tester.getRect(
+      find.byKey(const ValueKey('data_competition_league')),
+    );
+    final menu = tester.getRect(
+      find.byKey(const ValueKey('knockout_tree_entry')),
+    );
+    expect(leagueEntry.width, lessThanOrEqualTo(64));
+    expect(find.text('欧冠'), findsOneWidget);
+    expect(find.text('杯赛'), findsOneWidget);
+    expect(menu.right, closeTo(375, 1));
+    expect(leagueEntry.height, closeTo(48, 1), reason: '赛事分类入口保持原型的紧凑单行高度');
+    expect(find.byKey(const ValueKey('followed_team_bar')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('followed_team_bar'))).height,
+      40,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('followed_team_bar')),
+        matching: find.byType(AppTeamLogo),
+      ),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(
@@ -177,13 +274,16 @@ final _configOverride = appConfigProvider.overrideWithValue(
 Future<void> _pumpData(
   WidgetTester tester,
   FootballRepositoryContract repository,
-  FootballDataController controller,
-) => tester.pumpWidget(
+  FootballDataController controller, {
+  FeedRepositoryContract? feedRepository,
+}) => tester.pumpWidget(
   ProviderScope(
     overrides: [
       _configOverride,
       footballRepositoryProvider.overrideWithValue(repository),
       footballDataControllerProvider.overrideWith((_) => controller),
+      if (feedRepository != null)
+        feedRepositoryProvider.overrideWithValue(feedRepository),
     ],
     child: MaterialApp(theme: AppTheme.light, home: const FootballDataPage()),
   ),
@@ -247,6 +347,7 @@ final class _WidgetFootballRepository
   final AppNetworkException? detailError;
   AppNetworkException? error;
   int leagueLoads = 0;
+  int teamLoads = 0;
 
   void _checkDetail() {
     if (detailError case final value?) throw value;
@@ -281,7 +382,11 @@ final class _WidgetFootballRepository
     int id,
     int page,
     int size,
-  ) async => _page([_match()]);
+  ) async {
+    teamLoads++;
+    return _page([_match()]);
+  }
+
   @override
   Future<MatchDetail> matchDetail(int id) async {
     _checkDetail();
@@ -384,6 +489,23 @@ final class _WidgetFootballRepository
     int page,
     int size,
   ) async => const FootballPage(records: [], pageNum: 1, pages: 1, total: 0);
+}
+
+final class _WidgetFeedRepository implements FeedRepositoryContract {
+  @override
+  Future<FeedPage> loadFeed({
+    required FeedFilter filter,
+    required int pageNum,
+    required int pageSize,
+    int? teamId,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<List<FollowedTeam>> loadFollowedTeams() async => const [
+    FollowedTeam(teamId: 30001, teamName: '阿森纳'),
+    FollowedTeam(teamId: 30002, teamName: '巴塞罗那'),
+    FollowedTeam(teamId: 30003, teamName: '利物浦'),
+  ];
 }
 
 final class _PagedWidgetRepository implements FootballRepositoryContract {

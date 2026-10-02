@@ -7,6 +7,7 @@ import '../../../../core/network/network_providers.dart';
 import '../../../../shared/design_system/app_design_tokens.dart';
 import '../../../../shared/widgets/app_entity_avatar.dart';
 import '../../../../shared/widgets/app_state_view.dart';
+import '../../../../shared/widgets/app_state_illustration.dart';
 import '../../data/user_center_repository.dart';
 import '../../domain/user_center_models.dart';
 import '../controllers/user_center_controllers.dart';
@@ -113,6 +114,9 @@ class _FollowedEntitiesPageState extends ConsumerState<FollowedEntitiesPage> {
                       kind: AppStateKind.empty,
                       title: '暂无$title',
                       message: '你还没有关注任何${widget.teams ? '球队' : '球员'}。',
+                      illustration: widget.teams
+                          ? AppStateIllustrationType.noFollowingTeams
+                          : AppStateIllustrationType.noFollowing,
                     ),
                   ),
                 ],

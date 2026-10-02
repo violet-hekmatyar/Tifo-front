@@ -9,6 +9,8 @@ import 'package:tifo/features/football/domain/football_models.dart';
 import 'package:tifo/features/football/domain/football_ranking_models.dart';
 import 'package:tifo/features/football/presentation/controllers/football_rankings_controller.dart';
 import 'package:tifo/features/football/presentation/widgets/football_rankings_widgets.dart';
+import 'package:tifo/shared/widgets/app_player_avatar.dart';
+import 'package:tifo/shared/widgets/app_team_logo.dart';
 
 void main() {
   testWidgets('DAT-03 ranking filters fit narrow widths and large text', (
@@ -69,6 +71,85 @@ void main() {
         );
       }
     }
+  });
+
+  testWidgets('VR2-R2 season control owns stage selection and section order', (
+    tester,
+  ) async {
+    final controller = FootballRankingsController(_NoopRankingsRepository());
+    addTearDown(controller.dispose);
+    const state = FootballRankingsState(
+      status: FootballRankingsStatus.ready,
+      seasons: [
+        FootballSeason(id: 2, leagueId: 1, name: '2025/26赛季', current: true),
+      ],
+      stages: [FootballStage(id: 3, name: '联赛阶段')],
+      selectedLeagueId: 1,
+      selectedSeasonId: 2,
+      selectedStageId: 3,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: RankingContextBar(
+            state: state,
+            controller: controller,
+            trailing: [
+              SectionButton(
+                key: const ValueKey('data_section_schedule'),
+                label: '赛程',
+                selected: true,
+                onTap: () {},
+              ),
+              SectionButton(
+                key: const ValueKey('data_section_standings'),
+                label: '积分榜',
+                selected: false,
+                onTap: () {},
+              ),
+              SectionButton(
+                key: const ValueKey('data_section_players'),
+                label: '球员榜',
+                selected: false,
+                onTap: () {},
+              ),
+              SectionButton(
+                key: const ValueKey('data_section_teams'),
+                label: '球队榜',
+                selected: false,
+                onTap: () {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('ranking_filter_season')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ranking_filter_stage')), findsNothing);
+    final season = tester.getRect(
+      find.byKey(const ValueKey('ranking_filter_season')),
+    );
+    final schedule = tester.getRect(
+      find.byKey(const ValueKey('data_section_schedule')),
+    );
+    expect(season.left, lessThan(schedule.left));
+    expect(find.text('赛程'), findsOneWidget);
+    expect(find.text('积分榜'), findsOneWidget);
+    expect(find.text('球员榜'), findsOneWidget);
+    expect(find.text('球队榜'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('ranking_filter_season')));
+    await tester.pumpAndSettle();
+    expect(find.text('选择赛季与阶段'), findsOneWidget);
+    expect(find.text('2025/26赛季'), findsWidgets);
+    expect(find.text('联赛阶段'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('ranking_stage_option_all')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('DAT-07 standings columns and player rows navigate correctly', (
@@ -138,6 +219,112 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('ranking_player_50')));
     await tester.pumpAndSettle();
     expect(find.text('球员 50'), findsOneWidget);
+  });
+
+  testWidgets('VR2 standings keep goals and points visible at 360dp', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appConfigProvider.overrideWithValue(
+            AppConfig.fromValues(apiBaseUrl: 'http://localhost:8080'),
+          ),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(body: StandingsList(table: _table)),
+        ),
+      ),
+    );
+    await tester.pump();
+    final header = tester.getRect(
+      find.byKey(const ValueKey('standing_points_header')),
+    );
+    final points = tester.getRect(
+      find.byKey(const ValueKey('standing_points_40')),
+    );
+    expect(find.text('进/失球'), findsOneWidget);
+    expect(find.text('积分'), findsOneWidget);
+    expect(header.right, lessThanOrEqualTo(360));
+    expect(points.right, lessThanOrEqualTo(360));
+  });
+
+  testWidgets('VR2 ranking rows start directly below the header', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appConfigProvider.overrideWithValue(
+            AppConfig.fromValues(apiBaseUrl: 'http://localhost:8080'),
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 320,
+              child: PlayerRankingList(
+                state: const FootballRankingsState(
+                  status: FootballRankingsStatus.ready,
+                  view: FootballRankingView.players,
+                  playerRecords: [
+                    PlayerRankRecord(
+                      rank: 1,
+                      playerId: 50,
+                      playerName: '测试球员',
+                      teamName: '测试球队',
+                      displayValue: '8',
+                    ),
+                  ],
+                ),
+                onLoadMore: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    final header = tester.getRect(find.byKey(const ValueKey('ranking_header')));
+    final row = tester.getRect(find.byKey(const ValueKey('ranking_player_50')));
+    expect(row.top, closeTo(header.bottom, 1));
+  });
+
+  testWidgets('VR2 player and team avatars use distinct fallbacks', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appConfigProvider.overrideWithValue(
+            AppConfig.fromValues(apiBaseUrl: 'http://localhost:8080'),
+          ),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: Row(
+              children: [
+                AppPlayerAvatar(identity: 'player:1', name: '球员'),
+                AppTeamLogo(identity: 'team:1', name: '球队'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    final assets = tester
+        .widgetList<Image>(find.byType(Image))
+        .map((image) => image.image)
+        .whereType<AssetImage>()
+        .map((image) => image.assetName)
+        .toSet();
+    expect(assets, contains('assets/ui/football/neutral-player-avatar.png'));
+    expect(assets, contains('assets/ui/home/neutral-team-crest.png'));
   });
 
   testWidgets('DAT-08 invalid ranking IDs render safely without navigation', (

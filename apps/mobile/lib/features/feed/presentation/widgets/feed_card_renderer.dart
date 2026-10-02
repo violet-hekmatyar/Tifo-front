@@ -16,9 +16,14 @@ import 'supplementary_feed_cards.dart';
 import 'unknown_card.dart';
 
 class FeedCardRenderer extends ConsumerWidget {
-  const FeedCardRenderer({required this.card, super.key});
+  const FeedCardRenderer({
+    required this.card,
+    this.contentLayout = ContentCardLayout.grid,
+    super.key,
+  });
 
   final FeedCard card;
+  final ContentCardLayout contentLayout;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,6 +44,8 @@ class FeedCardRenderer extends ConsumerWidget {
     final rendered = switch (card) {
       ContentFeedCard card => ContentCard(
         card: card,
+        layout: contentLayout,
+        transferImageResolver: (url) => resolveMediaUrl(config, url),
         coverUrl: resolveMediaUrl(config, card.coverUrl),
         authorAvatarUrl: resolveMediaUrl(config, card.author?.avatarUrl),
         onAuthorTap: card.author?.userId == null

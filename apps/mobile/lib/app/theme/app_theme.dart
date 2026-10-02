@@ -85,11 +85,24 @@ abstract final class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.surface,
-        indicatorColor: AppColors.brandSoft,
+        backgroundColor: Colors.transparent,
+        indicatorColor: Colors.transparent,
         elevation: 0,
-        labelTextStyle: WidgetStatePropertyAll(
-          base.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? AppColors.brand
+                : AppColors.inkMuted,
+            size: 27,
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => base.textTheme.labelSmall?.copyWith(
+            color: states.contains(WidgetState.selected)
+                ? AppColors.brand
+                : AppColors.inkMuted,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );

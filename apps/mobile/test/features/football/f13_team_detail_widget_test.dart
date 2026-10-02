@@ -52,7 +52,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('当前排名'), findsOneWidget);
+    expect(find.text('赛事排名'), findsOneWidget);
     expect(find.text('测试冠军'), findsOneWidget);
     expect(find.textContaining('当前后端尚未提供'), findsNothing);
 
@@ -121,6 +121,16 @@ final class _TeamRepository implements TeamDetailRepositoryContract {
         teamName: '测试球队',
         leagueName: '测试联赛',
         seasonName: '当前赛季',
+        competitionStandings: [
+          TeamCompetitionStanding(
+            leagueId: 10,
+            leagueName: '测试联赛',
+            seasonId: 20,
+            stageId: 30,
+            rank: 1,
+            points: 20,
+          ),
+        ],
         standing: TeamStandingSummary(rank: 1, points: 20),
       );
   @override

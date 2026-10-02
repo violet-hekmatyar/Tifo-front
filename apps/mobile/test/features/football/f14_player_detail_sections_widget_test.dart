@@ -37,9 +37,9 @@ void main() {
       expect(find.text('暂无国家队信息'), findsOneWidget);
       expect(find.text('已退役'), findsOneWidget);
       expect(find.text('队长'), findsOneWidget);
-      expect(find.text('当前赛季数据'), findsOneWidget);
-      expect(find.text('最近比赛'), findsOneWidget);
-      expect(find.text('最近动态'), findsOneWidget);
+      expect(find.text('当前赛季数据'), findsNothing);
+      expect(find.text('最近比赛'), findsNothing);
+      expect(find.text('最近动态'), findsNothing);
 
       for (final key in const [
         'player_tab_overview',
@@ -113,7 +113,6 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('player_tab_career')));
       await tester.pumpAndSettle();
-      expect(find.text('球队生涯'), findsOneWidget);
       expect(find.text('测试俱乐部'), findsWidgets);
       await tester.ensureVisible(
         find.byKey(const ValueKey('career_team_40_null')),
@@ -208,6 +207,84 @@ void main() {
     expect(invalidUser.toggleCalls, 0);
   });
 
+  testWidgets('VR5-R1 overview, tab spacing, and career geometry', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(412, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(_app(_PlayerFake()));
+    await tester.pumpAndSettle();
+
+    final overviewOrder = [
+      'player_overview_team_pair',
+      'player_overview_personal',
+      'player_overview_career',
+      'player_overview_ability',
+      'player_overview_honors',
+    ].map((key) => tester.getTopLeft(find.byKey(ValueKey(key))).dy).toList();
+    for (var i = 1; i < overviewOrder.length; i++) {
+      expect(overviewOrder[i], greaterThan(overviewOrder[i - 1]));
+    }
+
+    await tester.tap(find.byKey(const ValueKey('player_tab_contents')));
+    await tester.pumpAndSettle();
+    final contentsGap =
+        tester.getTopLeft(find.byKey(const ValueKey('player_content_80'))).dy -
+        tester
+            .getBottomRight(find.byKey(const ValueKey('player_tab_contents')))
+            .dy;
+    expect(contentsGap, lessThanOrEqualTo(24));
+
+    await tester.tap(find.byKey(const ValueKey('player_tab_matches')));
+    await tester.pumpAndSettle();
+    final matchesGap =
+        tester
+            .getTopLeft(find.byKey(const ValueKey('player_match_date_first')))
+            .dy -
+        tester
+            .getBottomRight(find.byKey(const ValueKey('player_tab_matches')))
+            .dy;
+    expect(matchesGap, lessThanOrEqualTo(24));
+
+    await tester.tap(find.byKey(const ValueKey('player_tab_career')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('player_career_toggle'))).dy,
+      lessThan(
+        tester.getTopLeft(find.byKey(const ValueKey('player_career_table'))).dy,
+      ),
+    );
+    expect(find.text('职业生涯总计'), findsNothing);
+    expect(find.text('国家队生涯'), findsOneWidget);
+    expect(find.text('暂无国家队生涯数据'), findsOneWidget);
+    expect(
+      tester
+          .getTopLeft(
+            find.byKey(const ValueKey('player_national_career_state')),
+          )
+          .dy,
+      greaterThan(
+        tester
+            .getBottomRight(find.byKey(const ValueKey('player_career_table')))
+            .dy,
+      ),
+    );
+    await tester.tap(find.text('赛季').last);
+    await tester.pumpAndSettle();
+    expect(find.text('2025 赛季'), findsOneWidget);
+    expect(find.byKey(const ValueKey('player_career_table')), findsOneWidget);
+    expect(find.text('职业生涯总计'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('player_national_career_state')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('PLAYER-07 PLAYER-09 refresh errors preserve records and retry', (
     tester,
   ) async {
@@ -266,7 +343,10 @@ void main() {
     repository.careerFail = false;
     await tester.tap(find.byKey(const ValueKey('player_career_retry')));
     await tester.pumpAndSettle();
-    expect(find.text('职业生涯总计'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('player_national_career_state')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('PLAYER-15 teams failure is isolated and retries independently', (
@@ -278,7 +358,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('player_tab_career')));
     await tester.pumpAndSettle();
 
-    expect(find.text('职业生涯总计'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('player_national_career_state')),
+      findsOneWidget,
+    );
     final careerList = find.byKey(const PageStorageKey('player_career'));
     await tester.drag(careerList, const Offset(0, -900));
     await tester.pumpAndSettle();
@@ -293,7 +376,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('teams down'), findsNothing);
     expect(find.byKey(const ValueKey('career_team_40_null')), findsOneWidget);
-    expect(find.text('职业生涯总计'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('player_national_career_state')),
+      findsOneWidget,
+    );
     expect(repository.careerCalls, careerCallsBeforeRetry);
     expect(repository.teamsCalls, greaterThan(teamsCallsBeforeRetry));
   });
@@ -335,7 +421,10 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('player_career_retry')));
       await tester.pumpAndSettle();
       expect(find.text('career down'), findsNothing);
-      expect(find.text('职业生涯总计'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('player_national_career_state')),
+        findsOneWidget,
+      );
       await tester.drag(careerList, const Offset(0, -900));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('career_team_40_null')), findsOneWidget);
@@ -678,6 +767,8 @@ final class _UserFake implements UserCenterRepositoryContract {
   @override
   Future<void> updateProfile({required String nickname, required String bio}) =>
       throw UnimplementedError();
+  @override
+  Future<void> setMainTeam(int teamId) => throw UnimplementedError();
   @override
   Future<UserProfile> follow(int userId, bool follow) =>
       throw UnimplementedError();

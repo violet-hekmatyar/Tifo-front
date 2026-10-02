@@ -7,6 +7,9 @@ import 'package:tifo/app/config/app_config.dart';
 import 'package:tifo/core/network/network_exceptions.dart';
 import 'package:tifo/core/network/network_providers.dart';
 import 'package:tifo/core/network/backend_v1_contract.dart';
+import 'package:tifo/features/auth/data/auth_repository.dart';
+import 'package:tifo/features/auth/domain/auth_user.dart';
+import 'package:tifo/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:tifo/features/football/data/football_repository.dart';
 import 'package:tifo/features/football/data/team_detail_repository.dart';
 import 'package:tifo/features/football/domain/football_models.dart';
@@ -81,22 +84,21 @@ void main() {
       expect(find.byKey(const ValueKey('team_content_80')), findsOneWidget);
 
       final contentsList = find.byKey(const PageStorageKey('team_动态'));
-      final initialContentY = tester
-          .getTopLeft(find.byKey(const ValueKey('team_content_80')))
-          .dy;
+      final scrollableFinder = find.descendant(
+        of: contentsList,
+        matching: find.byType(Scrollable),
+      );
+      final scrollable = tester.state<ScrollableState>(scrollableFinder);
+      final initialContentOffset = scrollable.position.pixels;
       await tester.drag(contentsList, const Offset(0, -500));
       await tester.pumpAndSettle();
-      final offsetBeforeSwitch = tester
-          .getTopLeft(find.byKey(const ValueKey('team_content_80')))
-          .dy;
-      expect(offsetBeforeSwitch, lessThan(initialContentY));
+      final offsetBeforeSwitch = scrollable.position.pixels;
+      expect(offsetBeforeSwitch, greaterThan(initialContentOffset));
       await tester.tap(find.byKey(const ValueKey('team_tab_players')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('team_tab_contents')));
       await tester.pumpAndSettle();
-      final offsetAfterSwitch = tester
-          .getTopLeft(find.byKey(const ValueKey('team_content_80')))
-          .dy;
+      final offsetAfterSwitch = scrollable.position.pixels;
       expect(offsetAfterSwitch, closeTo(offsetBeforeSwitch, 1));
       expect(repository.playersCalls, 1);
       expect(repository.matchesCalls, 1);
@@ -104,7 +106,38 @@ void main() {
     },
   );
 
-  testWidgets('TEAM-02 follow success is busy-protected and updates state', (
+  testWidgets(
+    'VR4-R1 data selector and leaderboard page expose real controls',
+    (tester) async {
+      await tester.pumpWidget(_teamApp(_TeamFake()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('查看全部').first);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('team_leaderboard_back')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('team_leaderboard_season')),
+        findsOneWidget,
+      );
+      expect(find.text('射手榜'), findsWidgets);
+      await tester.tap(find.byKey(const ValueKey('team_leaderboard_back')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('team_tab_stats')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('team_stats_selector')));
+      await tester.pumpAndSettle();
+      expect(find.text('2026 赛季'), findsWidgets);
+      expect(find.byIcon(Icons.close), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets('TEAM-02 header exposes only the main-team action', (
     tester,
   ) async {
     final user = _UserFake();
@@ -123,43 +156,97 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('team_follow')));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('team_follow')));
-    expect(user.toggleCalls, 1);
-    user.result.complete(true);
-    await tester.pumpAndSettle();
-    expect(find.text('已关注'), findsOneWidget);
+    expect(find.byKey(const ValueKey('team_main')), findsOneWidget);
+    expect(find.text('加为主队'), findsOneWidget);
+    expect(find.byKey(const ValueKey('team_follow')), findsNothing);
+    expect(user.toggleCalls, 0);
   });
 
-  testWidgets(
-    'TEAM-02 follow failure is visible and invalid IDs stay disabled',
-    (tester) async {
-      final user = _UserFake()..fail = true;
-      await tester.pumpWidget(_teamApp(_TeamFake(), user: user));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('team_follow')));
-      await tester.pumpAndSettle();
-      expect(user.toggleCalls, 1);
-      expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('关注'), findsOneWidget);
+  testWidgets('VR4-R2 main-team success requires authoritative readback', (
+    tester,
+  ) async {
+    final auth = AuthController(_AuthRepository());
+    await auth.login(username: 'user', password: 'password');
+    final user = _UserFake()
+      ..summaryResult = const MySummary(
+        userId: 1,
+        username: 'user',
+        nickname: '用户',
+        postCount: 0,
+        favoriteCount: 0,
+        commentCount: 0,
+        followingCount: 0,
+        followerCount: 0,
+        teamFollowCount: 0,
+        playerFollowCount: 0,
+      );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appConfigProvider.overrideWithValue(
+            AppConfig.fromValues(apiBaseUrl: 'http://localhost:8080'),
+          ),
+          authControllerProvider.overrideWith((_) => auth),
+          footballRepositoryProvider.overrideWithValue(_FootballFake()),
+          teamDetailRepositoryProvider.overrideWithValue(_TeamFake()),
+          userCenterRepositoryProvider.overrideWithValue(user),
+        ],
+        child: const MaterialApp(home: TeamDetailPage(teamId: 40)),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      final invalidUser = _UserFake();
-      await tester.pumpWidget(
-        _teamApp(
-          _TeamFake(),
-          football: const _FootballFake(returnedId: 0),
-          user: invalidUser,
-        ),
-      );
-      await tester.pumpAndSettle();
-      final follow = tester.widget<FilledButton>(
-        find.byKey(const ValueKey('team_follow')),
-      );
-      expect(follow.onPressed, isNull);
-      expect(invalidUser.toggleCalls, 0);
-    },
-  );
+    await tester.tap(find.byKey(const ValueKey('team_main')));
+    await tester.pumpAndSettle();
+    expect(find.text('服务端未确认主队设置，请重试'), findsOneWidget);
+    expect(find.text('已设为主队'), findsNothing);
+    expect(find.text('加为主队'), findsOneWidget);
+    expect(user.setMainTeamCalls, 1);
+
+    user.summaryResult = const MySummary(
+      userId: 1,
+      username: 'user',
+      nickname: '用户',
+      postCount: 0,
+      favoriteCount: 0,
+      commentCount: 0,
+      followingCount: 0,
+      followerCount: 0,
+      teamFollowCount: 0,
+      playerFollowCount: 0,
+      mainTeam: EntityBrief(id: 40, name: '测试球队'),
+    );
+    await tester.tap(find.byKey(const ValueKey('team_main')));
+    await tester.pumpAndSettle();
+    expect(find.text('已是主队'), findsOneWidget);
+    expect(user.setMainTeamCalls, 2);
+    await tester.tap(find.byKey(const ValueKey('team_main')));
+    await tester.pumpAndSettle();
+    expect(user.setMainTeamCalls, 2);
+  });
+
+  testWidgets('TEAM-02 invalid team keeps main-team action disabled', (
+    tester,
+  ) async {
+    final user = _UserFake();
+    await tester.pumpWidget(_teamApp(_TeamFake(), user: user));
+    await tester.pumpAndSettle();
+
+    final invalidUser = _UserFake();
+    await tester.pumpWidget(
+      _teamApp(
+        _TeamFake(),
+        football: const _FootballFake(returnedId: 0),
+        user: invalidUser,
+      ),
+    );
+    await tester.pumpAndSettle();
+    final mainTeam = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('team_main')),
+    );
+    expect(mainTeam.onPressed, isNull);
+    expect(invalidUser.toggleCalls, 0);
+  });
 
   testWidgets('TEAM-05 honors error retries in place', (tester) async {
     tester.view.physicalSize = const Size(412, 2000);
@@ -308,7 +395,9 @@ Widget _teamApp(
 final class _UserFake implements UserCenterRepositoryContract {
   final result = Completer<bool>();
   int toggleCalls = 0;
+  int setMainTeamCalls = 0;
   bool fail = false;
+  MySummary? summaryResult;
 
   @override
   Future<bool> toggleEntity(String type, int id) {
@@ -318,7 +407,8 @@ final class _UserFake implements UserCenterRepositoryContract {
   }
 
   @override
-  Future<MySummary> summary() => throw UnimplementedError();
+  Future<MySummary> summary() async =>
+      summaryResult ?? (throw UnimplementedError());
   @override
   Future<UserStand> stand() => throw UnimplementedError();
   @override
@@ -326,6 +416,8 @@ final class _UserFake implements UserCenterRepositoryContract {
   @override
   Future<void> updateProfile({required String nickname, required String bio}) =>
       throw UnimplementedError();
+  @override
+  Future<void> setMainTeam(int teamId) async => setMainTeamCalls++;
   @override
   Future<UserProfile> follow(int userId, bool follow) =>
       throw UnimplementedError();
@@ -438,17 +530,38 @@ final class _TeamFake implements TeamDetailRepositoryContract {
   bool includeNoDateMatches = false;
 
   @override
-  Future<TeamOverview> overview(int teamId, {int? seasonId}) async =>
-      TeamOverview(
-        teamId: 40,
-        teamName: '测试球队',
+  Future<TeamOverview> overview(
+    int teamId, {
+    int? seasonId,
+  }) async => TeamOverview(
+    teamId: 40,
+    teamName: '测试球队',
+    leagueName: '测试联赛',
+    seasonName: '2026 赛季',
+    standing: const TeamStandingSummary(rank: 2, points: 20),
+    competitionStandings: const [
+      TeamCompetitionStanding(
+        leagueId: 10,
         leagueName: '测试联赛',
+        seasonId: 20,
         seasonName: '2026 赛季',
-        standing: const TeamStandingSummary(rank: 2, points: 20),
-        topScorers: const [
+        stageId: 30,
+        rank: 2,
+        points: 20,
+      ),
+    ],
+    leaderboards: const [
+      TeamLeaderboard(
+        rankType: 'GOALS',
+        title: '射手榜',
+        players: [
           TeamRosterPlayer(id: 50, name: '射手', position: 'FORWARD', goals: 8),
         ],
-        topAssists: const [
+      ),
+      TeamLeaderboard(
+        rankType: 'ASSISTS',
+        title: '助攻榜',
+        players: [
           TeamRosterPlayer(
             id: 51,
             name: '助攻手',
@@ -456,7 +569,15 @@ final class _TeamFake implements TeamDetailRepositoryContract {
             assists: 5,
           ),
         ],
-      );
+      ),
+    ],
+    topScorers: const [
+      TeamRosterPlayer(id: 50, name: '射手', position: 'FORWARD', goals: 8),
+    ],
+    topAssists: const [
+      TeamRosterPlayer(id: 51, name: '助攻手', position: 'MIDFIELDER', assists: 5),
+    ],
+  );
 
   @override
   Future<List<TeamHonor>> honors(int teamId) async {
@@ -567,6 +688,41 @@ final class _TeamFake implements TeamDetailRepositoryContract {
       total: 12,
     );
   }
+}
+
+final class _AuthRepository implements AuthRepositoryContract {
+  static const _user = AuthUser(
+    id: 1,
+    username: 'user',
+    roleType: 'USER',
+    status: 'ACTIVE',
+    onboardingCompleted: true,
+  );
+
+  @override
+  Future<AuthUser> currentUser() async => _user;
+
+  @override
+  Future<AuthUser> login({
+    required String username,
+    required String password,
+  }) async => _user;
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<AuthUser> register({
+    required String username,
+    required String phone,
+    required String password,
+  }) async => _user;
+
+  @override
+  Future<AuthUser> restore() async => _user;
+
+  @override
+  Future<String?> storedToken() async => null;
 }
 
 FootballMatch _noDateMatch(int id) => FootballMatch(

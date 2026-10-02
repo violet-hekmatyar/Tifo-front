@@ -37,8 +37,15 @@ String footballTime(DateTime? value) {
 };
 
 class ScheduleMatchCard extends ConsumerWidget {
-  const ScheduleMatchCard({required this.match, super.key});
+  const ScheduleMatchCard({
+    required this.match,
+    this.header,
+    this.showFavorite = true,
+    super.key,
+  });
   final FootballMatch match;
+  final String? header;
+  final bool showFavorite;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,11 +58,30 @@ class ScheduleMatchCard extends ConsumerWidget {
         key: ValueKey('schedule_match_${match.id}'),
         onTap: match.id > 0 ? () => context.push('/matches/${match.id}') : null,
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
           child: Column(
             children: [
+              if (header != null) ...[
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    header!,
+                    style: const TextStyle(
+                      color: AppColors.brand,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               Row(
                 children: [
+                  const Icon(
+                    Icons.emoji_events_outlined,
+                    size: 18,
+                    color: AppColors.inkMuted,
+                  ),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       match.leagueName,
@@ -64,17 +90,24 @@ class ScheduleMatchCard extends ConsumerWidget {
                       style: Theme.of(context).textTheme.labelLarge,
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  if (showFavorite)
+                    const Icon(
+                      Icons.star_border_rounded,
+                      size: 24,
+                      color: AppColors.inkMuted,
+                    ),
+                  const SizedBox(width: 6),
                   Text(
                     status.label,
                     style: TextStyle(
                       color: status.color,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(
@@ -84,9 +117,7 @@ class ScheduleMatchCard extends ConsumerWidget {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Column(
                       children: [
                         Text(
@@ -94,12 +125,23 @@ class ScheduleMatchCard extends ConsumerWidget {
                                   match.awayTeam.score != null
                               ? '${match.homeTeam.score} : ${match.awayTeam.score}'
                               : footballTime(match.matchTime),
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: match.homeTeam.score != null
+                                    ? AppColors.ink
+                                    : AppColors.inkMuted,
+                              ),
                         ),
                         if (match.homeTeam.score != null &&
                             match.awayTeam.score != null)
-                          Text(footballTime(match.matchTime)),
+                          Text(
+                            footballTime(match.matchTime),
+                            style: const TextStyle(
+                              color: AppColors.inkMuted,
+                              fontSize: 12,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -112,12 +154,42 @@ class ScheduleMatchCard extends ConsumerWidget {
                 ],
               ),
               if (match.eventSummary?.trim().isNotEmpty == true) ...[
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  match.eventSummary!.trim(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall,
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.article_outlined,
+                        size: 18,
+                        color: AppColors.inkMuted,
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          match.eventSummary!.trim(),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.inkMuted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.inkMuted,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ],
@@ -147,21 +219,21 @@ class _Team extends StatelessWidget {
               identity: 'team:${team.id}',
               name: team.name,
               imageUrl: imageUrl,
-              size: 42,
+              size: 50,
             ),
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: 5),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Flexible(
                   child: Text(
                     team.name,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded, size: 16),
               ],
             ),
           ],

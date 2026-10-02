@@ -257,7 +257,18 @@ final class UserPage<T> {
 }
 
 final class UserStand {
-  const UserStand({required this.teams, required this.players});
+  const UserStand({
+    required this.teams,
+    required this.players,
+    this.followingUserCount = 0,
+    this.followerCount = 0,
+    this.contentCount = 0,
+    this.likeReceivedCount = 0,
+  });
   final List<EntityBrief> teams;
   final List<EntityBrief> players;
+  final int followingUserCount;
+  final int followerCount;
+  final int contentCount;
+  final int likeReceivedCount;
 }

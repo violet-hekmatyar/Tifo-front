@@ -9,6 +9,7 @@ abstract interface class UserCenterRepositoryContract {
   Future<UserStand> stand();
   Future<UserProfile> profile(int userId);
   Future<void> updateProfile({required String nickname, required String bio});
+  Future<void> setMainTeam(int teamId);
   Future<UserProfile> follow(int userId, bool follow);
   Future<bool> toggleEntity(String type, int id);
   Future<void> removeFavorite(int contentId);
@@ -53,6 +54,8 @@ final class UserCenterRepository implements UserCenterRepositoryContract {
   @override
   Future<void> updateProfile({required String nickname, required String bio}) =>
       _api.updateProfile(nickname: nickname, bio: bio);
+  @override
+  Future<void> setMainTeam(int teamId) => _api.setMainTeam(teamId);
   @override
   Future<UserProfile> follow(int userId, bool follow) =>
       _api.follow(userId, follow);

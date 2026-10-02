@@ -9,6 +9,7 @@ class PublishModeBar extends StatelessWidget {
     required this.mode,
     required this.onModeSelected,
     this.tools = const [],
+    this.auxiliary = const [],
     this.enabled = true,
     super.key,
   });
@@ -16,6 +17,7 @@ class PublishModeBar extends StatelessWidget {
   final PublishMode mode;
   final ValueChanged<PublishMode> onModeSelected;
   final List<Widget> tools;
+  final List<Widget> auxiliary;
   final bool enabled;
 
   @override
@@ -25,34 +27,48 @@ class PublishModeBar extends StatelessWidget {
       color: Theme.of(context).scaffoldBackgroundColor,
       elevation: 8,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.sm,
-          AppSpacing.xs,
-          AppSpacing.sm,
-          AppSpacing.xs,
-        ),
-        child: Row(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            for (final tool in tools) tool,
-            if (tools.isNotEmpty) const Spacer(),
-            Row(
-              key: const ValueKey('publish_mode_switcher'),
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _ModeChip(
-                  key: const ValueKey('publish_mode_post'),
-                  mode: PublishMode.post,
-                  selected: mode == PublishMode.post,
-                  enabled: enabled,
-                  onPressed: () => onModeSelected(PublishMode.post),
+            if (auxiliary.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.xs,
+                    children: auxiliary,
+                  ),
                 ),
-                const SizedBox(width: AppSpacing.xs),
-                _ModeChip(
-                  key: const ValueKey('publish_mode_article'),
-                  mode: PublishMode.article,
-                  selected: mode == PublishMode.article,
-                  enabled: enabled,
-                  onPressed: () => onModeSelected(PublishMode.article),
+              ),
+            Row(
+              children: [
+                for (final tool in tools) tool,
+                const Spacer(),
+                SizedBox(
+                  width: 168,
+                  child: Row(
+                    key: const ValueKey('publish_mode_switcher'),
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      _ModeButton(
+                        key: const ValueKey('publish_mode_post'),
+                        label: '帖子',
+                        selected: mode == PublishMode.post,
+                        enabled: enabled,
+                        onPressed: () => onModeSelected(PublishMode.post),
+                      ),
+                      _ModeButton(
+                        key: const ValueKey('publish_mode_article'),
+                        label: '文章',
+                        selected: mode == PublishMode.article,
+                        enabled: enabled,
+                        onPressed: () => onModeSelected(PublishMode.article),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -63,28 +79,48 @@ class PublishModeBar extends StatelessWidget {
   );
 }
 
-class _ModeChip extends StatelessWidget {
-  const _ModeChip({
-    required this.mode,
+class _ModeButton extends StatelessWidget {
+  const _ModeButton({
+    required this.label,
     required this.selected,
     required this.enabled,
     required this.onPressed,
     super.key,
   });
 
-  final PublishMode mode;
+  final String label;
   final bool selected;
   final bool enabled;
   final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context) => ChoiceChip(
-    label: Text(mode == PublishMode.post ? '帖子' : '文章'),
-    avatar: Icon(
-      mode == PublishMode.post ? Icons.forum_outlined : Icons.article_outlined,
-      size: 18,
+  Widget build(BuildContext context) => SizedBox(
+    width: 84,
+    height: 48,
+    child: TextButton(
+      onPressed: enabled ? onPressed : null,
+      style: TextButton.styleFrom(
+        foregroundColor: selected ? AppColors.brand : AppColors.ink,
+        shape: const RoundedRectangleBorder(),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 18)),
+          Positioned(
+            bottom: 0,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              width: selected ? 28 : 0,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.brand,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        ],
+      ),
     ),
-    selected: selected,
-    onSelected: enabled ? (_) => onPressed() : null,
   );
 }

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +9,7 @@ import '../../../../core/network/network_providers.dart';
 import '../../../../shared/design_system/app_design_tokens.dart';
 import '../../../../shared/widgets/app_entity_avatar.dart';
 import '../../../../shared/widgets/app_state_view.dart';
+import '../../../../shared/widgets/app_state_illustration.dart';
 import '../../../feed/domain/feed_card.dart';
 import '../../../feed/presentation/widgets/content_card.dart';
 import '../../domain/user_center_models.dart';
@@ -27,13 +30,17 @@ class UserListPage extends StatelessWidget {
 class UserListView extends ConsumerStatefulWidget {
   const UserListView({
     required this.request,
+    this.scrollController,
     this.showSearch = false,
+    this.searchHint = '搜索已加载用户',
     this.allowUserActions = true,
     this.active = true,
     super.key,
   });
   final UserListRequest request;
+  final ScrollController? scrollController;
   final bool showSearch;
+  final String searchHint;
   final bool allowUserActions;
   final bool active;
 
@@ -43,9 +50,10 @@ class UserListView extends ConsumerStatefulWidget {
 
 class _UserListViewState extends ConsumerState<UserListView>
     with AutomaticKeepAliveClientMixin {
-  final _scroll = ScrollController();
+  late final ScrollController _scroll;
   final _search = TextEditingController();
   String _query = '';
+  double _savedScrollOffset = 0;
 
   @override
   bool get wantKeepAlive => true;
@@ -53,14 +61,25 @@ class _UserListViewState extends ConsumerState<UserListView>
   @override
   void initState() {
     super.initState();
-    _scroll.addListener(_nearEnd);
+    _scroll = widget.scrollController ?? ScrollController();
+    _scroll.addListener(_onScroll);
     _loadWhenActive();
   }
 
   @override
   void didUpdateWidget(covariant UserListView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.active && !oldWidget.active) _loadWhenActive();
+    if (widget.active && !oldWidget.active) {
+      _loadWhenActive();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scroll.hasClients || _savedScrollOffset <= 0) {
+          return;
+        }
+        _scroll.jumpTo(
+          math.min(_savedScrollOffset, _scroll.position.maxScrollExtent),
+        );
+      });
+    }
   }
 
   void _loadWhenActive() {
@@ -70,7 +89,8 @@ class _UserListViewState extends ConsumerState<UserListView>
     );
   }
 
-  void _nearEnd() {
+  void _onScroll() {
+    _savedScrollOffset = _scroll.hasClients ? _scroll.position.pixels : 0;
     if (_scroll.hasClients && _scroll.position.extentAfter < 360) {
       ref.read(userListControllerProvider(widget.request)).loadMore();
     }
@@ -78,7 +98,7 @@ class _UserListViewState extends ConsumerState<UserListView>
 
   @override
   void dispose() {
-    _scroll.dispose();
+    if (widget.scrollController == null) _scroll.dispose();
     _search.dispose();
     super.dispose();
   }
@@ -127,6 +147,23 @@ class _UserListViewState extends ConsumerState<UserListView>
       );
     }
     final values = _filtered(state.items);
+    final compactContentList = switch (widget.request.kind) {
+      UserListKind.myContents ||
+      UserListKind.myLikes ||
+      UserListKind.myFavorites ||
+      UserListKind.userContents ||
+      UserListKind.userFavorites => true,
+      _ => false,
+    };
+    final emptyIllustration = switch (widget.request.kind) {
+      UserListKind.myComments ||
+      UserListKind.userComments => AppStateIllustrationType.noComments,
+      UserListKind.myFavorites ||
+      UserListKind.userFavorites => AppStateIllustrationType.noFavorites,
+      UserListKind.followings ||
+      UserListKind.followers => AppStateIllustrationType.noFollowing,
+      _ => null,
+    };
     return RefreshIndicator(
       onRefresh: controller.refresh,
       child: ListView(
@@ -135,7 +172,12 @@ class _UserListViewState extends ConsumerState<UserListView>
         ),
         controller: _scroll,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: EdgeInsets.fromLTRB(
+          compactContentList ? 6 : AppSpacing.md,
+          AppSpacing.sm,
+          compactContentList ? 6 : AppSpacing.md,
+          AppSpacing.xl,
+        ),
         children: [
           if (widget.showSearch) _searchField(),
           if (state.refreshing) const LinearProgressIndicator(minHeight: 2),
@@ -150,12 +192,13 @@ class _UserListViewState extends ConsumerState<UserListView>
               onRetry: controller.retry,
             ),
           if (values.isEmpty)
-            const SizedBox(
+            SizedBox(
               height: 420,
               child: AppStateView(
                 kind: AppStateKind.empty,
                 title: '暂无内容',
                 message: '这里还没有可展示的真实记录。',
+                illustration: emptyIllustration,
               ),
             )
           else
@@ -170,13 +213,13 @@ class _UserListViewState extends ConsumerState<UserListView>
   }
 
   Widget _searchField() => Padding(
-    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
     child: TextField(
       key: const ValueKey('user_list_search'),
       controller: _search,
       onChanged: (value) => setState(() => _query = value.trim().toLowerCase()),
       decoration: InputDecoration(
-        hintText: '搜索已加载用户',
+        hintText: widget.searchHint,
         prefixIcon: const Icon(Icons.search_rounded),
         suffixIcon: _query.isEmpty
             ? null
@@ -188,6 +231,23 @@ class _UserListViewState extends ConsumerState<UserListView>
                 },
                 icon: const Icon(Icons.clear_rounded),
               ),
+        filled: true,
+        fillColor: AppColors.surfaceMuted,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: const BorderSide(color: AppColors.brand, width: 1.2),
+        ),
+        isDense: true,
+        constraints: const BoxConstraints(minHeight: 40, maxHeight: 40),
+        contentPadding: EdgeInsets.zero,
       ),
     ),
   );
@@ -219,11 +279,14 @@ class _UserListViewState extends ConsumerState<UserListView>
     return LayoutBuilder(
       builder: (context, constraints) {
         final single =
-            constraints.maxWidth < 350 ||
+            MediaQuery.sizeOf(context).width <= 360 ||
             MediaQuery.textScalerOf(context).scale(14) > 16.5;
         if (single) {
           return Column(
-            children: [for (final value in values) _contentItem(value)],
+            children: [
+              for (var i = 0; i < values.length; i++)
+                _contentItem(values[i], index: i, singleColumn: true),
+            ],
           );
         }
         final left = <Object>[];
@@ -234,16 +297,34 @@ class _UserListViewState extends ConsumerState<UserListView>
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: Column(children: left.map(_contentItem).toList())),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(child: Column(children: right.map(_contentItem).toList())),
+            Expanded(
+              child: Column(
+                children: [
+                  for (var i = 0; i < left.length; i++)
+                    _contentItem(left[i], index: i * 2),
+                ],
+              ),
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: Column(
+                children: [
+                  for (var i = 0; i < right.length; i++)
+                    _contentItem(right[i], index: i * 2 + 1),
+                ],
+              ),
+            ),
           ],
         );
       },
     );
   }
 
-  Widget _contentItem(Object value) => Padding(
+  Widget _contentItem(
+    Object value, {
+    required int index,
+    bool singleColumn = false,
+  }) => Padding(
     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
     child: switch (value) {
       UserContentItem item => _contentCard(
@@ -258,6 +339,7 @@ class _UserListViewState extends ConsumerState<UserListView>
         authorNickname: item.authorNickname,
         authorAvatarUrl: item.authorAvatarUrl,
         keyPrefix: 'user-content',
+        mediaAspectRatio: singleColumn ? 1.2 : (index.isEven ? 1.0 : 1.43),
       ),
       UserLikeItem item => _contentCard(
         contentId: item.contentId,
@@ -272,6 +354,7 @@ class _UserListViewState extends ConsumerState<UserListView>
         authorAvatarUrl: item.authorAvatarUrl,
         visible: item.visible,
         keyPrefix: 'user-like',
+        mediaAspectRatio: singleColumn ? 1.2 : (index.isEven ? 1.0 : 1.43),
       ),
       UserFavoriteItem item => _contentCard(
         contentId: item.contentId,
@@ -286,6 +369,7 @@ class _UserListViewState extends ConsumerState<UserListView>
         authorAvatarUrl: item.authorAvatarUrl,
         removable: widget.request.kind == UserListKind.myFavorites,
         keyPrefix: 'user-favorite',
+        mediaAspectRatio: singleColumn ? 1.2 : (index.isEven ? 1.0 : 1.43),
       ),
       _ => const SizedBox.shrink(),
     },
@@ -305,6 +389,7 @@ class _UserListViewState extends ConsumerState<UserListView>
     required String keyPrefix,
     bool visible = true,
     bool removable = false,
+    double? mediaAspectRatio,
   }) {
     final config = ref.read(appConfigProvider);
     if (!visible) {
@@ -342,17 +427,21 @@ class _UserListViewState extends ConsumerState<UserListView>
           card: card,
           coverUrl: resolveMediaUrl(config, coverUrl),
           authorAvatarUrl: resolveMediaUrl(config, authorAvatarUrl),
+          authorFallbackAsset: 'assets/ui/profile/user-demo.png',
+          userCenterStyle: true,
+          userCenterMediaAspectRatio: mediaAspectRatio,
           showMedia: coverUrl != null && coverUrl.trim().isNotEmpty,
           onTap: () => context.push('/contents/$contentId'),
         ),
-        if (!removable)
+        if (widget.request.kind == UserListKind.userFavorites)
           const Positioned(
-            top: 8,
-            right: 8,
-            child: CircleAvatar(
-              radius: 14,
-              backgroundColor: Colors.white,
-              child: Icon(Icons.chevron_right_rounded, size: 20),
+            right: 10,
+            bottom: 10,
+            child: IgnorePointer(
+              child: Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.inkMuted,
+              ),
             ),
           ),
         if (removable)
@@ -413,45 +502,92 @@ class _UserListViewState extends ConsumerState<UserListView>
           'FOLLOWED_BY',
           'MUTUAL',
         }.contains(item.relationStatus);
-    return Card(
-      key: ValueKey('user-row-${item.userId}'),
-      child: ListTile(
-        leading: AppEntityAvatar(
-          identity: 'user:${item.userId}',
-          semanticLabel: '${item.nickname}头像',
-          fallbackIcon: Icons.person_outline_rounded,
-          fallbackText: item.nickname,
-          imageUrl: item.avatarUrl,
-          size: 44,
-        ),
-        title: Text(item.nickname),
-        subtitle: Text(
-          item.bio?.isNotEmpty == true ? item.bio! : '@${item.username}',
-        ),
-        onTap: item.userId > 0
-            ? () => context.push('/users/${item.userId}')
-            : null,
-        trailing: actionable
-            ? TextButton(
-                key: ValueKey('user-follow-${item.userId}'),
-                onPressed: busy
-                    ? null
-                    : () => _confirmUserFollow(context, controller, item),
-                child: Text(
-                  busy
-                      ? '处理中'
-                      : switch (item.relationStatus) {
-                          'FOLLOWING' => '已关注',
-                          'FOLLOWED_BY' => '回关',
-                          'MUTUAL' => '互相关注',
-                          _ => '关注',
-                        },
+    final config = ref.read(appConfigProvider);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: SizedBox(
+        height: 62,
+        child: ListTile(
+          key: ValueKey('user-row-${item.userId}'),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+          leading: AppEntityAvatar(
+            identity: 'user:${item.userId}',
+            semanticLabel: '${item.nickname}头像',
+            fallbackIcon: Icons.person_outline_rounded,
+            fallbackText: item.nickname,
+            fallbackAsset: 'assets/ui/profile/user-demo.png',
+            imageUrl: resolveMediaUrl(config, item.avatarUrl),
+            size: 44,
+          ),
+          title: Text(
+            item.nickname,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+          ),
+          subtitle: Text(
+            item.bio?.isNotEmpty == true ? item.bio! : '@${item.username}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          onTap: item.userId > 0
+              ? () => context.push('/users/${item.userId}')
+              : null,
+          trailing: actionable
+              ? TextButton(
+                  key: ValueKey('user-follow-${item.userId}'),
+                  onPressed: busy
+                      ? null
+                      : () => _confirmUserFollow(context, controller, item),
+                  style: TextButton.styleFrom(
+                    foregroundColor: _relationActionColor(item.relationStatus),
+                    backgroundColor: _relationActionBackground(
+                      item.relationStatus,
+                    ),
+                    minimumSize: Size.zero,
+                    fixedSize: Size(
+                      item.relationStatus == 'MUTUAL' ? 76 : 56,
+                      28,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      busy
+                          ? '处理中'
+                          : switch (item.relationStatus) {
+                              'FOLLOWING' => '已关注',
+                              'FOLLOWED_BY' => '回关',
+                              'MUTUAL' => '互相关注',
+                              _ => '关注',
+                            },
+                      maxLines: 1,
+                    ),
+                  ),
+                )
+              : Text(
+                  item.relationLabel,
+                  style: const TextStyle(color: AppColors.inkMuted),
                 ),
-              )
-            : Text(item.relationLabel),
+        ),
       ),
     );
   }
+
+  Color _relationActionColor(String status) =>
+      status == 'FOLLOWING' || status == 'MUTUAL'
+      ? AppColors.inkMuted
+      : Colors.white;
+
+  Color _relationActionBackground(String status) =>
+      status == 'FOLLOWING' || status == 'MUTUAL'
+      ? AppColors.surfaceMuted
+      : AppColors.brand;
 
   Future<void> _confirmUserFollow(
     BuildContext context,

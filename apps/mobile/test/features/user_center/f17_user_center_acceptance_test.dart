@@ -264,7 +264,9 @@ void main() {
     ]) {
       expect(find.byKey(ValueKey(key)), findsOneWidget);
     }
-    expect(find.text('球队'), findsOneWidget);
+    expect(find.text('我的主队'), findsOneWidget);
+    expect(find.text('我关注的球队'), findsOneWidget);
+    expect(find.text('我关注的球星'), findsOneWidget);
     expect(find.text('浏览记录'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -313,38 +315,75 @@ void main() {
   });
 
   testWidgets(
-    'USER-05 stand routes valid teams/players and disables invalid entity taps',
+    'USER-05 stand cards navigate to real followed-teams and followed-players routes',
     (tester) async {
       final repository = _Repo()
         ..standValue = const UserStand(
-          teams: [EntityBrief(id: 40, name: '可跳转球队')],
-          players: [
-            EntityBrief(id: 50, name: '可跳转球员'),
-            EntityBrief(id: -1, name: '无效球员'),
-          ],
+          teams: [EntityBrief(id: 40, name: '球队')],
+          players: [EntityBrief(id: 50, name: '球员')],
         );
-      final router = _profileRouter(repository);
+      final router = GoRouter(
+        initialLocation: '/me',
+        routes: [
+          GoRoute(path: '/me', builder: (_, _) => const MyProfilePage()),
+          GoRoute(
+            path: '/users/me/followed-teams',
+            builder: (_, _) => const FollowedEntitiesPage(teams: true),
+          ),
+          GoRoute(
+            path: '/users/me/followed-players',
+            builder: (_, _) => const FollowedEntitiesPage(teams: false),
+          ),
+        ],
+      );
       addTearDown(router.dispose);
       await tester.pumpWidget(_routerScope(repository, router));
       await _settle(tester);
-      await tester.tap(find.byKey(const ValueKey('my_tab_stand')));
+      await tester.tap(find.text('我关注的球队'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('可跳转球队'));
-      await tester.pumpAndSettle();
-      expect(find.text('球队详情 40'), findsOneWidget);
+      expect(find.byType(FollowedEntitiesPage), findsOneWidget);
       router.pop();
       await tester.pumpAndSettle();
-      await tester.tap(find.text('可跳转球员'));
-      await tester.pumpAndSettle();
-      expect(find.text('球员详情 50'), findsOneWidget);
-      router.pop();
-      await tester.pumpAndSettle();
-      final invalidTile = tester.widget<ListTile>(
-        find.ancestor(of: find.text('无效球员'), matching: find.byType(ListTile)),
+      await tester.drag(
+        find.byKey(const ValueKey('my_stand_scroll')),
+        const Offset(0, -260),
       );
-      expect(invalidTile.onTap, isNull);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('我关注的球星'));
+      await tester.pumpAndSettle();
+      expect(find.byType(FollowedEntitiesPage), findsOneWidget);
     },
   );
+
+  testWidgets('USER-05A stand cards match visible card geometry', (tester) async {
+    final repository = _Repo()
+      ..standValue = const UserStand(
+        teams: [EntityBrief(id: 40, name: '球队')],
+        players: [EntityBrief(id: 50, name: '球员')],
+      );
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(412, 900);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(_scope(repository, const MyProfilePage()));
+    await _settle(tester);
+
+    final first = find.byKey(const ValueKey('my_stand_card_我的主队'));
+    final second = find.byKey(const ValueKey('my_stand_card_我关注的球队'));
+    final third = find.byKey(const ValueKey('my_stand_card_我关注的球星'));
+    expect(tester.getSize(first).height, closeTo(80, 4));
+    expect(tester.getSize(second).height, closeTo(80, 4));
+    expect(tester.getSize(third).height, closeTo(80, 4));
+    expect(
+      tester.getTopLeft(second).dy - tester.getBottomLeft(first).dy,
+      closeTo(10, 2),
+    );
+    expect(
+      tester.getTopLeft(third).dy - tester.getBottomLeft(second).dy,
+      closeTo(10, 2),
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'USER-06 content cards use two columns at 412 and one column at 360/1.4x',
@@ -434,6 +473,101 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'USER-06A 375dp private and public content flows keep two-column geometry',
+    (tester) async {
+      tester.view.devicePixelRatio = 2.625;
+      tester.view.physicalSize = const Size(984, 2132);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      Future<void> expectTwoColumns(Finder first, Finder second) async {
+        await tester.pumpAndSettle();
+        final firstRect = tester.getRect(first);
+        final secondRect = tester.getRect(second);
+        expect(firstRect.left, closeTo(6, 2));
+        expect(secondRect.right, closeTo(369, 2));
+        expect(secondRect.left, closeTo(190, 2));
+        expect(firstRect.width, closeTo(179, 2));
+        expect(firstRect.width, closeTo(secondRect.width, 1));
+        expect(
+          secondRect.left - firstRect.right,
+          closeTo(5, 2),
+        );
+        expect(firstRect.right, lessThanOrEqualTo(secondRect.left));
+      }
+
+      final privateRepository = _Repo()
+        ..contentItems = _contentItems(6)
+        ..contentSinglePage = true;
+      await tester.pumpWidget(_scope(privateRepository, const MyProfilePage()));
+      await _settle(tester);
+      await tester.tap(find.byKey(const ValueKey('my_tab_posts')));
+      await expectTwoColumns(
+        find.byKey(const ValueKey('user-content-1')),
+        find.byKey(const ValueKey('user-content-2')),
+      );
+
+      final publicRepository = _Repo()
+        ..profileValue = _profile()
+        ..publicContentItems = _contentItems(6);
+      await tester.pumpWidget(
+        _scope(publicRepository, const PublicUserPage(userId: 22)),
+      );
+      await _settle(tester);
+      await tester.tap(find.byKey(const ValueKey('public_tab_posts')));
+      await expectTwoColumns(
+        find.byKey(const ValueKey('user-content-1')),
+        find.byKey(const ValueKey('user-content-2')),
+      );
+    },
+  );
+
+  testWidgets('USER-06B 375dp content media uses stable masonry heights', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 2.625;
+    tester.view.physicalSize = const Size(984, 2132);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = _Repo()
+      ..contentItems = [
+        for (var i = 1; i <= 6; i++)
+          UserContentItem(
+            contentId: i,
+            contentType: 'POST',
+            title: '等长标题 $i',
+            summary: null,
+            coverUrl: '/cover-$i.png',
+            likeCount: i,
+            commentCount: 0,
+            favoriteCount: 0,
+          ),
+      ]
+      ..contentSinglePage = true;
+    await tester.pumpWidget(
+      _scope(
+        repository,
+        const UserListPage(
+          title: '我的发布',
+          request: UserListRequest(UserListKind.myContents),
+        ),
+      ),
+    );
+    await _settle(tester);
+    final first = find.byKey(const ValueKey('user-content-1'));
+    final second = find.byKey(const ValueKey('user-content-2'));
+    final firstMedia = find.descendant(of: first, matching: find.byType(AspectRatio));
+    final secondMedia = find.descendant(of: second, matching: find.byType(AspectRatio));
+    expect(tester.getSize(firstMedia).height, closeTo(179, 14));
+    expect(tester.getSize(secondMedia).height, closeTo(125, 10));
+    expect(
+      tester.getSize(first).height - tester.getSize(second).height,
+      greaterThanOrEqualTo(18),
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   test(
     'USER-07 list pagination deduplicates, retries append and ignores stale refresh',
@@ -1821,6 +1955,9 @@ class _Repo implements UserCenterRepositoryContract {
     if (editFailure) throw const NetworkException('edit');
     await editGate?.future;
   }
+
+  @override
+  Future<void> setMainTeam(int teamId) async {}
 
   @override
   Future<UserProfile> follow(int userId, bool follow) async {

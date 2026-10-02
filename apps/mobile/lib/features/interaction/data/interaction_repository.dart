@@ -22,6 +22,13 @@ final interactionRepositoryProvider = Provider<InteractionRepositoryContract>(
   (ref) => InteractionRepository(InteractionApi(ref.watch(apiClientProvider))),
 );
 
+final playerRatingInteractionRepositoryProvider =
+    Provider<InteractionRepositoryContract>(
+      (ref) => PlayerRatingInteractionRepository(
+        InteractionApi(ref.watch(apiClientProvider)),
+      ),
+    );
+
 final class InteractionRepository implements InteractionRepositoryContract {
   const InteractionRepository(this.api);
   final InteractionApi api;
@@ -42,6 +49,39 @@ final class InteractionRepository implements InteractionRepositoryContract {
     int? replyToUserId,
   }) => api.createComment(
     contentId: contentId,
+    content: content,
+    parentId: parentId,
+    replyToUserId: replyToUserId,
+  );
+  @override
+  Future<ToggleState> toggleCommentLike(int id) => api.toggleCommentLike(id);
+  @override
+  Future<void> deleteComment(int id) => api.deleteComment(id);
+}
+
+final class PlayerRatingInteractionRepository
+    implements InteractionRepositoryContract {
+  const PlayerRatingInteractionRepository(this.api);
+  final InteractionApi api;
+
+  @override
+  Future<ToggleState> toggleLike(int id) => api.toggleLike(id);
+  @override
+  Future<ToggleState> toggleFavorite(int id) => api.toggleFavorite(id);
+  @override
+  Future<CommentPage> comments(int id, CommentSort sort, int page) =>
+      api.commentsForTarget('PLAYER_RATING', id, sort, page);
+  @override
+  Future<CommentPage> replies(int id, int page) => api.replies(id, page);
+  @override
+  Future<int> createComment({
+    required int contentId,
+    required String content,
+    int parentId = 0,
+    int? replyToUserId,
+  }) => api.createCommentForTarget(
+    targetType: 'PLAYER_RATING',
+    targetId: contentId,
     content: content,
     parentId: parentId,
     replyToUserId: replyToUserId,

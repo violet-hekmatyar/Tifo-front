@@ -19,6 +19,11 @@ final class UserCenterApi {
         body: {'nickname': nickname, 'bio': bio},
         decode: (_) {},
       );
+  Future<void> setMainTeam(int teamId) => _client.put<void>(
+    '/api/app/users/me/profile',
+    body: {'mainTeamId': teamId},
+    decode: (_) {},
+  );
   Future<UserPage<UserContentItem>> myContents(int page, int size) =>
       _page('/api/app/users/me/contents', page, size, _content);
   Future<UserPage<UserFavoriteItem>> myFavorites(int page, int size) =>
@@ -166,6 +171,10 @@ UserStand _stand(Object? raw) {
         subtitle: _text(m['teamName']),
       );
     }).toList(),
+    followingUserCount: _integer(map['followingUserCount']),
+    followerCount: _integer(map['followerCount']),
+    contentCount: _integer(map['contentCount']),
+    likeReceivedCount: _integer(map['likeReceivedCount']),
   );
 }
 

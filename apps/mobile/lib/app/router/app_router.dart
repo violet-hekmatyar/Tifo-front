@@ -7,6 +7,7 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/feed/presentation/pages/home_feed_page.dart';
 import '../../features/football/presentation/pages/football_data_page.dart';
+import '../../features/football/presentation/pages/knockout_tree_placeholder_page.dart';
 import '../../features/football/presentation/pages/match_detail_page.dart';
 import '../../features/football/presentation/pages/player_detail_page.dart';
 import '../../features/football/presentation/pages/team_detail_page.dart';
@@ -14,7 +15,7 @@ import '../../features/content/presentation/pages/content_detail_page.dart';
 import '../../features/content/presentation/pages/article_editor_page.dart';
 import '../../features/content/presentation/pages/publish_post_page.dart';
 import '../../features/content/presentation/pages/publish_auxiliary_page.dart';
-import '../../features/content/presentation/publish/publish_local_source.dart';
+import '../../features/content/domain/publish_subject.dart';
 import '../../features/main_shell/presentation/main_shell_page.dart';
 import '../../features/notification/presentation/notifications_page.dart';
 import '../../features/search/presentation/pages/global_search_page.dart';
@@ -95,7 +96,7 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
             GoRoute(
               path: '/app/messages',
               name: RouteNames.messages,
-              builder: (context, state) => const NotificationsPage(),
+              builder: (context, state) => const MessagesHomePage(),
             ),
           ],
         ),
@@ -195,6 +196,11 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
     ),
     GoRoute(
       path: '/messages',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const NotificationsPage(),
+    ),
+    GoRoute(
+      path: '/messages/interactions',
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const NotificationsPage(),
     ),
@@ -356,6 +362,11 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       redirect: (context, state) =>
           '/matches/${state.pathParameters['matchId']}',
+    ),
+    GoRoute(
+      path: '/football/knockout-tree',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const KnockoutTreePlaceholderPage(),
     ),
     GoRoute(
       path: '/teams/:teamId',

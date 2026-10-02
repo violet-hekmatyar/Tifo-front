@@ -164,6 +164,13 @@ final class _Repository implements MatchDetailRepositoryContract {
   int submitCalls = 0;
   double? mine;
   @override
+  Future<FootballPage<MatchRelatedContent>> contents(
+    int matchId, {
+    int page = 1,
+    int size = 10,
+    String? contentType,
+  }) async => const FootballPage(records: [], pageNum: 1, pages: 0, total: 0);
+  @override
   Future<List<MatchRatingSummary>> ratings(int matchId, {int? teamId}) async =>
       const [MatchRatingSummary(playerId: 50, playerName: '测试球员', teamId: 40)];
   @override
@@ -214,6 +221,14 @@ final class _Repository implements MatchDetailRepositoryContract {
 final class _ConcurrentRepository implements MatchDetailRepositoryContract {
   final pending = <int, Completer<MatchRatingResult>>{};
   int submitCalls = 0;
+
+  @override
+  Future<FootballPage<MatchRelatedContent>> contents(
+    int matchId, {
+    int page = 1,
+    int size = 10,
+    String? contentType,
+  }) async => const FootballPage(records: [], pageNum: 1, pages: 0, total: 0);
 
   @override
   Future<List<MatchRatingSummary>> ratings(int matchId, {int? teamId}) async =>

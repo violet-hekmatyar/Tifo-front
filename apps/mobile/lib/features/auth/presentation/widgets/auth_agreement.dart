@@ -3,48 +3,78 @@ import 'package:flutter/material.dart';
 import '../../../../shared/design_system/app_design_tokens.dart';
 
 Future<bool> presentAuthAgreement(BuildContext context) async {
-  final accepted = await showModalBottomSheet<bool>(
+  final width = MediaQuery.sizeOf(context).width;
+  final accepted = await showDialog<bool>(
     context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-    ),
-    builder: (context) => SingleChildScrollView(
-      key: const ValueKey('auth_agreement_sheet'),
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.lg,
-        AppSpacing.lg,
-        AppSpacing.md,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('请确认协议', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
-          const Text('请阅读并同意用户协议和隐私政策后继续。'),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
+    barrierDismissible: true,
+    builder: (context) => Dialog(
+      insetPadding: EdgeInsets.symmetric(horizontal: width * .14, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox(
+        key: const ValueKey('auth_agreement_dialog'),
+        width: width * .72,
+        child: SingleChildScrollView(
+          key: const ValueKey('auth_agreement_sheet'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: OutlinedButton(
-                  key: const ValueKey('auth_agreement_decline'),
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('不同意'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                child: Text(
+                  '服务协议及隐私保护',
+                  key: const ValueKey('auth_agreement_title'),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: FilledButton(
-                  key: const ValueKey('auth_agreement_accept'),
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('同意并继续'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                child: Text(
+                  '为了更好地保障您的合法权益，请阅读并同意以下协议《用户协议》《隐私政策》',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: AppColors.inkMuted,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              SizedBox(
+                height: 56,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        key: const ValueKey('auth_agreement_decline'),
+                        onPressed: () => Navigator.pop(context, false),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.ink,
+                          shape: const RoundedRectangleBorder(),
+                        ),
+                        child: const Text('不同意'),
+                      ),
+                    ),
+                    const VerticalDivider(width: 1),
+                    Expanded(
+                      child: TextButton(
+                        key: const ValueKey('auth_agreement_accept'),
+                        onPressed: () => Navigator.pop(context, true),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.brand,
+                          shape: const RoundedRectangleBorder(),
+                        ),
+                        child: const Text('同意'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     ),
   );
@@ -67,23 +97,37 @@ class AuthAgreement extends StatelessWidget {
     onTap: () async {
       if (value) {
         onChanged(false);
-      } else {
-        if (await presentAuthAgreement(context)) onChanged(true);
+      } else if (await presentAuthAgreement(context)) {
+        onChanged(true);
       }
     },
     borderRadius: BorderRadius.circular(AppRadius.sm),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Checkbox(
-          key: const ValueKey('auth_agreement_checkbox'),
-          value: value,
-          onChanged: (checked) => onChanged(checked == true),
+        SizedBox.square(
+          dimension: 20,
+          child: Checkbox(
+            key: const ValueKey('auth_agreement_checkbox'),
+            value: value,
+            onChanged: (checked) => onChanged(checked == true),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+            shape: const CircleBorder(),
+            side: const BorderSide(color: AppColors.inkMuted, width: 1.5),
+            fillColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return AppColors.brand;
+              }
+              return Colors.transparent;
+            }),
+            checkColor: Colors.white,
+          ),
         ),
         const Expanded(
           child: Padding(
-            padding: EdgeInsets.only(top: 12),
-            child: Text('我已阅读并同意《用户协议》和《隐私政策》'),
+            padding: EdgeInsets.only(top: 1),
+            child: Text('阅读并同意《用户协议》和《隐私政策》'),
           ),
         ),
       ],
