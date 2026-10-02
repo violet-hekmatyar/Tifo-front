@@ -1,0 +1,5 @@
+APK: D:\Football-APP-Front\apps\mobile\build\app\outputs\flutter-apk\app-debug.apk
+SHA-256: 6FC2050CB8BA5BCE116932DF1983D2D4B536C2184F19AE4F8A7B5A4A47D90412
+Size: 213452490 bytes
+Build time: 2026-09-25 23:28:28 +08:00
+Package: com.southstand.tifo
