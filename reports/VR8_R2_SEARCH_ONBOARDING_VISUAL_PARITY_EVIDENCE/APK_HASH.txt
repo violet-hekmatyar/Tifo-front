@@ -1,0 +1,3 @@
+APK: D:\Football-APP-Front\apps\mobile\build\app\outputs\flutter-apk\app-debug.apk
+SHA-256: AA726522D8A9AFC6FD6CBA3A9EAC609E521D18E00DABE6C2FF74A991228798F9
+Build: Flutter debug APK, APP_ENV=development, API_BASE_URL=http://10.0.2.2:8080
