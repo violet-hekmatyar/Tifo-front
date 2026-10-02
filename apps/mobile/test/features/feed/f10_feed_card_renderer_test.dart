@@ -59,7 +59,8 @@ void main() {
       ),
     );
     expect(find.text('2 : 1'), findsOneWidget);
-    expect(find.text('09-19\n19:30'), findsOneWidget);
+    expect(find.text('09-19'), findsOneWidget);
+    expect(find.text('19:30'), findsOneWidget);
     expect(find.textContaining('完成反超'), findsOneWidget);
     expect(find.text('0 : 0'), findsNothing);
     await tester.tap(find.text('旗舰联赛'));

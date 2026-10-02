@@ -237,14 +237,14 @@ class _StandView extends StatelessWidget {
           description: '支持的球队，一起见证每一次胜利',
           icon: Icons.checkroom_rounded,
           items: stand.teams,
-          onTap: () => context.push('/teams'),
+          onTap: () => context.push('/users/me/followed-teams'),
         ),
         _StandCard(
           title: '我关注的球星',
           description: '那些闪耀的名字，激励着我们前行',
           icon: Icons.person_rounded,
           items: stand.players,
-          onTap: () => context.push('/players'),
+          onTap: () => context.push('/users/me/followed-players'),
         ),
       ],
     );
@@ -271,15 +271,16 @@ class _StandCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(appConfigProvider);
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Material(
+        key: ValueKey('my_stand_card_$title'),
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(22),
         child: InkWell(
           borderRadius: BorderRadius.circular(22),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: Row(
               children: [
                 DecoratedBox(

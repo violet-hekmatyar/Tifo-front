@@ -71,3 +71,28 @@ final class FeedDisplaySections {
         count + (entry is FeedContentRowEntry && entry.right != null ? 2 : 1),
   );
 }
+
+/// Assigns the arrival-ordered cards to two visual columns without mutating
+/// their API position or recommendation attribution. Replaying the same prefix
+/// produces the same assignment when later pages append.
+List<List<FeedCard>> assignFeedMasonryColumns(Iterable<FeedCard> cards) {
+  final columns = <List<FeedCard>>[[], []];
+  final heights = <double>[0, 0];
+  for (final card in cards) {
+    final column = heights[0] <= heights[1] ? 0 : 1;
+    columns[column].add(card);
+    heights[column] += _estimatedFeedCardHeight(card) + 6;
+  }
+  return List.unmodifiable(columns.map(List<FeedCard>.unmodifiable));
+}
+
+double _estimatedFeedCardHeight(FeedCard card) => switch (card) {
+  MatchFeedCard() => 92,
+  ContentFeedCard(transferBrief: FeedTransferBrief()) => 180,
+  ContentFeedCard() => 210,
+  RankingFeedCard() => 178,
+  PlayerRatingFeedCard() => 196,
+  DiscussionFeedCard() => 210,
+  HotCommentFeedCard() => 176,
+  UnknownFeedCard() => 90,
+};

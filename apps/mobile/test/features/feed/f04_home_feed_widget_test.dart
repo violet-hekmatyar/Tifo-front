@@ -183,7 +183,10 @@ void main() {
       final title = tester.widget<Text>(find.text(card.title));
       expect(title.maxLines, 2);
       expect(find.byIcon(Icons.sports_soccer_rounded), findsOneWidget);
-      expect(find.text('帖子'), findsOneWidget);
+      expect(
+        find.image(const AssetImage('assets/ui/home/neutral-football-cover.png')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -258,7 +261,7 @@ void main() {
   }
 
   testWidgets(
-    'scheduled match without score shows time rather than fake score',
+    'scheduled match without score shows date and clock rather than fake score',
     (tester) async {
       await _pumpWidget(
         tester,
@@ -267,12 +270,15 @@ void main() {
           onTap: () {},
         ),
       );
-      expect(find.text('07-17\n20:00'), findsOneWidget);
+      expect(find.text('07-17'), findsOneWidget);
+      expect(find.text('20:00'), findsOneWidget);
+      expect(find.byKey(const ValueKey('match_date_label')), findsOneWidget);
+      expect(find.byKey(const ValueKey('match_score_or_clock')), findsOneWidget);
       expect(find.textContaining('0 : 0'), findsNothing);
     },
   );
 
-  testWidgets('compact match keeps scheduled time to two lines', (
+  testWidgets('compact match keeps scheduled date and clock visible', (
     tester,
   ) async {
     await _pumpWidget(
@@ -287,9 +293,8 @@ void main() {
     );
     final match = find.byType(MatchCard);
     expect(tester.getSize(match).width, closeTo(186, 0.1));
-    final time = find.text('07-17\n20:00');
-    expect(time, findsOneWidget);
-    expect(tester.widget<Text>(time).maxLines, 2);
+    expect(find.text('07-17'), findsOneWidget);
+    expect(find.text('20:00'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -398,15 +403,49 @@ void main() {
       );
       expect(find.byType(MatchCard), findsNWidgets(2));
       expect(find.byType(ContentCard), findsNWidgets(2));
-      final firstContentTop = tester
-          .getTopLeft(find.byType(ContentCard).first)
-          .dy;
-      final firstMatchTop = tester.getTopLeft(find.byType(MatchCard).first).dy;
-      expect(firstContentTop, closeTo(firstMatchTop, 0.1));
-      expect(
-        tester.getSize(find.byType(MatchCard).first).width,
-        closeTo(tester.getSize(find.byType(ContentCard).first).width, 0.1),
+      expect(find.byType(UnknownCard), findsOneWidget);
+      final masonry = find.byKey(const ValueKey('home_feed_masonry'));
+      expect(masonry, findsOneWidget);
+      final masonryCards = find.descendant(
+        of: masonry,
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is ContentCard ||
+              widget is MatchCard ||
+              widget is UnknownCard,
+        ),
       );
+      expect(masonryCards, findsNWidgets(5));
+      final masonryRect = tester.getRect(masonry);
+      final centerX = masonryRect.center.dx;
+      final leftCards = <Element>[];
+      final rightCards = <Element>[];
+      for (final element in masonryCards.evaluate()) {
+        final rect = tester.getRect(find.byElementPredicate((e) => e == element));
+        if (rect.center.dx < centerX) {
+          leftCards.add(element);
+        } else {
+          rightCards.add(element);
+        }
+      }
+      expect(leftCards, isNotEmpty);
+      expect(rightCards, isNotEmpty);
+      final leftTops = leftCards
+          .map((e) => tester.getRect(find.byElementPredicate((el) => el == e)).top)
+          .toList()
+        ..sort();
+      final rightTops = rightCards
+          .map((e) => tester.getRect(find.byElementPredicate((el) => el == e)).top)
+          .toList()
+        ..sort();
+      expect(leftTops.first, closeTo(rightTops.first, 0.1));
+      final leftWidths = leftCards
+          .map((e) => tester.getRect(find.byElementPredicate((el) => el == e)).width)
+          .toSet();
+      final rightWidths = rightCards
+          .map((e) => tester.getRect(find.byElementPredicate((el) => el == e)).width)
+          .toSet();
+      expect(leftWidths.single, closeTo(rightWidths.single, 0.1));
       expect(tester.takeException(), isNull);
     },
   );

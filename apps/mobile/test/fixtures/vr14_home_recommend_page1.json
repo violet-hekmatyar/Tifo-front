@@ -1,0 +1,16 @@
+{
+  "pageNum": 1,
+  "pageSize": 10,
+  "records": [
+    {"position": 0, "cardType": "CONTENT", "cardId": "CONTENT_16000000000000201", "title": "圣西罗夜场的压迫感从哪里开始"},
+    {"position": 1, "cardType": "CONTENT", "cardId": "CONTENT_16000000000000203", "title": "门将站位：一次提前移动带来的收益"},
+    {"position": 2, "cardType": "CONTENT", "cardId": "CONTENT_16000000000000205", "title": "旗舰比赛复盘：2:0 背后的三个转折点"},
+    {"position": 3, "cardType": "DISCUSSION", "cardId": "DISCUSSION_16000000000000002", "title": "利物浦主场迎来关键比赛，双方公布首发安排"},
+    {"position": 4, "cardType": "CONTENT", "cardId": "CONTENT_16000000000000202", "title": "尤文图斯的中场三角如何撕开防线"},
+    {"position": 5, "cardType": "CONTENT", "cardId": "CONTENT_16000000000000204", "title": "球员观察：无球跑动比数据更早发出信号"},
+    {"position": 6, "cardType": "CONTENT", "cardId": "CONTENT_16000000000000208", "title": "意甲赛季观察：两支球队的不同节奏"},
+    {"position": 7, "cardType": "HOT_COMMENT", "cardId": "HOT_COMMENT_16400000000000601", "title": "圣西罗夜场的压迫感从哪里开始"},
+    {"position": 8, "cardType": "CONTENT", "cardId": "CONTENT_16000000000000030", "title": "看台观察：马德里竞技的边路配合渐入佳境"},
+    {"position": 9, "cardType": "MATCH", "cardId": "MATCH_50003", "title": null}
+  ]
+}

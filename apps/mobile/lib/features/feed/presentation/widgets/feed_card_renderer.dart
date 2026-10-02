@@ -45,6 +45,7 @@ class FeedCardRenderer extends ConsumerWidget {
       ContentFeedCard card => ContentCard(
         card: card,
         layout: contentLayout,
+        transferImageResolver: (url) => resolveMediaUrl(config, url),
         coverUrl: resolveMediaUrl(config, card.coverUrl),
         authorAvatarUrl: resolveMediaUrl(config, card.author?.avatarUrl),
         onAuthorTap: card.author?.userId == null

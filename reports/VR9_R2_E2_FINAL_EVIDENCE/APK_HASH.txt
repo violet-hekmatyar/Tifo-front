@@ -1,0 +1,5 @@
+APK path: D:\Football-APP-Front\apps\mobile\build\app\outputs\flutter-apk\app-debug.apk
+SHA-256: B4ABC028D386516B32BEF0B8449FF0A381450300729481C422D0F9BFE7392517
+Size: 213452943 bytes
+LastWriteTime: 2026-09-27 14:23:07 +08:00
+Build: externally completed Flutter debug APK, APP_ENV=development, API_BASE_URL=http://10.0.2.2:8080

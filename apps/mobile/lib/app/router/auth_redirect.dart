@@ -15,7 +15,7 @@ String? authRedirect(AuthStatus status, String location) {
       location.startsWith('/players/') ||
       location == '/football/knockout-tree' ||
       location.startsWith('/users/') ||
-      location == '/messages' ||
+      location.startsWith('/messages') ||
       location.startsWith('/settings');
   return switch (status) {
     AuthStatus.bootstrapping ||

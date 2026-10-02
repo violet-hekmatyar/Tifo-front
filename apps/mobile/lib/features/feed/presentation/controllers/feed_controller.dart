@@ -47,6 +47,9 @@ final feedControllerProvider =
 final class FeedController extends ChangeNotifier {
   FeedController(this._repository);
 
+  // Preserve the pre-VR14 request contract. The root page must receive the
+  // same page size as the other feed entry points; card composition belongs to
+  // the real API response, not to an enlarged client-side workaround.
   static const pageSize = 10;
   final FeedRepositoryContract _repository;
   FeedState _state = const FeedState.loading();

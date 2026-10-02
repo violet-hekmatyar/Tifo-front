@@ -52,6 +52,7 @@ class FeedFilterBar extends ConsumerWidget {
                       key: ValueKey('followed_team_${team.teamId}'),
                       team: team,
                       selected: selectedTeamId == team.teamId,
+                      showName: true,
                       imageUrl: resolveMediaUrl(config, team.logoUrl),
                       onTap: onTeamSelected == null || team.teamId <= 0
                           ? null
@@ -155,6 +156,7 @@ class _TeamNavItem extends StatelessWidget {
   const _TeamNavItem({
     required this.team,
     required this.selected,
+    required this.showName,
     required this.imageUrl,
     required this.onTap,
     super.key,
@@ -162,6 +164,7 @@ class _TeamNavItem extends StatelessWidget {
 
   final FollowedTeam team;
   final bool selected;
+  final bool showName;
   final String? imageUrl;
   final VoidCallback? onTap;
 
@@ -183,20 +186,19 @@ class _TeamNavItem extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _TeamNavLogo(imageUrl: imageUrl, size: 27),
-            const SizedBox(width: 4),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 58),
-              child: Text(
+            _TeamNavLogo(imageUrl: imageUrl, size: 24),
+            if (showName) ...[
+              const SizedBox(width: 3),
+              Text(
                 team.teamName,
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                softWrap: false,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: selected ? AppColors.brandDark : AppColors.inkMuted,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),

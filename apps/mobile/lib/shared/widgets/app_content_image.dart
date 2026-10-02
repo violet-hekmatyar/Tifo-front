@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/network/network_providers.dart';
 import '../design_system/app_design_tokens.dart';
+
+bool isSvgMediaUrl(String? imageUrl) =>
+    Uri.tryParse(imageUrl ?? '')?.path.toLowerCase().endsWith('.svg') == true;
 
 class AppContentImage extends ConsumerStatefulWidget {
   const AppContentImage({this.imageUrl, this.aspectRatio = 4 / 3, super.key});
@@ -31,6 +35,7 @@ class _AppContentImageState extends ConsumerState<AppContentImage> {
 
   @override
   Widget build(BuildContext context) {
+    final useSvg = isSvgMediaUrl(widget.imageUrl);
     const fallback = ColoredBox(
       color: AppColors.surfaceMuted,
       child: Stack(
@@ -62,14 +67,23 @@ class _AppContentImageState extends ConsumerState<AppContentImage> {
                   fit: StackFit.expand,
                   children: [
                     fallback,
-                    Image.network(
-                      widget.imageUrl!,
-                      headers: snapshot.data ?? const <String, String>{},
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, progress) =>
-                          progress == null ? child : const SizedBox.shrink(),
-                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                    ),
+                    if (useSvg)
+                      SvgPicture.network(
+                        widget.imageUrl!,
+                        headers: snapshot.data ?? const <String, String>{},
+                        fit: BoxFit.cover,
+                        placeholderBuilder: (_) => const SizedBox.shrink(),
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      )
+                    else
+                      Image.network(
+                        widget.imageUrl!,
+                        headers: snapshot.data ?? const <String, String>{},
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, progress) =>
+                            progress == null ? child : const SizedBox.shrink(),
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      ),
                   ],
                 ),
               ),

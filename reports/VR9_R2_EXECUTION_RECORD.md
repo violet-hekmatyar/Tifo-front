@@ -2,7 +2,7 @@
 
 日期：2026-09-25
 
-状态：**代码、测试和数据验证完成；等待普通 Windows Terminal 构建 R2 APK；VR9 未关闭；不得进入 VR10。**
+状态：**代码、测试、数据和 R2 实机证据完成；已提交 Plan 模型复验；VR9 未关闭；不得进入 VR10。**
 
 ## 已完成
 
@@ -22,20 +22,16 @@
 - Validator 在两次 Seed 后分别执行并通过：正文块 12、媒体 12、VR9-M1 关系 20，非 DEMO 泄漏为 0。
 - R1 Seed/Validator 仅增加保护断言，没有新增业务数据、API 或数据库结构。
 
-## 当前阻塞
+## R2 APK 与实机证据
 
-R2 新 APK 构建在 Codex 进程和子 PowerShell 中均失败：
+- 普通 Windows Terminal 构建并安装的新 APK：
+  `E4D082B9BC9DF6A49072811270F9C6FF63FC3FFAB7A95E1368AD82E3EDC93C4E`
+- APK 大小：`213452833` bytes；构建时间：`2026-09-25 21:56:47 +08:00`。
+- 已使用 `emulator-5554 / Pixel_8_API_36` 完成 10 张正式截图：5 张 375×812dp 主对照、公开关注状态、360dp 本人/关系页、140% 本人/关系页。
+- 已生成 5 张直接双栏对照图，来源为原型原图与当前 APK 原始截图；未复用 R1 对照图。
+- 完整材料位于 `reports/VR9_R2_FINAL_EVIDENCE`，包含 APK 哈希、设备参数、逐图量测和执行记录。
+- 设备已恢复为 `1080×2400 / density 420 / font scale 1.0`。
 
-```text
-java.io.IOException: Unable to establish loopback connection
-```
+## 复验边界
 
-因此尚未使用 R1 APK 采集 R2 证据，也未更新 R2 APK 哈希。必须在普通 Windows Terminal 中执行：
-
-```powershell
-$ErrorActionPreference = 'Stop'
-Set-Location -LiteralPath 'D:\Football-APP-Front'
-& 'D:\Football-APP-Front\scripts\vr9_build_apk.ps1'
-```
-
-构建成功后，执行模型继续安装新 APK，采集 10 张 R2 截图、5 张 `375×812dp` 双栏对照图和完整量测表；完成后提交 Plan 模型复验，不自行关闭 VR9。
+执行模型不自行宣布 VR9 通过，也不进入 VR10。上述截图、对照图和量测表现提交 Plan 模型复验；若 Plan 模型发现主体项超过 ±8%，再按 VR9-R2 范围处理。

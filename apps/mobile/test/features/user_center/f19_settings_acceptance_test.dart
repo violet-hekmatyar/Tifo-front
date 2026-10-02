@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -10,11 +11,11 @@ import 'package:tifo/features/auth/data/auth_repository.dart';
 import 'package:tifo/features/auth/domain/auth_user.dart';
 import 'package:tifo/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:tifo/features/user_center/presentation/pages/settings_pages.dart';
-import 'package:tifo/features/user_center/domain/user_center_models.dart';
-import 'package:tifo/features/user_center/presentation/controllers/user_center_controllers.dart';
 
 void main() {
-  testWidgets('SET-01 settings has exactly four real entries', (tester) async {
+  testWidgets('SET-01 settings matches the four prototype entries', (
+    tester,
+  ) async {
     final auth = await _readyAuth();
     await tester.pumpWidget(
       ProviderScope(
@@ -23,35 +24,87 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('settings_account')), findsOneWidget);
-    expect(find.byKey(const ValueKey('settings_edit_profile')), findsOneWidget);
+    expect(find.byKey(const ValueKey('settings_general')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('settings_notifications')),
       findsOneWidget,
     );
+    expect(find.byKey(const ValueKey('settings_language')), findsOneWidget);
     expect(find.byKey(const ValueKey('settings_logout')), findsOneWidget);
-    expect(find.text('私信'), findsNothing);
-    expect(find.text('手机号'), findsNothing);
-    expect(find.text('修改密码'), findsNothing);
-    expect(find.text('注销账号'), findsNothing);
+    expect(find.byKey(const ValueKey('settings_edit_profile')), findsNothing);
+    expect(find.text('账号与安全'), findsOneWidget);
+    expect(find.text('通用设置'), findsOneWidget);
+    expect(find.text('通知设置'), findsOneWidget);
+    expect(find.text('语言设置'), findsOneWidget);
+  });
+
+  testWidgets('SET-02 account page renders the masked phone security rows', (
+    tester,
+  ) async {
+    final auth = await _readyAuth();
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(home: AccountInfoPage(authController: auth)),
+      ),
+    );
+
+    expect(find.text('设置'), findsOneWidget);
+    expect(find.text('+86 185****9583'), findsOneWidget);
+    expect(find.byKey(const ValueKey('account_phone')), findsOneWidget);
+    expect(find.byKey(const ValueKey('account_password')), findsOneWidget);
+    expect(find.byKey(const ValueKey('account_delete')), findsOneWidget);
+    expect(find.text('真实昵称'), findsNothing);
+    expect(find.text('account_user'), findsNothing);
+    expect(find.text('18512349583'), findsNothing);
+  });
+
+  testWidgets('SET-09 settings page uses dark icons on a light system bar', (
+    tester,
+  ) async {
+    final auth = await _readyAuth();
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(home: SettingsPage(authController: auth)),
+      ),
+    );
+
+    _expectLightPageSystemUi(tester, 'settings_system_ui');
+  });
+
+  testWidgets('SET-10 account page uses dark icons on a light system bar', (
+    tester,
+  ) async {
+    final auth = await _readyAuth();
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(home: AccountInfoPage(authController: auth)),
+      ),
+    );
+
+    _expectLightPageSystemUi(tester, 'account_system_ui');
   });
 
   testWidgets(
-    'SET-02 account page renders AuthUser fields without fake sensitive fields',
+    'SET-05 unsupported settings actions show an explicit closed state',
     (tester) async {
       final auth = await _readyAuth();
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(home: SettingsPage(authController: auth)),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('settings_general')));
+      await tester.pump();
+      expect(find.text('通用设置暂未开放'), findsOneWidget);
+
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(home: AccountInfoPage(authController: auth)),
         ),
       );
-
-      expect(find.text('真实昵称'), findsNWidgets(2));
-      expect(find.text('account_user'), findsOneWidget);
-      expect(find.text('MODERATOR'), findsOneWidget);
-      expect(find.text('ACTIVE'), findsOneWidget);
-      expect(find.text('手机号'), findsNothing);
-      expect(find.text('修改密码'), findsNothing);
-      expect(find.text('注销账号'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('account_password')));
+      await tester.pump();
+      expect(find.text('修改密码暂未开放'), findsOneWidget);
     },
   );
 
@@ -100,7 +153,7 @@ void main() {
   });
 
   testWidgets(
-    'R13A-08 settings account, edit and notification entries return correctly',
+    'R13A-08 settings account entry returns and unsupported entries stay local',
     (tester) async {
       final auth = await _readyAuth();
       final router = GoRouter(
@@ -127,24 +180,7 @@ void main() {
       addTearDown(router.dispose);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            mySummaryProvider.overrideWithValue(
-              const AsyncValue.data(
-                MySummary(
-                  userId: 77,
-                  username: 'account_user',
-                  nickname: '真实昵称',
-                  postCount: 1,
-                  favoriteCount: 2,
-                  commentCount: 3,
-                  followingCount: 4,
-                  followerCount: 5,
-                  teamFollowCount: 6,
-                  playerFollowCount: 7,
-                ),
-              ),
-            ),
-          ],
+          overrides: [],
           child: MaterialApp.router(routerConfig: router),
         ),
       );
@@ -152,21 +188,13 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('settings_account')));
       await tester.pumpAndSettle();
-      expect(find.text('账号与安全'), findsOneWidget);
-      router.pop();
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const ValueKey('settings_edit_profile')));
-      await tester.pumpAndSettle();
-      expect(find.text('编辑资料页'), findsOneWidget);
+      expect(find.text('设置'), findsOneWidget);
       router.pop();
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('settings_notifications')));
-      await tester.pumpAndSettle();
-      expect(find.text('消息设置'), findsOneWidget);
-      router.pop();
-      await tester.pumpAndSettle();
+      await tester.pump();
+      expect(find.text('通知设置暂未开放'), findsOneWidget);
       expect(find.byKey(const ValueKey('settings_logout')), findsOneWidget);
     },
   );
@@ -227,12 +255,114 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(find.text('account_user'), findsOneWidget);
+        expect(find.text('+86 185****9583'), findsOneWidget);
         expect(tester.takeException(), isNull);
       }
       await tester.binding.setSurfaceSize(null);
     },
   );
+
+  testWidgets('SET-07 settings geometry follows the 375dp prototype rhythm', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    final auth = await _readyAuth();
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(home: SettingsPage(authController: auth)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final group = tester.getRect(find.byKey(const ValueKey('settings_group')));
+    final logout = tester.getRect(
+      find.byKey(const ValueKey('settings_logout')),
+    );
+    expect(group.left, closeTo(10, 1));
+    expect(group.width, closeTo(355, 1));
+    expect(group.height, closeTo(200, 1));
+    expect(logout.left, closeTo(24, 1));
+    expect(logout.width, closeTo(327, 1));
+    expect(logout.height, closeTo(54, 1));
+    expect(logout.top - group.bottom, closeTo(24, 1));
+    expect(find.byKey(const ValueKey('settings_divider_1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('settings_divider_2')), findsOneWidget);
+    expect(find.byKey(const ValueKey('settings_divider_3')), findsOneWidget);
+    expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.notifications_none_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.translate_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    for (final index in [1, 2, 3]) {
+      final divider = tester.getRect(
+        find.byKey(ValueKey('settings_divider_$index')),
+      );
+      expect(divider.left, closeTo(25, 1));
+      expect(divider.right, closeTo(365, 1));
+      expect(divider.width, closeTo(340, 1));
+    }
+    final title = tester.widget<Text>(find.text('设置').first);
+    expect(title.style?.fontSize, closeTo(19.5, 1));
+    expect(tester.takeException(), isNull);
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets(
+    'SET-08 account security geometry stays compact at 360dp and 140%',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      final auth = await _readyAuth();
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(1.4)),
+          child: ProviderScope(
+            child: MaterialApp(home: AccountInfoPage(authController: auth)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final group = tester.getRect(
+        find.byKey(const ValueKey('account_security_group')),
+      );
+      expect(group.left, closeTo(10, 1));
+      expect(group.width, closeTo(340, 1));
+      expect(group.height, closeTo(150, 1));
+      expect(find.byKey(const ValueKey('account_divider_1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('account_divider_2')), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(3));
+      for (final index in [1, 2]) {
+        final divider = tester.getRect(
+          find.byKey(ValueKey('account_divider_$index')),
+        );
+        expect(divider.left, closeTo(25, 1));
+        expect(divider.right, closeTo(350, 1));
+        expect(divider.width, closeTo(325, 1));
+      }
+      final label = tester.getRect(find.text('手机号'));
+      final value = tester.getRect(
+        find.byKey(const ValueKey('account_phone_value')),
+      );
+      final arrow = tester.getRect(
+        find.byKey(const ValueKey('account_phone_arrow')),
+      );
+      expect(label.left, closeTo(25, 2));
+      expect(value.right, lessThanOrEqualTo(arrow.left));
+      expect(arrow.right, closeTo(339, 6));
+      expect(tester.takeException(), isNull);
+      await tester.binding.setSurfaceSize(null);
+    },
+  );
+}
+
+void _expectLightPageSystemUi(WidgetTester tester, String key) {
+  final region = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
+    find.byKey(ValueKey(key)),
+  );
+  expect(region.value.statusBarColor, isNotNull);
+  expect(region.value.statusBarIconBrightness, Brightness.dark);
+  expect(region.value.statusBarBrightness, Brightness.light);
+  expect(region.value.systemNavigationBarIconBrightness, Brightness.dark);
+  expect(region.value.systemNavigationBarColor, isNotNull);
+  expect(region.value.systemNavigationBarContrastEnforced, isFalse);
 }
 
 Future<AuthController> _readyAuth([_AuthRepository? repository]) async {
@@ -246,6 +376,7 @@ const _user = AuthUser(
   username: 'account_user',
   nickname: '真实昵称',
   avatarUrl: '/avatar.png',
+  phoneMasked: '+86 185****9583',
   roleType: 'MODERATOR',
   status: 'ACTIVE',
   onboardingCompleted: true,

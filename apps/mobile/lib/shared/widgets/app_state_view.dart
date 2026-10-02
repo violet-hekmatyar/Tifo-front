@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../design_system/app_design_tokens.dart';
 import 'app_primary_button.dart';
+import 'app_state_illustration.dart';
 
 enum AppStateKind { loading, empty, error, success }
 
@@ -11,6 +12,7 @@ class AppStateView extends StatelessWidget {
     required this.title,
     required this.message,
     this.onRetry,
+    this.illustration,
     super.key,
   });
 
@@ -18,6 +20,7 @@ class AppStateView extends StatelessWidget {
   final String title;
   final String message;
   final VoidCallback? onRetry;
+  final AppStateIllustrationType? illustration;
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +40,8 @@ class AppStateView extends StatelessWidget {
             children: [
               if (kind == AppStateKind.loading)
                 const CircularProgressIndicator()
+              else if (illustration != null)
+                AppStateIllustration(type: illustration!)
               else
                 Icon(icon, size: 54, color: AppColors.brand),
               const SizedBox(height: AppSpacing.md),

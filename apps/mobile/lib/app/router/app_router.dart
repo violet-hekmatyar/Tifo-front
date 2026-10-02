@@ -96,7 +96,7 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
             GoRoute(
               path: '/app/messages',
               name: RouteNames.messages,
-              builder: (context, state) => const NotificationsPage(),
+              builder: (context, state) => const MessagesHomePage(),
             ),
           ],
         ),
@@ -196,6 +196,11 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
     ),
     GoRoute(
       path: '/messages',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const NotificationsPage(),
+    ),
+    GoRoute(
+      path: '/messages/interactions',
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const NotificationsPage(),
     ),

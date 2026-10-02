@@ -314,7 +314,9 @@ List<Object> _visualEntries(
       cards.add(entry.card);
     }
   }
-  return cards.isEmpty ? const [] : [_FeedMasonryEntry(cards)];
+  return cards.isEmpty
+      ? const []
+      : [_FeedMasonryEntry(assignFeedMasonryColumns(cards))];
 }
 
 Widget _entry(
@@ -336,24 +338,21 @@ Widget _entry(
 
 final class _FeedMasonryEntry {
   const _FeedMasonryEntry(this.cards);
-  final List<FeedCard> cards;
+  final List<List<FeedCard>> cards;
 }
 
 class _FeedMasonry extends StatelessWidget {
   const _FeedMasonry({required this.cards, required this.cardKey});
-  final List<FeedCard> cards;
+  final List<List<FeedCard>> cards;
   final GlobalKey Function(FeedCard card) cardKey;
 
   @override
   Widget build(BuildContext context) {
-    final columns = <List<FeedCard>>[[], []];
-    for (var index = 0; index < cards.length; index++) {
-      columns[index.isEven ? 0 : 1].add(cards[index]);
-    }
     return Row(
+      key: const ValueKey('home_feed_masonry'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var index = 0; index < columns.length; index++) ...[
+        for (var index = 0; index < cards.length; index++) ...[
           if (index > 0) const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -361,13 +360,13 @@ class _FeedMasonry extends StatelessWidget {
               children: [
                 for (
                   var cardIndex = 0;
-                  cardIndex < columns[index].length;
+                  cardIndex < cards[index].length;
                   cardIndex++
                 ) ...[
                   if (cardIndex > 0) const SizedBox(height: 6),
                   FeedCardRenderer(
-                    key: cardKey(columns[index][cardIndex]),
-                    card: columns[index][cardIndex],
+                    key: cardKey(cards[index][cardIndex]),
+                    card: cards[index][cardIndex],
                     contentLayout: ContentCardLayout.grid,
                   ),
                 ],

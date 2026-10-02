@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../shared/design_system/app_design_tokens.dart';
 import '../../../../shared/widgets/app_content_image.dart';
 import '../../../../shared/widgets/app_entity_avatar.dart';
+import '../../../../shared/widgets/app_player_avatar.dart';
+import '../../../../shared/widgets/app_team_logo.dart';
 import '../../domain/feed_card.dart';
 
 enum ContentCardLayout { grid, news }
@@ -16,8 +18,10 @@ class ContentCard extends StatelessWidget {
     this.authorAvatarUrl,
     this.authorFallbackAsset,
     this.userCenterStyle = false,
+    this.userCenterMediaAspectRatio,
     this.showMedia = true,
     this.layout = ContentCardLayout.grid,
+    this.transferImageResolver,
     super.key,
   });
 
@@ -28,29 +32,216 @@ class ContentCard extends StatelessWidget {
   final String? authorAvatarUrl;
   final String? authorFallbackAsset;
   final bool userCenterStyle;
+  final double? userCenterMediaAspectRatio;
   final bool showMedia;
   final ContentCardLayout layout;
+  final String? Function(String?)? transferImageResolver;
 
   @override
-  Widget build(BuildContext context) => switch (layout) {
-    ContentCardLayout.grid => _GridContentCard(
-      card: card,
-      onTap: onTap,
-      onAuthorTap: onAuthorTap,
-      coverUrl: coverUrl,
-      authorAvatarUrl: authorAvatarUrl,
-      authorFallbackAsset: authorFallbackAsset,
-      userCenterStyle: userCenterStyle,
-      showMedia: showMedia,
+  Widget build(BuildContext context) {
+    final brief = card.transferBrief;
+    if (layout == ContentCardLayout.grid && brief != null) {
+      return TransferBriefCard(
+        card: card,
+        brief: brief,
+        onTap: onTap,
+        resolveImage: transferImageResolver ?? (url) => url,
+      );
+    }
+    return switch (layout) {
+      ContentCardLayout.grid => _GridContentCard(
+        card: card,
+        onTap: onTap,
+        onAuthorTap: onAuthorTap,
+        coverUrl: coverUrl,
+        authorAvatarUrl: authorAvatarUrl,
+        authorFallbackAsset: authorFallbackAsset,
+        userCenterStyle: userCenterStyle,
+        userCenterMediaAspectRatio: userCenterMediaAspectRatio,
+        showMedia: showMedia,
+      ),
+      ContentCardLayout.news => _NewsContentCard(
+        card: card,
+        onTap: onTap,
+        onAuthorTap: onAuthorTap,
+        coverUrl: coverUrl,
+        showMedia: showMedia,
+      ),
+    };
+  }
+}
+
+class TransferBriefCard extends StatelessWidget {
+  const TransferBriefCard({
+    required this.card,
+    required this.brief,
+    required this.onTap,
+    required this.resolveImage,
+    super.key,
+  });
+
+  final ContentFeedCard card;
+  final FeedTransferBrief brief;
+  final VoidCallback onTap;
+  final String? Function(String?) resolveImage;
+
+  @override
+  Widget build(BuildContext context) => _CardSurface(
+    key: ValueKey('transfer_brief_${card.contentId}'),
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.all(8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.swap_horiz_rounded, color: AppColors.brand),
+              const SizedBox(width: 5),
+              Text(
+                '转会快讯',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Row(
+            children: [
+              AppPlayerAvatar(
+                identity: 'transfer-player:${brief.playerId}',
+                name: brief.playerName,
+                imageUrl: resolveImage(brief.playerAvatarUrl),
+                size: 40,
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      brief.playerName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    if (brief.playerMeta case final meta?)
+                      Text(
+                        meta,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.inkMuted,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _TransferTeam(
+                  id: brief.fromTeamId,
+                  name: brief.fromTeamName,
+                  imageUrl: resolveImage(brief.fromTeamLogoUrl),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  color: AppColors.brand,
+                  size: 20,
+                ),
+              ),
+              Expanded(
+                child: _TransferTeam(
+                  id: brief.toTeamId,
+                  name: brief.toTeamName,
+                  imageUrl: resolveImage(brief.toTeamLogoUrl),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Row(
+            children: [
+              Expanded(
+                child: _TransferFact(label: '转会费', value: brief.feeLabel),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _TransferFact(label: '租借时间', value: brief.durationLabel),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Text(
+            card.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: AppColors.inkMuted),
+          ),
+        ],
+      ),
     ),
-    ContentCardLayout.news => _NewsContentCard(
-      card: card,
-      onTap: onTap,
-      onAuthorTap: onAuthorTap,
-      coverUrl: coverUrl,
-      showMedia: showMedia,
-    ),
-  };
+  );
+}
+
+class _TransferTeam extends StatelessWidget {
+  const _TransferTeam({required this.id, required this.name, this.imageUrl});
+  final int id;
+  final String name;
+  final String? imageUrl;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      AppTeamLogo(
+        identity: 'transfer-team:$id',
+        name: name,
+        imageUrl: imageUrl,
+        size: 34,
+      ),
+      const SizedBox(height: 3),
+      Text(
+        name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.labelSmall,
+      ),
+    ],
+  );
+}
+
+class _TransferFact extends StatelessWidget {
+  const _TransferFact({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      Text(
+        label,
+        style: Theme.of(
+          context,
+        ).textTheme.labelSmall?.copyWith(color: AppColors.inkMuted),
+      ),
+      Text(
+        value,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+    ],
+  );
 }
 
 class _GridContentCard extends StatelessWidget {
@@ -62,6 +253,7 @@ class _GridContentCard extends StatelessWidget {
     required this.authorAvatarUrl,
     required this.authorFallbackAsset,
     required this.userCenterStyle,
+    required this.userCenterMediaAspectRatio,
     required this.showMedia,
   });
 
@@ -72,6 +264,7 @@ class _GridContentCard extends StatelessWidget {
   final String? authorAvatarUrl;
   final String? authorFallbackAsset;
   final bool userCenterStyle;
+  final double? userCenterMediaAspectRatio;
   final bool showMedia;
 
   @override
@@ -85,14 +278,10 @@ class _GridContentCard extends StatelessWidget {
             children: [
               AppContentImage(
                 imageUrl: coverUrl,
-                aspectRatio: userCenterStyle ? 1.2 : 1.28,
+                aspectRatio:
+                    userCenterMediaAspectRatio ??
+                    (userCenterStyle ? 1.2 : 1.28),
               ),
-              if (!userCenterStyle && card.contentType == 'POST')
-                const Positioned(
-                  top: AppSpacing.xs,
-                  right: AppSpacing.xs,
-                  child: _TypeBadge(label: '帖子'),
-                ),
             ],
           ),
         Padding(
@@ -107,6 +296,7 @@ class _GridContentCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   height: 1.18,
+                  fontSize: 12,
                 ),
               ),
               if (card.hotComment case final comment?) ...[
@@ -224,7 +414,7 @@ class _NewsContentCard extends StatelessWidget {
 }
 
 class _CardSurface extends StatelessWidget {
-  const _CardSurface({required this.onTap, required this.child});
+  const _CardSurface({required this.onTap, required this.child, super.key});
 
   final VoidCallback onTap;
   final Widget child;
@@ -260,12 +450,31 @@ class _HotComment extends StatelessWidget {
       color: AppColors.surfaceMuted,
       borderRadius: BorderRadius.circular(AppRadius.sm),
     ),
-    child: Text(
-      comment.content,
-      key: const ValueKey('content_comment_summary'),
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-      style: Theme.of(context).textTheme.bodySmall,
+    child: Row(
+      children: [
+        const Icon(
+          Icons.local_fire_department_rounded,
+          color: AppColors.error,
+          size: 15,
+        ),
+        const SizedBox(width: 4),
+        const Text(
+          '热评：',
+          style: TextStyle(color: AppColors.error, fontSize: 10),
+        ),
+        Expanded(
+          child: Text(
+            comment.content,
+            key: const ValueKey('content_comment_summary'),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: AppColors.inkMuted),
+          ),
+        ),
+        const Icon(Icons.chevron_right_rounded, size: 15),
+      ],
     ),
   );
 }
@@ -348,28 +557,6 @@ class _EngagementRow extends StatelessWidget {
       const SizedBox(width: 2),
       Text('${card.commentCount}'),
     ],
-  );
-}
-
-class _TypeBadge extends StatelessWidget {
-  const _TypeBadge({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-    decoration: BoxDecoration(
-      color: AppColors.brand,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-    ),
-    child: Text(
-      label,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
   );
 }
 

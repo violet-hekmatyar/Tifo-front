@@ -111,6 +111,11 @@ ContentFeedCard? _content(
   final contentId = jsonInt(map['contentId']);
   final title = jsonString(map['title']);
   if (contentId == null || title == null) return null;
+  final displayType = jsonString(map['displayType']);
+  final displayData = jsonMap(map['displayData']);
+  final transfer = displayType == 'TRANSFER_BRIEF'
+      ? _transferBrief(displayData?['transferBrief'])
+      : null;
   return ContentFeedCard(
     cardId: cardId,
     cardKey: cardKey,
@@ -118,6 +123,8 @@ ContentFeedCard? _content(
     attribution: attribution,
     contentId: contentId,
     contentType: jsonString(map['contentType']) ?? 'UNKNOWN',
+    displayType: displayType,
+    transferBrief: transfer,
     title: title,
     summary: jsonString(map['summary']),
     coverUrl: jsonString(map['coverUrl']),
@@ -126,6 +133,39 @@ ContentFeedCard? _content(
     publishTime: jsonIsoDateTime(map['publishTime']),
     likeCount: jsonInt(map['likeCount']) ?? 0,
     commentCount: jsonInt(map['commentCount']) ?? 0,
+  );
+}
+
+FeedTransferBrief? _transferBrief(Object? raw) {
+  final map = jsonMap(raw);
+  if (map == null) return null;
+  final playerId = jsonInt(map['playerId']);
+  final playerName = jsonString(map['playerName']);
+  final fromTeamId = jsonInt(map['fromTeamId']);
+  final fromTeamName = jsonString(map['fromTeamName']);
+  final toTeamId = jsonInt(map['toTeamId']);
+  final toTeamName = jsonString(map['toTeamName']);
+  if (playerId == null ||
+      playerName == null ||
+      fromTeamId == null ||
+      fromTeamName == null ||
+      toTeamId == null ||
+      toTeamName == null) {
+    return null;
+  }
+  return FeedTransferBrief(
+    playerId: playerId,
+    playerName: playerName,
+    playerMeta: jsonString(map['playerMeta']),
+    playerAvatarUrl: jsonString(map['playerAvatarUrl']),
+    fromTeamId: fromTeamId,
+    fromTeamName: fromTeamName,
+    fromTeamLogoUrl: jsonString(map['fromTeamLogoUrl']),
+    toTeamId: toTeamId,
+    toTeamName: toTeamName,
+    toTeamLogoUrl: jsonString(map['toTeamLogoUrl']),
+    feeLabel: jsonString(map['feeLabel']) ?? '未提供',
+    durationLabel: jsonString(map['durationLabel']) ?? '未提供',
   );
 }
 

@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/network/media_url_resolver.dart';
-import '../../../../core/network/network_providers.dart';
 import '../../../../shared/design_system/app_design_tokens.dart';
-import '../../../../shared/widgets/app_team_logo.dart';
 import '../../domain/feed_page.dart';
 
-class FollowedTeamBar extends ConsumerWidget {
+class FollowedTeamBar extends StatelessWidget {
   const FollowedTeamBar({
     required this.teams,
     required this.selectedTeamId,
@@ -20,42 +16,37 @@ class FollowedTeamBar extends ConsumerWidget {
   final ValueChanged<int?> onSelected;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     if (teams.isEmpty) return const SizedBox.shrink();
-    final config = ref.watch(appConfigProvider);
     return SizedBox(
-      height: 72,
+      key: const ValueKey('followed_team_bar'),
+      height: 40,
       child: ListView.separated(
-        key: const ValueKey('followed_team_bar'),
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        key: const ValueKey('followed_team_text_list'),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         scrollDirection: Axis.horizontal,
         itemCount: teams.length + 1,
-        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+        separatorBuilder: (_, _) => const SizedBox(width: 6),
         itemBuilder: (context, index) {
           if (index == 0) {
-            return _TeamButton(
+            return _TeamChip(
+              key: const ValueKey('followed_team_all'),
               label: '全部',
               selected: selectedTeamId == null,
               onTap: () => onSelected(null),
-              child: const Icon(Icons.apps_rounded, color: AppColors.brand),
             );
           }
           final team = teams[index - 1];
-          final canSelectTeam = team.teamId > 0;
-          return _TeamButton(
+          final canSelect = team.teamId > 0;
+          return _TeamChip(
             key: ValueKey('followed_team_${team.teamId}'),
             label: team.teamName,
+            semanticLabel:
+                canSelect
+                    ? '筛选 ${team.teamName} 内容'
+                    : '${team.teamName} 暂不可用',
             selected: selectedTeamId == team.teamId,
-            semanticLabel: canSelectTeam
-                ? '筛选 ${team.teamName} 内容'
-                : '${team.teamName} 暂不可用',
-            onTap: canSelectTeam ? () => onSelected(team.teamId) : null,
-            child: AppTeamLogo(
-              identity: 'team:${team.teamId}',
-              name: team.teamName,
-              imageUrl: resolveMediaUrl(config, team.logoUrl),
-              size: 32,
-            ),
+            onTap: canSelect ? () => onSelected(team.teamId) : null,
           );
         },
       ),
@@ -63,55 +54,48 @@ class FollowedTeamBar extends ConsumerWidget {
   }
 }
 
-class _TeamButton extends StatelessWidget {
-  const _TeamButton({
+class _TeamChip extends StatelessWidget {
+  const _TeamChip({
     required this.label,
+    this.semanticLabel,
     required this.selected,
     required this.onTap,
-    required this.child,
-    this.semanticLabel,
     super.key,
   });
 
   final String label;
+  final String? semanticLabel;
   final bool selected;
   final VoidCallback? onTap;
-  final Widget child;
-  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
-    enabled: onTap != null,
-    label: semanticLabel,
+    selected: selected,
+    label: semanticLabel ?? label,
     child: InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.md),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       child: Container(
-        width: 68,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xs,
-          vertical: 4,
-        ),
+        constraints: const BoxConstraints(minWidth: 48),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? AppColors.brandSoft : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          color: selected ? AppColors.brand : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           border: Border.all(
-            color: selected ? AppColors.brand : Colors.transparent,
+            color: selected ? AppColors.brand : AppColors.border,
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox.square(dimension: 32, child: Center(child: child)),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
-          ],
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.inkMuted,
+            fontSize: 11,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          ),
         ),
       ),
     ),

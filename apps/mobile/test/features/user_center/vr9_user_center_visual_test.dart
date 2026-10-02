@@ -153,6 +153,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.byType(ContentCard), findsAtLeastNWidgets(4));
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -1600));
+    await tester.pumpAndSettle();
     expect(find.text('已经到底了'), findsOneWidget);
     expect(find.text('帖子'), findsNothing);
     expect(tester.takeException(), isNull);

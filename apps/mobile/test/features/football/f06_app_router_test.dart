@@ -12,6 +12,10 @@ import 'package:tifo/features/football/presentation/pages/match_detail_page.dart
 import 'package:tifo/features/football/presentation/pages/knockout_tree_placeholder_page.dart';
 import 'package:tifo/features/football/presentation/pages/player_detail_page.dart';
 import 'package:tifo/features/football/presentation/pages/team_detail_page.dart';
+import 'package:tifo/features/user_center/data/user_center_repository.dart';
+import 'package:tifo/features/user_center/domain/user_center_models.dart';
+import 'package:tifo/features/user_center/presentation/pages/followed_entities_page.dart';
+import 'package:tifo/features/user_center/presentation/pages/my_profile_page.dart';
 
 void main() {
   testWidgets(
@@ -124,6 +128,57 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('页面不存在'), findsNothing);
   });
+
+  testWidgets(
+    'authenticated profile opens followed players and returns to profile',
+    (tester) async {
+      final auth = AuthController(_ReadyAuthRepository());
+      await auth.initialize();
+      final router = createAppRouter(auth)..go('/app/profile');
+      addTearDown(router.dispose);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            footballRepositoryProvider.overrideWithValue(
+              _RouterFootballRepository(),
+            ),
+            userCenterRepositoryProvider.overrideWithValue(
+              _RouterUserCenterRepository(),
+            ),
+          ],
+          child: MaterialApp.router(
+            theme: AppTheme.light,
+            routerConfig: router,
+          ),
+        ),
+      );
+      for (var i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/app/profile');
+      expect(find.byType(MyProfilePage), findsOneWidget);
+      expect(find.text('看台'), findsOneWidget);
+      expect(find.text('我关注的球队'), findsOneWidget);
+
+      await tester.drag(
+        find.byKey(const ValueKey('my_stand_scroll')),
+        const Offset(0, -260),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('我关注的球星'), findsOneWidget);
+
+      await tester.tap(find.text('我关注的球星'));
+      await tester.pumpAndSettle();
+      expect(find.byType(FollowedEntitiesPage), findsOneWidget);
+      expect(find.text('关注的球员'), findsOneWidget);
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(find.byType(MyProfilePage), findsOneWidget);
+      expect(find.text('看台'), findsOneWidget);
+    },
+  );
 }
 
 const _user = AuthUser(
@@ -154,6 +209,88 @@ final class _ReadyAuthRepository implements AuthRepositoryContract {
   Future<AuthUser> restore() async => _user;
   @override
   Future<String?> storedToken() async => 'stored';
+}
+
+final class _RouterUserCenterRepository
+    implements UserCenterRepositoryContract {
+  @override
+  Future<MySummary> summary() async => const MySummary(
+        userId: 1,
+        username: 'ready',
+        nickname: '就绪用户',
+        bio: null,
+        mainTeam: null,
+        postCount: 0,
+        favoriteCount: 0,
+        commentCount: 0,
+        followingCount: 0,
+        followerCount: 0,
+        teamFollowCount: 1,
+        playerFollowCount: 1,
+        avatarUrl: null,
+      );
+  @override
+  Future<UserStand> stand() async => const UserStand(
+        teams: [EntityBrief(id: 40, name: '测试球队')],
+        players: [EntityBrief(id: 50, name: '测试球员')],
+      );
+  @override
+  Future<UserProfile> profile(int userId) async =>
+      throw UnimplementedError();
+  @override
+  Future<void> updateProfile({
+    required String nickname,
+    required String bio,
+  }) async {}
+  @override
+  Future<void> setMainTeam(int teamId) async {}
+  @override
+  Future<UserProfile> follow(int userId, bool follow) async =>
+      throw UnimplementedError();
+  @override
+  Future<bool> toggleEntity(String type, int id) async => false;
+  @override
+  Future<void> removeFavorite(int contentId) async {}
+  @override
+  Future<void> deleteComment(int commentId) async {}
+  @override
+  Future<UserPage<UserContentItem>> myContents(int page, int size) async =>
+      throw UnimplementedError();
+  @override
+  Future<UserPage<UserFavoriteItem>> myFavorites(int page, int size) async =>
+      throw UnimplementedError();
+  @override
+  Future<UserPage<UserLikeItem>> myLikes(int page, int size) async =>
+      throw UnimplementedError();
+  @override
+  Future<UserPage<UserCommentItem>> myComments(int page, int size) async =>
+      throw UnimplementedError();
+  @override
+  Future<UserPage<UserContentItem>> userContents(
+    int userId,
+    int page,
+    int size,
+  ) async => throw UnimplementedError();
+  @override
+  Future<UserPage<UserFavoriteItem>> userFavorites(
+    int userId,
+    int page,
+    int size,
+  ) async => throw UnimplementedError();
+  @override
+  Future<UserPage<UserCommentItem>> userComments(
+    int userId,
+    int page,
+    int size,
+  ) async => throw UnimplementedError();
+  @override
+  Future<String> bindAvatar(int fileId) async => '';
+  @override
+  Future<UserPage<UserBrief>> followings(int userId, int page, int size) async =>
+      throw UnimplementedError();
+  @override
+  Future<UserPage<UserBrief>> followers(int userId, int page, int size) async =>
+      throw UnimplementedError();
 }
 
 final class _RouterFootballRepository implements FootballRepositoryContract {

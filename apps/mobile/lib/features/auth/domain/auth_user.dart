@@ -9,6 +9,7 @@ final class AuthUser {
     required this.onboardingCompleted,
     this.nickname,
     this.avatarUrl,
+    this.phoneMasked,
     this.mainTeamId,
   });
 
@@ -26,6 +27,7 @@ final class AuthUser {
       username: raw['username'] as String,
       nickname: raw['nickname'] as String?,
       avatarUrl: raw['avatarUrl'] as String?,
+      phoneMasked: raw['phoneMasked'] as String?,
       roleType: raw['roleType'] as String,
       status: raw['status'] as String,
       onboardingCompleted: raw['onboardingCompleted'] as bool,
@@ -37,6 +39,7 @@ final class AuthUser {
   final String username;
   final String? nickname;
   final String? avatarUrl;
+  final String? phoneMasked;
   final String roleType;
   final String status;
   final bool onboardingCompleted;
@@ -47,6 +50,7 @@ final class AuthUser {
     username: username,
     nickname: nickname,
     avatarUrl: avatarUrl,
+    phoneMasked: phoneMasked,
     roleType: roleType,
     status: status,
     onboardingCompleted: true,

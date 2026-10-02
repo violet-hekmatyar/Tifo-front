@@ -9,6 +9,7 @@ import '../../../../core/network/network_providers.dart';
 import '../../../../shared/design_system/app_design_tokens.dart';
 import '../../../../shared/widgets/app_entity_avatar.dart';
 import '../../../../shared/widgets/app_state_view.dart';
+import '../../../../shared/widgets/app_state_illustration.dart';
 import '../../../feed/domain/feed_card.dart';
 import '../../../feed/presentation/widgets/content_card.dart';
 import '../../domain/user_center_models.dart';
@@ -146,6 +147,23 @@ class _UserListViewState extends ConsumerState<UserListView>
       );
     }
     final values = _filtered(state.items);
+    final compactContentList = switch (widget.request.kind) {
+      UserListKind.myContents ||
+      UserListKind.myLikes ||
+      UserListKind.myFavorites ||
+      UserListKind.userContents ||
+      UserListKind.userFavorites => true,
+      _ => false,
+    };
+    final emptyIllustration = switch (widget.request.kind) {
+      UserListKind.myComments ||
+      UserListKind.userComments => AppStateIllustrationType.noComments,
+      UserListKind.myFavorites ||
+      UserListKind.userFavorites => AppStateIllustrationType.noFavorites,
+      UserListKind.followings ||
+      UserListKind.followers => AppStateIllustrationType.noFollowing,
+      _ => null,
+    };
     return RefreshIndicator(
       onRefresh: controller.refresh,
       child: ListView(
@@ -154,10 +172,10 @@ class _UserListViewState extends ConsumerState<UserListView>
         ),
         controller: _scroll,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.md,
+        padding: EdgeInsets.fromLTRB(
+          compactContentList ? 6 : AppSpacing.md,
           AppSpacing.sm,
-          AppSpacing.md,
+          compactContentList ? 6 : AppSpacing.md,
           AppSpacing.xl,
         ),
         children: [
@@ -174,12 +192,13 @@ class _UserListViewState extends ConsumerState<UserListView>
               onRetry: controller.retry,
             ),
           if (values.isEmpty)
-            const SizedBox(
+            SizedBox(
               height: 420,
               child: AppStateView(
                 kind: AppStateKind.empty,
                 title: '暂无内容',
                 message: '这里还没有可展示的真实记录。',
+                illustration: emptyIllustration,
               ),
             )
           else
@@ -260,11 +279,14 @@ class _UserListViewState extends ConsumerState<UserListView>
     return LayoutBuilder(
       builder: (context, constraints) {
         final single =
-            constraints.maxWidth < 350 ||
+            MediaQuery.sizeOf(context).width <= 360 ||
             MediaQuery.textScalerOf(context).scale(14) > 16.5;
         if (single) {
           return Column(
-            children: [for (final value in values) _contentItem(value)],
+            children: [
+              for (var i = 0; i < values.length; i++)
+                _contentItem(values[i], index: i, singleColumn: true),
+            ],
           );
         }
         final left = <Object>[];
@@ -275,16 +297,34 @@ class _UserListViewState extends ConsumerState<UserListView>
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: Column(children: left.map(_contentItem).toList())),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(child: Column(children: right.map(_contentItem).toList())),
+            Expanded(
+              child: Column(
+                children: [
+                  for (var i = 0; i < left.length; i++)
+                    _contentItem(left[i], index: i * 2),
+                ],
+              ),
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: Column(
+                children: [
+                  for (var i = 0; i < right.length; i++)
+                    _contentItem(right[i], index: i * 2 + 1),
+                ],
+              ),
+            ),
           ],
         );
       },
     );
   }
 
-  Widget _contentItem(Object value) => Padding(
+  Widget _contentItem(
+    Object value, {
+    required int index,
+    bool singleColumn = false,
+  }) => Padding(
     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
     child: switch (value) {
       UserContentItem item => _contentCard(
@@ -299,6 +339,7 @@ class _UserListViewState extends ConsumerState<UserListView>
         authorNickname: item.authorNickname,
         authorAvatarUrl: item.authorAvatarUrl,
         keyPrefix: 'user-content',
+        mediaAspectRatio: singleColumn ? 1.2 : (index.isEven ? 1.0 : 1.43),
       ),
       UserLikeItem item => _contentCard(
         contentId: item.contentId,
@@ -313,6 +354,7 @@ class _UserListViewState extends ConsumerState<UserListView>
         authorAvatarUrl: item.authorAvatarUrl,
         visible: item.visible,
         keyPrefix: 'user-like',
+        mediaAspectRatio: singleColumn ? 1.2 : (index.isEven ? 1.0 : 1.43),
       ),
       UserFavoriteItem item => _contentCard(
         contentId: item.contentId,
@@ -327,6 +369,7 @@ class _UserListViewState extends ConsumerState<UserListView>
         authorAvatarUrl: item.authorAvatarUrl,
         removable: widget.request.kind == UserListKind.myFavorites,
         keyPrefix: 'user-favorite',
+        mediaAspectRatio: singleColumn ? 1.2 : (index.isEven ? 1.0 : 1.43),
       ),
       _ => const SizedBox.shrink(),
     },
@@ -346,6 +389,7 @@ class _UserListViewState extends ConsumerState<UserListView>
     required String keyPrefix,
     bool visible = true,
     bool removable = false,
+    double? mediaAspectRatio,
   }) {
     final config = ref.read(appConfigProvider);
     if (!visible) {
@@ -385,6 +429,7 @@ class _UserListViewState extends ConsumerState<UserListView>
           authorAvatarUrl: resolveMediaUrl(config, authorAvatarUrl),
           authorFallbackAsset: 'assets/ui/profile/user-demo.png',
           userCenterStyle: true,
+          userCenterMediaAspectRatio: mediaAspectRatio,
           showMedia: coverUrl != null && coverUrl.trim().isNotEmpty,
           onTap: () => context.push('/contents/$contentId'),
         ),

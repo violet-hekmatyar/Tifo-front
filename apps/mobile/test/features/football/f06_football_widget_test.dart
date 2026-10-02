@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tifo/app/config/app_config.dart';
 import 'package:tifo/app/theme/app_theme.dart';
+import 'package:tifo/shared/widgets/app_team_logo.dart';
 import 'package:tifo/core/network/network_exceptions.dart';
 import 'package:tifo/core/network/network_providers.dart';
 import 'package:tifo/features/football/data/football_repository.dart';
@@ -32,12 +33,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('重要'), findsOneWidget);
     expect(find.text('关注'), findsOneWidget);
-    expect(find.text('测试联赛'), findsWidgets);
+    expect(find.text('联赛'), findsOneWidget);
     expect(find.byKey(const ValueKey('knockout_tree_entry')), findsOneWidget);
     expect(find.text('2026-07-18'), findsOneWidget);
     expect(find.text('足球数据入口已建立'), findsNothing);
 
-    await tester.tap(find.text('测试联赛').first);
+    await tester.tap(find.byKey(const ValueKey('data_competition_league')));
+    await tester.pumpAndSettle();
+    expect(find.text('测试联赛'), findsNWidgets(2));
+    await tester.tap(find.byKey(const ValueKey('data_league_10003')));
     await tester.pumpAndSettle();
     expect(repository.leagueLoads, 1);
   });
@@ -85,6 +89,51 @@ void main() {
     await tester.tap(find.text('全部'));
     await tester.pumpAndSettle();
     expect(controller.state.source, isA<FollowingSource>());
+  });
+
+  testWidgets('VR14 R2 keeps following controls compact with menu visible', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(375, 891);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = _WidgetFootballRepository();
+    final controller = FootballDataController(repository);
+    await _pumpData(
+      tester,
+      repository,
+      controller,
+      feedRepository: _WidgetFeedRepository(),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('关注').first);
+    await tester.pumpAndSettle();
+    final leagueEntry = tester.getRect(
+      find.byKey(const ValueKey('data_competition_league')),
+    );
+    final menu = tester.getRect(
+      find.byKey(const ValueKey('knockout_tree_entry')),
+    );
+    expect(leagueEntry.width, lessThanOrEqualTo(64));
+    expect(find.text('欧冠'), findsOneWidget);
+    expect(find.text('杯赛'), findsOneWidget);
+    expect(menu.right, closeTo(375, 1));
+    expect(leagueEntry.height, closeTo(48, 1), reason: '赛事分类入口保持原型的紧凑单行高度');
+    expect(find.byKey(const ValueKey('followed_team_bar')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('followed_team_bar'))).height,
+      40,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('followed_team_bar')),
+        matching: find.byType(AppTeamLogo),
+      ),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(
