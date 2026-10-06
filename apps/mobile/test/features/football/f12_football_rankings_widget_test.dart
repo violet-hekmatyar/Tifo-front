@@ -323,7 +323,9 @@ void main() {
         .whereType<AssetImage>()
         .map((image) => image.assetName)
         .toSet();
-    expect(assets, contains('assets/ui/football/neutral-player-avatar.png'));
+    // 球员头像不再使用统一占位图：无照片时走本地生成的首字母头像
+    expect(assets, isNot(contains('assets/ui/football/neutral-player-avatar.png')));
+    expect(find.text(playerInitials('球员')!), findsOneWidget);
     expect(assets, contains('assets/ui/home/neutral-team-crest.png'));
   });
 

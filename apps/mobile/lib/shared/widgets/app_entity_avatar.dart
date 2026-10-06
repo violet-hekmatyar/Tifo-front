@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/network/network_providers.dart';
 import '../design_system/app_design_tokens.dart';
+import 'app_content_image.dart';
 
 const _entityColors = <Color>[
   Color(0xFFE9E6FF),
@@ -30,6 +32,7 @@ class AppEntityAvatar extends ConsumerStatefulWidget {
     this.imageUrl,
     this.fallbackText,
     this.fallbackAsset,
+    this.imageAlignment = Alignment.center,
     this.size = 48,
     this.circular = true,
     super.key,
@@ -41,6 +44,10 @@ class AppEntityAvatar extends ConsumerStatefulWidget {
   final String? imageUrl;
   final String? fallbackText;
   final String? fallbackAsset;
+
+  /// 图片裁剪时的对齐方式。球员照片用 [Alignment.topCenter]：
+  /// 卡片常是「宽大于高」的紧约束，居中裁剪会把头顶切掉，顶部对齐才能把脸完整露出。
+  final Alignment imageAlignment;
   final double size;
   final bool circular;
 
@@ -73,41 +80,55 @@ class _AppEntityAvatarState extends ConsumerState<AppEntityAvatar> {
     final size = widget.size;
     final circular = widget.circular;
     final radius = circular ? size / 2 : AppRadius.sm;
-    final fallback = fallbackAsset == null
-        ? Center(
-            child: fallbackText?.isNotEmpty == true
-                ? Text(
-                    fallbackText!,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+    // 兜底内容（首字母 / 图标 / 占位图）不单独进语义树：外层 Semantics 已经带了实体标签，
+    // 否则文本会把标签合并成 "名称 球员头像\n首字母"。
+    final fallback = ExcludeSemantics(
+      child: fallbackAsset == null
+          ? Center(
+              child: fallbackText?.isNotEmpty == true
+                  ? Text(
+                      fallbackText!,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.brandDark,
+                      ),
+                    )
+                  : Icon(
+                      fallbackIcon,
                       color: AppColors.brandDark,
+                      size: size * .48,
                     ),
-                  )
-                : Icon(
-                    fallbackIcon,
-                    color: AppColors.brandDark,
-                    size: size * .48,
-                  ),
-          )
-        : Image.asset(fallbackAsset, fit: BoxFit.cover);
-    Widget content = imageUrl == null
+            )
+          : Image.asset(fallbackAsset, fit: BoxFit.cover),
+    );
+    // 有真实图片时用纯色底 + 图片：透明底的扣像照片会把下面的首字母和彩色底透出来，
+    // 看起来像「兜底图和真图叠在一起」。兜底只在加载中/加载失败时短暂出现，有图就不再挂载。
+    // 注意：国家队的队徽是 SVG（football-data 只给 .svg，没有 PNG 版本），Image.network 解不了，
+    // 必须走 SvgPicture，否则 55 支国家队的队徽会一直显示兜底徽标。
+    final backdrop = imageUrl == null ? stableEntityColor(identity) : AppColors.surface;
+    final bool useSvg = isSvgMediaUrl(imageUrl);
+    final Widget content = imageUrl == null
         ? fallback
         : FutureBuilder<Map<String, String>>(
             future: _headersFuture,
             initialData: const <String, String>{},
-            builder: (context, snapshot) => Stack(
-              fit: StackFit.expand,
-              children: [
-                fallback,
-                Image.network(
-                  imageUrl,
-                  headers: snapshot.data ?? const <String, String>{},
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, progress) =>
-                      progress == null ? child : const SizedBox.shrink(),
-                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                ),
-              ],
-            ),
+            builder: (context, snapshot) => useSvg
+                ? SvgPicture.network(
+                    imageUrl,
+                    headers: snapshot.data ?? const <String, String>{},
+                    fit: BoxFit.cover,
+                    alignment: widget.imageAlignment,
+                    placeholderBuilder: (_) => fallback,
+                    errorBuilder: (_, _, _) => fallback,
+                  )
+                : Image.network(
+                    imageUrl,
+                    headers: snapshot.data ?? const <String, String>{},
+                    fit: BoxFit.cover,
+                    alignment: widget.imageAlignment,
+                    loadingBuilder: (context, child, progress) =>
+                        progress == null ? child : fallback,
+                    errorBuilder: (_, _, _) => fallback,
+                  ),
           );
     return Semantics(
       image: true,
@@ -115,7 +136,7 @@ class _AppEntityAvatarState extends ConsumerState<AppEntityAvatar> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
         child: ColoredBox(
-          color: stableEntityColor(identity),
+          color: backdrop,
           child: SizedBox.square(dimension: size, child: content),
         ),
       ),

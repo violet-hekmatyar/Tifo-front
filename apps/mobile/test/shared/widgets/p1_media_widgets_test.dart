@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tifo/shared/widgets/app_content_image.dart';
 import 'package:tifo/shared/widgets/app_entity_avatar.dart';
+import 'package:tifo/shared/design_system/app_colors.dart';
 import 'package:tifo/shared/widgets/app_player_avatar.dart';
 import 'package:tifo/shared/widgets/app_team_logo.dart';
 
@@ -35,6 +36,8 @@ void main() {
 
     expect(find.bySemanticsLabel('林远航 球员头像'), findsOneWidget);
     expect(find.bySemanticsLabel('尤文图斯 球队标识'), findsOneWidget);
+    // 无照片的球员走本地首字母兜底（林远航 -> 林），不再用统一占位图
+    expect(find.text(playerInitials('林远航')!), findsOneWidget);
     expect(
       find.byWidgetPredicate(
         (widget) =>
@@ -43,7 +46,7 @@ void main() {
             (widget.image as AssetImage).assetName ==
                 'assets/ui/football/neutral-player-avatar.png',
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.byWidgetPredicate(
@@ -102,6 +105,69 @@ void main() {
       },
     );
     expect(find.byIcon(Icons.sports_soccer_rounded), findsOneWidget);
+    // 球员真实照片必须顶部对齐：卡片是「宽大于高」的紧约束，居中裁会切掉头顶
+    final playerPhoto = networkImages.firstWhere(
+      (image) =>
+          (image.image as NetworkImage).url ==
+          'http://localhost/demo/p1-media/player-flagship.png',
+    );
+    expect(playerPhoto.alignment, Alignment.topCenter);
+    final teamCrest = networkImages.firstWhere(
+      (image) =>
+          (image.image as NetworkImage).url ==
+          'http://localhost/demo/p1-media/team-crest-cobalt.png',
+    );
+    expect(teamCrest.alignment, Alignment.center);
+    // 有真实图片时不再挂兜底（否则透明底照片会把首字母透出来，看起来像两张图叠着）
+    final backdrop = tester
+        .widgetList<ColoredBox>(
+          find.descendant(
+            of: find.byType(AppPlayerAvatar),
+            matching: find.byType(ColoredBox),
+          ),
+        )
+        .first
+        .color;
+    expect(backdrop, AppColors.surface);
+    // 兜底不能再垫在图片下面（Stack）：透明底扣像照片会把首字母透出来，看起来像两张图叠着。
+    // 测试里图片加载不出来，所以此时显示的是「加载中/失败」的兜底，这是预期的。
+    expect(
+      find.descendant(
+        of: find.byType(AppPlayerAvatar),
+        matching: find.byType(Stack),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('svg crests render through SvgPicture instead of Image.network', (
+    tester,
+  ) async {
+    // 国家队队徽是 SVG（football-data 没有 PNG 版本），Image.network 解不了会报
+    // Invalid image data → 必须走 SvgPicture，否则 55 支国家队只能看到兜底徽标
+    await HttpOverrides.runZoned(() async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: const MaterialApp(
+            home: AppTeamLogo(
+              identity: 'team:770',
+              name: '英格兰',
+              imageUrl: 'http://localhost/demo/common/flag-england.svg',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }, createHttpClient: (_) => _SvgHttpClient());
+
+    expect(find.byType(SvgPicture), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Image && widget.image is NetworkImage,
+      ),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('SVG covers load through SvgPicture and retain fallback', (
