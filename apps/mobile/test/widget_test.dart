@@ -17,7 +17,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('南看台'), findsOneWidget);
+    expect(find.text('欢迎使用南看台'), findsOneWidget);
     expect(find.widgetWithText(TextFormField, '用户名'), findsOneWidget);
     expect(find.text('登录'), findsOneWidget);
     expect(tester.takeException(), isNull);

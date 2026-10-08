@@ -280,7 +280,7 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
                     key: ValueKey('search_loading'),
                     kind: AppStateKind.loading,
                     title: '正在搜索',
-                    message: '正在查找真实球队、球员、比赛和内容…',
+                    message: '搜索中…',
                   ),
                   GlobalSearchStatus.empty => const _SearchEmptyView(
                     key: ValueKey('search_empty'),

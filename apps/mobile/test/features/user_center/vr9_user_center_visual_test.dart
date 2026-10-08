@@ -156,7 +156,7 @@ void main() {
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -1600));
     await tester.pumpAndSettle();
     expect(find.text('已经到底了'), findsOneWidget);
-    expect(find.text('帖子'), findsNothing);
+    expect(find.text('帖子'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -331,7 +331,11 @@ final class _EmptyUserCenterRepository implements UserCenterRepositoryContract {
   Future<UserProfile> profile(int userId) => throw UnimplementedError();
 
   @override
-  Future<void> updateProfile({required String nickname, required String bio}) =>
+  Future<void> updateProfile({
+    required String nickname,
+    required String bio,
+    String? username,
+  }) =>
       throw UnimplementedError();
 
   @override

@@ -13,12 +13,15 @@ final class UserCenterApi {
       _client.get('/api/app/users/me/stand', decode: _stand);
   Future<UserProfile> profile(int userId) =>
       _client.get('/api/app/users/$userId/profile', decode: _profile);
-  Future<void> updateProfile({required String nickname, required String bio}) =>
-      _client.put<void>(
-        '/api/app/users/me/profile',
-        body: {'nickname': nickname, 'bio': bio},
-        decode: (_) {},
-      );
+  Future<void> updateProfile({
+    required String nickname,
+    required String bio,
+    String? username,
+  }) => _client.put<void>(
+    '/api/app/users/me/profile',
+    body: {'nickname': nickname, 'bio': bio, 'username': ?username},
+    decode: (_) {},
+  );
   Future<void> setMainTeam(int teamId) => _client.put<void>(
     '/api/app/users/me/profile',
     body: {'mainTeamId': teamId},

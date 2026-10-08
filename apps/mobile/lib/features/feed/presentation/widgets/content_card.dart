@@ -282,6 +282,12 @@ class _GridContentCard extends StatelessWidget {
                     userCenterMediaAspectRatio ??
                     (userCenterStyle ? 1.2 : 1.28),
               ),
+              if (_isPost(card))
+                const Positioned(
+                  left: 6,
+                  top: 6,
+                  child: _ContentTypeBadge(),
+                ),
             ],
           ),
         Padding(
@@ -357,6 +363,10 @@ class _NewsContentCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (_isPost(card)) ...[
+                    const _ContentTypeBadge(),
+                    const SizedBox(height: 3),
+                  ],
                   Text(
                     card.title,
                     maxLines: 2,
@@ -566,3 +576,29 @@ String? _initial(String? value) {
 }
 
 String _date(DateTime value) => '${value.month}/${value.day}';
+
+class _ContentTypeBadge extends StatelessWidget {
+  const _ContentTypeBadge();
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: AppColors.brand,
+      borderRadius: BorderRadius.circular(4),
+    ),
+    child: const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      child: Text(
+        '帖子',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          height: 1.4,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+  );
+}
+
+bool _isPost(ContentFeedCard card) => card.contentType.toUpperCase() == 'POST';

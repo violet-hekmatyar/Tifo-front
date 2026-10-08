@@ -746,6 +746,7 @@ final class _FollowRepository implements UserCenterRepositoryContract {
   Future<void> updateProfile({
     required String nickname,
     required String bio,
+    String? username,
   }) async {}
 
   @override

@@ -195,11 +195,17 @@ void main() {
       await tester.pumpWidget(
         _scope(repository, EditProfilePage(summary: _summary())),
       );
-      await tester.enterText(find.byType(TextField).first, '');
+      await tester.enterText(
+        find.byKey(const ValueKey('edit_profile_nickname')),
+        '',
+      );
       await tester.tap(find.text('保存'));
       await tester.pump();
       expect(find.textContaining('昵称需为'), findsOneWidget);
-      await tester.enterText(find.byType(TextField).first, '新昵称');
+      await tester.enterText(
+        find.byKey(const ValueKey('edit_profile_nickname')),
+        '新昵称',
+      );
       await tester.tap(find.text('保存'));
       await tester.pump();
       expect(find.textContaining('保存失败'), findsOneWidget);
@@ -228,7 +234,10 @@ void main() {
       await tester.pumpWidget(_routerScope(repository, router));
       router.push('/edit');
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).first, '新昵称');
+      await tester.enterText(
+        find.byKey(const ValueKey('edit_profile_nickname')),
+        '新昵称',
+      );
       await tester.tap(find.text('保存'));
       await tester.pump();
       expect(repository.editCalls, 1);
@@ -1950,6 +1959,7 @@ class _Repo implements UserCenterRepositoryContract {
   Future<void> updateProfile({
     required String nickname,
     required String bio,
+    String? username,
   }) async {
     editCalls++;
     if (editFailure) throw const NetworkException('edit');

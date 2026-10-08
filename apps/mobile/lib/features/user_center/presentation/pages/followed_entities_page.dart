@@ -89,7 +89,7 @@ class _FollowedEntitiesPageState extends ConsumerState<FollowedEntitiesPage> {
         loading: () => AppStateView(
           kind: AppStateKind.loading,
           title: '正在加载$title',
-          message: '正在读取真实关注关系。',
+          message: '加载中…',
         ),
         error: (_, _) => AppStateView(
           kind: AppStateKind.error,

@@ -133,6 +133,7 @@ final class _Football implements FootballRepositoryContract {
   @override
   Future<FootballPage<FootballMatch>> leagueMatches(
     int id,
+    int? seasonId,
     int page,
     int size,
   ) => throw UnimplementedError();

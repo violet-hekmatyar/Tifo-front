@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  测试阶段：全局放行明文 HTTP。
+
+  说明：此前只对 8.138.118.219 单独放行（base-config=false + domain-config 白名单），
+  但实测手机浏览器能访问、App 却报「网络连接失败」，怀疑是安卓 NSP 对
+  裸 IP 的 domain-config 匹配未生效，因此改为全局放行以排除该变量。
+
+  ⚠️ 正式上线改用 HTTPS 后，应改回：
+     <base-config cleartextTrafficPermitted="false" />
+     并按域名收窄白名单。
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

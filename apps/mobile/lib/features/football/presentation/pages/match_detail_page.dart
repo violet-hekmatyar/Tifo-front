@@ -1947,7 +1947,7 @@ class _RatingsTabState extends ConsumerState<_RatingsTab> {
               retryKey: const ValueKey('match_ratings_refresh_retry'),
             ),
           if (state.status == MatchRatingsStatus.empty)
-            const CapabilityEmpty(title: '暂无可评分球员', message: '暂无真实评分数据。')
+            const CapabilityEmpty(title: '暂无可评分球员', message: '还没有人评分，来评第一个吧。')
           else
             for (final rating in state.records)
               _RatingTile(
@@ -2547,8 +2547,8 @@ class _RatingDetailSheetState extends ConsumerState<_RatingDetailSheet> {
                       const SizedBox(height: AppSpacing.sm),
                       if (widget.rating.ratingTargetId == null)
                         const CapabilityEmpty(
-                          title: '暂无评分讨论',
-                          message: '当前评分暂未开放讨论。',
+                          title: '暂无讨论',
+                          message: '该评分还没有讨论区。',
                         )
                       else
                         CommentSection(

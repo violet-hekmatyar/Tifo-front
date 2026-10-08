@@ -370,6 +370,7 @@ final class _WidgetFootballRepository
   @override
   Future<FootballPage<FootballMatch>> leagueMatches(
     int id,
+    int? seasonId,
     int page,
     int size,
   ) {
@@ -553,6 +554,7 @@ final class _PagedWidgetRepository implements FootballRepositoryContract {
   @override
   Future<FootballPage<FootballMatch>> leagueMatches(
     int id,
+    int? seasonId,
     int page,
     int size,
   ) async => _result(page);

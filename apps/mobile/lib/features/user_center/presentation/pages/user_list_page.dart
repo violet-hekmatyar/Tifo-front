@@ -115,7 +115,7 @@ class _UserListViewState extends ConsumerState<UserListView>
           child: AppStateView(
             kind: AppStateKind.loading,
             title: '正在加载',
-            message: '正在读取真实数据。',
+            message: '加载中…',
           ),
         ),
       );
@@ -197,7 +197,7 @@ class _UserListViewState extends ConsumerState<UserListView>
               child: AppStateView(
                 kind: AppStateKind.empty,
                 title: '暂无内容',
-                message: '这里还没有可展示的真实记录。',
+                message: '这里还没有内容。',
                 illustration: emptyIllustration,
               ),
             )

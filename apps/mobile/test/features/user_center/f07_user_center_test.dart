@@ -72,6 +72,7 @@ final class _FakeRepository implements UserCenterRepositoryContract {
   Future<void> updateProfile({
     required String nickname,
     required String bio,
+    String? username,
   }) async {}
   @override
   Future<void> setMainTeam(int teamId) async {}

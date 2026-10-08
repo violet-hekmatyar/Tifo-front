@@ -23,8 +23,8 @@ import 'package:tifo/shared/widgets/app_team_logo.dart';
 void main() {
   testWidgets('login shows brand title and primary action', (tester) async {
     await _pumpPage(tester, const LoginPage());
-    expect(find.text('南看台'), findsOneWidget);
-    expect(find.text('欢迎回来'), findsOneWidget);
+    expect(find.text('欢迎使用南看台'), findsOneWidget);
+    expect(find.text('Welcome to the South Stand'), findsOneWidget);
     expect(find.text('登录'), findsOneWidget);
   });
 
@@ -54,10 +54,14 @@ void main() {
     tester,
   ) async {
     await _pumpOnboarding(tester, _ReadyOnboardingRepository());
-    expect(find.text('步骤 1 / 3'), findsOneWidget);
-    expect(find.text('选择我的主队'), findsOneWidget);
-    final button = tester.widget<FilledButton>(find.byType(FilledButton));
-    expect(button.onPressed, isNull);
+    expect(find.text('我的主队'), findsOneWidget);
+    expect(find.textContaining('选择您支持的主队'), findsOneWidget);
+
+    // 未选主队时「下一步」不会进入第二步
+    await tester.tap(find.byKey(const ValueKey('onboarding_next')));
+    await tester.pump();
+    expect(find.text('我的主队'), findsOneWidget);
+    expect(find.text('关注的球队'), findsNothing);
   });
 
   testWidgets('three-step selections survive forward and backward navigation', (
@@ -68,26 +72,32 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('onboarding_next')));
     await tester.pump();
-    expect(find.text('步骤 2 / 3'), findsOneWidget);
-    expect(find.textContaining('已选择 1 支'), findsOneWidget);
+    expect(find.text('关注的球队'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('follow_team_2')));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('onboarding_next')));
     await tester.pump();
-    expect(find.text('步骤 3 / 3'), findsOneWidget);
+    expect(find.text('关注的球员'), findsOneWidget);
     expect(find.byKey(const ValueKey('onboarding_submit')), findsOneWidget);
     expect(
-      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      tester
+          .widget<FilledButton>(
+            find.descendant(
+              of: find.byKey(const ValueKey('onboarding_submit')),
+              matching: find.byType(FilledButton),
+            ),
+          )
+          .onPressed,
       isNotNull,
     );
 
     await tester.tap(find.byKey(const ValueKey('onboarding_previous')));
     await tester.pump();
-    expect(find.textContaining('已选择 2 支'), findsOneWidget);
+    expect(find.text('关注的球队'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('onboarding_previous')));
     await tester.pump();
-    expect(find.text('步骤 1 / 3'), findsOneWidget);
+    expect(find.text('我的主队'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('main_team_1')),
@@ -142,7 +152,17 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('南'), findsOneWidget);
+    // 队徽缺图时用中性徽标资源兜底；球员头像仍是首字兜底。
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Image &&
+            widget.image is AssetImage &&
+            (widget.image as AssetImage).assetName ==
+                'assets/ui/home/neutral-team-crest.png',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('阿'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

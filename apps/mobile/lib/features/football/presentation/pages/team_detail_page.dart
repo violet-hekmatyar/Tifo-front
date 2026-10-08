@@ -601,31 +601,41 @@ class _OverviewLeaderboards extends StatelessWidget {
   final List<TeamCompetitionStanding> seasons;
   @override
   Widget build(BuildContext context) {
-    final values = leaderboards.take(2).toList();
+    if (leaderboards.isEmpty) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionTitle(title: '队内榜单'),
+          SizedBox(height: 8),
+          Text('暂无数据', style: TextStyle(color: AppColors.inkMuted)),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _SectionTitle(title: '队内榜单'),
         const SizedBox(height: 8),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (final leaderboard in values.indexed)
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: leaderboard.$1 == 0 ? 4 : 0,
-                    left: leaderboard.$1 == 1 ? 4 : 0,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final itemWidth = (constraints.maxWidth - 8) / 2;
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final leaderboard in leaderboards)
+                  SizedBox(
+                    width: itemWidth,
+                    child: _LeaderboardCard(
+                      teamId: teamId,
+                      leaderboard: leaderboard,
+                      leaderboards: leaderboards,
+                      seasons: seasons,
+                    ),
                   ),
-                  child: _LeaderboardCard(
-                    teamId: teamId,
-                    leaderboard: leaderboard.$2,
-                    leaderboards: leaderboards,
-                    seasons: seasons,
-                  ),
-                ),
-              ),
-          ],
+              ],
+            );
+          },
         ),
       ],
     );
@@ -1621,7 +1631,7 @@ Widget _pagedBody<T>({
   TeamPagedStatus.loading => AppStateView(
     kind: AppStateKind.loading,
     title: '正在加载$title',
-    message: '正在读取真实数据…',
+    message: '加载中…',
   ),
   TeamPagedStatus.failure => AppStateView(
     kind: AppStateKind.error,

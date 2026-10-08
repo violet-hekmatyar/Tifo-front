@@ -24,8 +24,9 @@ final class TeamSource extends FootballSource {
 }
 
 final class LeagueSource extends FootballSource {
-  const LeagueSource(this.leagueId);
+  const LeagueSource(this.leagueId, [this.seasonId]);
   final int leagueId;
+  final int? seasonId;
 }
 
 enum FootballDataStatus { loading, ready, empty, failure }
@@ -177,12 +178,15 @@ final class FootballDataController extends ChangeNotifier {
           page,
           pageSize,
         ),
-        LeagueSource(:final leagueId) => _repository.leagueMatches(
-          leagueId,
-          page,
-          pageSize,
-        ),
+        LeagueSource(:final leagueId, :final seasonId) =>
+          _repository.leagueMatches(leagueId, seasonId, page, pageSize),
       };
+
+  Future<void> selectSeason(int seasonId) async {
+    final current = _state.source;
+    if (current is! LeagueSource || current.seasonId == seasonId) return;
+    await selectSource(LeagueSource(current.leagueId, seasonId));
+  }
 
   void _setPage(
     FootballPage<FootballMatch> page, {
@@ -225,7 +229,9 @@ final class FootballDataController extends ChangeNotifier {
 
   bool _sameSource(FootballSource a, FootballSource b) =>
       a.runtimeType == b.runtimeType &&
-      (a is! LeagueSource || b is! LeagueSource || a.leagueId == b.leagueId) &&
+      (a is! LeagueSource ||
+          b is! LeagueSource ||
+          (a.leagueId == b.leagueId && a.seasonId == b.seasonId)) &&
       (a is! TeamSource || b is! TeamSource || a.teamId == b.teamId);
 
   void _set(FootballDataState value) {

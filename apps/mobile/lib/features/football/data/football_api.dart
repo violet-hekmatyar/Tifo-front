@@ -2,6 +2,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/json_value.dart';
 import '../../../core/network/network_exceptions.dart';
 import '../../../core/network/page_result.dart';
+import '../domain/bracket_models.dart';
 import '../domain/football_models.dart';
 import '../domain/football_ranking_models.dart';
 
@@ -105,6 +106,7 @@ final class FootballApi {
     required int pageSize,
     int? leagueId,
     int? teamId,
+    int? seasonId,
     DateTime? date,
     String? status,
   }) => _matchesPage(
@@ -114,6 +116,7 @@ final class FootballApi {
     extra: {
       ..._optional('leagueId', leagueId),
       ..._optional('teamId', teamId),
+      ..._optional('seasonId', seasonId),
       ..._optional('date', date == null ? null : _date(date)),
       ..._optional('status', status),
     },
@@ -141,6 +144,15 @@ final class FootballApi {
   Future<MatchDetail> matchDetail(int id) =>
       _client.get('/api/app/football/matches/$id', decode: _matchDetail);
 
+  Future<List<BracketStage>> knockoutBracket({
+    required int leagueId,
+    required int seasonId,
+  }) => _client.get(
+    '/api/app/football/matches/knockout-bracket',
+    queryParameters: {'leagueId': leagueId, 'seasonId': seasonId},
+    decode: (raw) => _list(raw, _bracketStage),
+  );
+
   Future<TeamDetail> teamDetail(int id) =>
       _client.get('/api/app/football/teams/$id', decode: _teamDetail);
 
@@ -148,8 +160,43 @@ final class FootballApi {
       _client.get('/api/app/football/players/$id', decode: _playerDetail);
 }
 
-FootballPage<T> _rankingPage<T>(Object? raw, T Function(Object?) decode) {
-  final page = PageResult.fromRaw(raw, decode);
+BracketStage _bracketStage(Object? raw) {
+  final map = _map(raw);
+  return BracketStage(
+    stageId: _id(map, 'stageId'),
+    stageName: map['stageName'] as String? ?? '',
+    stageType: map['stageType'] as String?,
+    sortOrder: (map['sortOrder'] as num?)?.toInt() ?? 0,
+    ties: _list(map['ties'], _bracketTie),
+  );
+}
+
+BracketTie _bracketTie(Object? raw) {
+  final map = _map(raw);
+  return BracketTie(
+    tieKey: map['tieKey'] as String? ?? '',
+    homeTeam: _team(map['homeTeam']),
+    awayTeam: _team(map['awayTeam']),
+    homeAggregate: (map['homeAggregate'] as num?)?.toInt(),
+    awayAggregate: (map['awayAggregate'] as num?)?.toInt(),
+    winnerTeamId: (map['winnerTeamId'] as num?)?.toInt(),
+    parentTieKey: map['parentTieKey'] as String?,
+    legs: _list(map['legs'], _bracketLeg),
+  );
+}
+
+BracketLeg _bracketLeg(Object? raw) {
+  final map = _map(raw);
+  return BracketLeg(
+    matchId: _id(map, 'matchId'),
+    homeScore: (map['homeScore'] as num?)?.toInt(),
+    awayScore: (map['awayScore'] as num?)?.toInt(),
+    matchTime: _time(map['matchTime']),
+    matchStatus: map['matchStatus'] as String?,
+  );
+}
+
+FootballPage<T> _rankingPage<T>(Object? raw, T Function(Object?) decode) {  final page = PageResult.fromRaw(raw, decode);
   return FootballPage(
     records: page.records,
     pageNum: page.pageNum,

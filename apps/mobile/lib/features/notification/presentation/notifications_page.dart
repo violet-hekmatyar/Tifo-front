@@ -39,12 +39,6 @@ class _MessagesHomePageState extends ConsumerState<MessagesHomePage> {
     Future.microtask(ref.read(notificationControllerProvider).loadInitial);
   }
 
-  void _showUnavailable(String title) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$title暂未开放')));
-  }
-
   @override
   Widget build(BuildContext context) {
     final controller = ref.watch(notificationControllerProvider);
@@ -62,26 +56,7 @@ class _MessagesHomePageState extends ConsumerState<MessagesHomePage> {
           bottom: false,
           child: Column(
             children: [
-              _MessageHeader(
-                title: '消息',
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      key: const ValueKey('messages_search'),
-                      tooltip: '搜索私信',
-                      onPressed: () => _showUnavailable('私信搜索'),
-                      icon: const Icon(Icons.search_rounded),
-                    ),
-                    IconButton(
-                      key: const ValueKey('messages_archive'),
-                      tooltip: '会话管理',
-                      onPressed: () => _showUnavailable('私信相关功能'),
-                      icon: const Icon(Icons.inventory_2_outlined),
-                    ),
-                  ],
-                ),
-              ),
+              const _MessageHeader(title: '消息'),
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: controller.refresh,

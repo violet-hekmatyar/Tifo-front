@@ -179,6 +179,7 @@ final class _FootballRepository implements FootballRepositoryContract {
   @override
   Future<FootballPage<FootballMatch>> leagueMatches(
     int id,
+    int? seasonId,
     int page,
     int size,
   ) {

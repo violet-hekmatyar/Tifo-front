@@ -51,6 +51,8 @@ class _FootballDataPageState extends ConsumerState<FootballDataPage> {
     }
   }
 
+  int? _syncedSeasonId;
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -60,6 +62,12 @@ class _FootballDataPageState extends ConsumerState<FootballDataPage> {
   @override
   Widget build(BuildContext context) {
     final controller = ref.watch(footballDataControllerProvider);
+    ref.listen(footballRankingsControllerProvider, (_, next) {
+      final seasonId = next.state.selectedSeasonId;
+      if (seasonId == null || seasonId == _syncedSeasonId) return;
+      _syncedSeasonId = seasonId;
+      unawaited(controller.selectSeason(seasonId));
+    });
     final state = controller.state;
     final rankings = ref.watch(footballRankingsControllerProvider);
     final rankingState = rankings.state;
@@ -106,13 +114,19 @@ class _FootballDataPageState extends ConsumerState<FootballDataPage> {
                 teamId == null ? const FollowingSource() : TeamSource(teamId),
               ),
             ),
-          if (_section != _DataSection.schedule || state.source is LeagueSource)
-            _SectionBar(
-              section: _section,
-              state: rankingState,
-              controller: rankings,
-              onSelected: _selectSection,
-            ),
+          _SectionBar(
+            section: _section,
+            state: rankingState,
+            controller: rankings,
+            onSelected: _selectSection,
+          ),
+          if (_section == _DataSection.standings &&
+              rankingState.stages.any(
+                (stage) =>
+                    stage.rawType != 'LEAGUE_STAGE' &&
+                    stage.rawType != 'REGULAR_SEASON',
+              ))
+            _BracketStageBar(state: rankingState),
           if (_section == _DataSection.schedule &&
               state.source is! LeagueSource &&
               !showFollowedTeams)
@@ -213,6 +227,54 @@ class _FootballDataPageState extends ConsumerState<FootballDataPage> {
   };
 }
 
+class _BracketStageBar extends StatelessWidget {
+  const _BracketStageBar({required this.state});
+  final FootballRankingsState state;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: AppColors.surface,
+    child: Container(
+      height: 42,
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: ListView(
+        key: const ValueKey('data_bracket_stage_bar'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        children: [
+          _tab(context, '总览', null),
+          for (final stage in state.stages)
+            if (stage.rawType != 'LEAGUE_STAGE' &&
+                stage.rawType != 'REGULAR_SEASON')
+              _tab(context, stage.name, stage.id),
+        ],
+      ),
+    ),
+  );
+
+  Widget _tab(BuildContext context, String label, int? stageId) => InkWell(
+    key: ValueKey('data_bracket_stage_${stageId ?? 'overview'}'),
+    onTap: () => context.push(
+      '/football/knockout-tree?leagueId=${state.selectedLeagueId ?? ''}'
+      '${stageId == null ? '' : '&stageId=$stageId'}',
+    ),
+    child: Container(
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 13),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.ink,
+          fontSize: 13.5,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    ),
+  );
+}
+
 class _CompetitionNav extends StatelessWidget {
   const _CompetitionNav({
     required this.state,
@@ -275,7 +337,9 @@ class _CompetitionNav extends StatelessWidget {
               icon: const Icon(Icons.menu_rounded, size: 28),
               onSelected: (value) {
                 if (value == 'knockout') {
-                  context.push('/football/knockout-tree');
+                  context.push(
+                    '/football/knockout-tree?leagueId=$activeLeagueId',
+                  );
                 }
               },
               itemBuilder: (context) => const [
@@ -499,34 +563,45 @@ class _SectionBar extends StatelessWidget {
       state: state,
       controller: controller,
       trailing: [
-        const SizedBox(width: AppSpacing.xs),
-        SectionButton(
-          key: const ValueKey('data_section_schedule'),
-          label: '赛程',
-          selected: section == _DataSection.schedule,
-          onTap: () => onSelected(_DataSection.schedule),
-        ),
-        const SizedBox(width: AppSpacing.xs),
-        SectionButton(
-          key: const ValueKey('data_section_standings'),
-          label: '积分榜',
-          selected: section == _DataSection.standings,
-          onTap: () => onSelected(_DataSection.standings),
-        ),
-        const SizedBox(width: AppSpacing.xs),
-        SectionButton(
-          key: const ValueKey('data_section_players'),
-          label: '球员榜',
-          selected: section == _DataSection.players,
-          onTap: () => onSelected(_DataSection.players),
-        ),
-        const SizedBox(width: AppSpacing.xs),
-        SectionButton(
-          key: const ValueKey('data_section_teams'),
-          label: '球队榜',
-          selected: section == _DataSection.teams,
-          onTap: () => onSelected(_DataSection.teams),
-        ),
+        if (state.selectedLeagueId != null) ...[
+          const SizedBox(width: AppSpacing.xs),
+          SectionButton(
+            key: const ValueKey('data_section_schedule'),
+            label: '赛程',
+            selected: section == _DataSection.schedule,
+            onTap: () => onSelected(_DataSection.schedule),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          SectionButton(
+            key: const ValueKey('data_section_standings'),
+            label: '积分榜',
+            selected: section == _DataSection.standings,
+            onTap: () => onSelected(_DataSection.standings),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          SectionButton(
+            key: const ValueKey('data_section_players'),
+            label: '球员榜',
+            selected: section == _DataSection.players,
+            onTap: () => onSelected(_DataSection.players),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          SectionButton(
+            key: const ValueKey('data_section_teams'),
+            label: '球队榜',
+            selected: section == _DataSection.teams,
+            onTap: () => onSelected(_DataSection.teams),
+          ),
+        ],
+        if (state.selectedLeagueId == null) ...[
+          const SizedBox(width: AppSpacing.xs),
+          SectionButton(
+            key: const ValueKey('data_section_overview'),
+            label: '总览',
+            selected: false,
+            onTap: () => context.push('/football/knockout-tree'),
+          ),
+        ],
         const SizedBox(width: AppSpacing.xs),
       ],
     ),

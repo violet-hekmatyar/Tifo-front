@@ -538,6 +538,7 @@ final class _FootballFake implements FootballRepositoryContract {
   @override
   Future<FootballPage<FootballMatch>> leagueMatches(
     int id,
+    int? seasonId,
     int page,
     int size,
   ) => throw UnimplementedError();
@@ -765,7 +766,11 @@ final class _UserFake implements UserCenterRepositoryContract {
   @override
   Future<UserProfile> profile(int userId) => throw UnimplementedError();
   @override
-  Future<void> updateProfile({required String nickname, required String bio}) =>
+  Future<void> updateProfile({
+    required String nickname,
+    required String bio,
+    String? username,
+  }) =>
       throw UnimplementedError();
   @override
   Future<void> setMainTeam(int teamId) => throw UnimplementedError();

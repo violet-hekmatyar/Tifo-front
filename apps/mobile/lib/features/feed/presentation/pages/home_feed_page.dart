@@ -185,7 +185,7 @@ class _HomeFeedPageState extends ConsumerState<HomeFeedPage> {
                 key: const ValueKey('feed_empty'),
                 kind: AppStateKind.empty,
                 title: _emptyTitle(state.filter, state.teamId),
-                message: '当前没有可展示的真实内容，下拉或稍后重试。',
+                message: '暂时没有内容，下拉刷新试试。',
                 onRetry: controller.loadInitial,
               ),
       FeedLoadStatus.ready => RefreshIndicator(

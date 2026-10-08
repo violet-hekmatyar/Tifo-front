@@ -8,7 +8,12 @@ abstract interface class FootballRepositoryContract {
   Future<List<League>> leagues();
   Future<FootballPage<FootballMatch>> importantMatches(int page, int size);
   Future<FootballPage<FootballMatch>> followingMatches(int page, int size);
-  Future<FootballPage<FootballMatch>> leagueMatches(int id, int page, int size);
+  Future<FootballPage<FootballMatch>> leagueMatches(
+    int id,
+    int? seasonId,
+    int page,
+    int size,
+  );
   Future<FootballPage<FootballMatch>> teamMatches(int id, int page, int size);
   Future<MatchDetail> matchDetail(int id);
   Future<TeamDetail> teamDetail(int id);
@@ -34,9 +39,15 @@ final class FootballRepository implements FootballRepositoryContract {
   @override
   Future<FootballPage<FootballMatch>> leagueMatches(
     int id,
+    int? seasonId,
     int page,
     int size,
-  ) => _api.matches(pageNum: page, pageSize: size, leagueId: id);
+  ) => _api.matches(
+    pageNum: page,
+    pageSize: size,
+    leagueId: id,
+    seasonId: seasonId,
+  );
   @override
   Future<FootballPage<FootballMatch>> teamMatches(int id, int page, int size) =>
       _api.matches(pageNum: page, pageSize: size, teamId: id);

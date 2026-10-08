@@ -7,7 +7,7 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/feed/presentation/pages/home_feed_page.dart';
 import '../../features/football/presentation/pages/football_data_page.dart';
-import '../../features/football/presentation/pages/knockout_tree_placeholder_page.dart';
+import '../../features/football/presentation/pages/knockout_bracket_page.dart';
 import '../../features/football/presentation/pages/match_detail_page.dart';
 import '../../features/football/presentation/pages/player_detail_page.dart';
 import '../../features/football/presentation/pages/team_detail_page.dart';
@@ -216,9 +216,23 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
           AccountInfoPage(authController: authController),
     ),
     GoRoute(
-      path: '/settings/notifications',
+      path: '/settings/account/password',
       parentNavigatorKey: rootNavigatorKey,
-      builder: (context, state) => const NotificationsPage(),
+      builder: (context, state) => const ChangePasswordPage(),
+    ),
+    GoRoute(
+      path: '/settings/account/phone',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => ChangePhonePage(
+        authController: authController,
+      ),
+    ),
+    GoRoute(
+      path: '/settings/account/deactivate',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => DeactivateAccountPage(
+        authController: authController,
+      ),
     ),
     GoRoute(
       path: '/users/:userId',
@@ -366,7 +380,17 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
     GoRoute(
       path: '/football/knockout-tree',
       parentNavigatorKey: rootNavigatorKey,
-      builder: (context, state) => const KnockoutTreePlaceholderPage(),
+      builder: (context, state) => KnockoutBracketPage(
+        initialLeagueId: int.tryParse(
+          state.uri.queryParameters['leagueId'] ?? '',
+        ),
+        initialSeasonId: int.tryParse(
+          state.uri.queryParameters['seasonId'] ?? '',
+        ),
+        initialStageId: int.tryParse(
+          state.uri.queryParameters['stageId'] ?? '',
+        ),
+      ),
     ),
     GoRoute(
       path: '/teams/:teamId',

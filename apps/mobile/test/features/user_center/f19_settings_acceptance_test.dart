@@ -13,7 +13,7 @@ import 'package:tifo/features/auth/presentation/controllers/auth_controller.dart
 import 'package:tifo/features/user_center/presentation/pages/settings_pages.dart';
 
 void main() {
-  testWidgets('SET-01 settings matches the four prototype entries', (
+  testWidgets('SET-01 settings keeps the implemented prototype entries', (
     tester,
   ) async {
     final auth = await _readyAuth();
@@ -24,18 +24,12 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('settings_account')), findsOneWidget);
-    expect(find.byKey(const ValueKey('settings_general')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('settings_notifications')),
-      findsOneWidget,
-    );
-    expect(find.byKey(const ValueKey('settings_language')), findsOneWidget);
     expect(find.byKey(const ValueKey('settings_logout')), findsOneWidget);
     expect(find.byKey(const ValueKey('settings_edit_profile')), findsNothing);
     expect(find.text('账号与安全'), findsOneWidget);
-    expect(find.text('通用设置'), findsOneWidget);
-    expect(find.text('通知设置'), findsOneWidget);
-    expect(find.text('语言设置'), findsOneWidget);
+    expect(find.text('通用设置'), findsNothing);
+    expect(find.text('通知设置'), findsNothing);
+    expect(find.text('语言设置'), findsNothing);
   });
 
   testWidgets('SET-02 account page renders the masked phone security rows', (
@@ -85,7 +79,7 @@ void main() {
   });
 
   testWidgets(
-    'SET-05 unsupported settings actions show an explicit closed state',
+    'SET-05 settings exposes no unimplemented placeholder entries',
     (tester) async {
       final auth = await _readyAuth();
       await tester.pumpWidget(
@@ -93,18 +87,13 @@ void main() {
           child: MaterialApp(home: SettingsPage(authController: auth)),
         ),
       );
-      await tester.tap(find.byKey(const ValueKey('settings_general')));
-      await tester.pump();
-      expect(find.text('通用设置暂未开放'), findsOneWidget);
-
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(home: AccountInfoPage(authController: auth)),
-        ),
+      expect(find.byKey(const ValueKey('settings_general')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('settings_notifications')),
+        findsNothing,
       );
-      await tester.tap(find.byKey(const ValueKey('account_password')));
-      await tester.pump();
-      expect(find.text('修改密码暂未开放'), findsOneWidget);
+      expect(find.byKey(const ValueKey('settings_language')), findsNothing);
+      expect(find.textContaining('暂未开放'), findsNothing);
     },
   );
 
@@ -153,7 +142,7 @@ void main() {
   });
 
   testWidgets(
-    'R13A-08 settings account entry returns and unsupported entries stay local',
+    'R13A-08 settings account entry returns and no placeholder entries remain',
     (tester) async {
       final auth = await _readyAuth();
       final router = GoRouter(
@@ -168,8 +157,8 @@ void main() {
             builder: (_, _) => AccountInfoPage(authController: auth),
           ),
           GoRoute(
-            path: '/settings/notifications',
-            builder: (_, _) => const Scaffold(body: Text('消息设置')),
+            path: '/settings/account/password',
+            builder: (_, _) => const Scaffold(body: Text('修改密码页')),
           ),
           GoRoute(
             path: '/users/me/edit',
@@ -189,12 +178,21 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('settings_account')));
       await tester.pumpAndSettle();
       expect(find.text('设置'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('account_password')));
+      await tester.pumpAndSettle();
+      expect(find.text('修改密码页'), findsOneWidget);
+
+      router.pop();
+      await tester.pumpAndSettle();
       router.pop();
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('settings_notifications')));
-      await tester.pump();
-      expect(find.text('通知设置暂未开放'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('settings_notifications')),
+        findsNothing,
+      );
+      expect(find.textContaining('暂未开放'), findsNothing);
       expect(find.byKey(const ValueKey('settings_logout')), findsOneWidget);
     },
   );
@@ -279,27 +277,17 @@ void main() {
     );
     expect(group.left, closeTo(10, 1));
     expect(group.width, closeTo(355, 1));
-    expect(group.height, closeTo(200, 1));
+    expect(group.height, closeTo(50, 1));
     expect(logout.left, closeTo(24, 1));
     expect(logout.width, closeTo(327, 1));
     expect(logout.height, closeTo(54, 1));
     expect(logout.top - group.bottom, closeTo(24, 1));
-    expect(find.byKey(const ValueKey('settings_divider_1')), findsOneWidget);
-    expect(find.byKey(const ValueKey('settings_divider_2')), findsOneWidget);
-    expect(find.byKey(const ValueKey('settings_divider_3')), findsOneWidget);
+    expect(find.byKey(const ValueKey('settings_divider_1')), findsNothing);
     expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.notifications_none_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.translate_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.settings_outlined), findsNothing);
+    expect(find.byIcon(Icons.notifications_none_rounded), findsNothing);
+    expect(find.byIcon(Icons.translate_rounded), findsNothing);
     expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
-    for (final index in [1, 2, 3]) {
-      final divider = tester.getRect(
-        find.byKey(ValueKey('settings_divider_$index')),
-      );
-      expect(divider.left, closeTo(25, 1));
-      expect(divider.right, closeTo(365, 1));
-      expect(divider.width, closeTo(340, 1));
-    }
     final title = tester.widget<Text>(find.text('设置').first);
     expect(title.style?.fontSize, closeTo(19.5, 1));
     expect(tester.takeException(), isNull);

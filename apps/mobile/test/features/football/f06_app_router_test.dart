@@ -9,7 +9,7 @@ import 'package:tifo/features/auth/presentation/controllers/auth_controller.dart
 import 'package:tifo/features/football/data/football_repository.dart';
 import 'package:tifo/features/football/domain/football_models.dart';
 import 'package:tifo/features/football/presentation/pages/match_detail_page.dart';
-import 'package:tifo/features/football/presentation/pages/knockout_tree_placeholder_page.dart';
+import 'package:tifo/features/football/presentation/pages/knockout_bracket_page.dart';
 import 'package:tifo/features/football/presentation/pages/player_detail_page.dart';
 import 'package:tifo/features/football/presentation/pages/team_detail_page.dart';
 import 'package:tifo/features/user_center/data/user_center_repository.dart';
@@ -109,7 +109,7 @@ void main() {
     expect(find.text('南看台'), findsNothing);
   });
 
-  testWidgets('knockout tree entry opens an honest placeholder', (
+  testWidgets('knockout tree entry opens the real bracket page', (
     tester,
   ) async {
     final auth = AuthController(_ReadyAuthRepository());
@@ -122,11 +122,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.byType(KnockoutTreePlaceholderPage), findsOneWidget);
-    expect(find.text('淘汰树正在开发'), findsOneWidget);
-    await tester.tap(find.byTooltip('返回'));
-    await tester.pumpAndSettle();
-    expect(find.text('页面不存在'), findsNothing);
+    expect(find.byType(KnockoutBracketPage), findsOneWidget);
+    expect(find.text('淘汰赛'), findsOneWidget);
+    expect(find.text('淘汰树正在开发'), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(
@@ -241,6 +240,7 @@ final class _RouterUserCenterRepository
   Future<void> updateProfile({
     required String nickname,
     required String bio,
+    String? username,
   }) async {}
   @override
   Future<void> setMainTeam(int teamId) async {}
@@ -311,6 +311,7 @@ final class _RouterFootballRepository implements FootballRepositoryContract {
   @override
   Future<FootballPage<FootballMatch>> leagueMatches(
     int id,
+    int? seasonId,
     int page,
     int size,
   ) async => _page;
