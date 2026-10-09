@@ -99,7 +99,7 @@ class _PublishPostPageState extends ConsumerState<PublishPostPage> {
                 style: const TextStyle(fontSize: 20, color: AppColors.ink),
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
-                  hintText: '请输入文章标题（20字内）',
+                  hintText: '请输入标题（20字内）',
                   hintStyle: TextStyle(fontSize: 20, color: Color(0xFFC8CDD4)),
                   counterText: '',
                   contentPadding: EdgeInsets.symmetric(vertical: 18),

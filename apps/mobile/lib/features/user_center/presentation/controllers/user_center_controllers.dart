@@ -44,9 +44,13 @@ final class MyProfileState {
   final bool refreshing;
 }
 
-final myProfileControllerProvider = ChangeNotifierProvider.autoDispose(
-  (ref) => MyProfileController(ref.watch(userCenterRepositoryProvider)),
-);
+final myProfileControllerProvider = ChangeNotifierProvider.autoDispose((ref) {
+  final controller = MyProfileController(
+    ref.watch(userCenterRepositoryProvider),
+  );
+  Future.microtask(controller.load);
+  return controller;
+});
 
 final class MyProfileController extends ChangeNotifier {
   MyProfileController(this._repository);
@@ -833,8 +837,6 @@ final class AvatarUpdateController extends ChangeNotifier {
   Future<void> chooseAndUpload() async {
     if (state.busy || _picking) return;
     _picking = true;
-    state = const AvatarUpdateState(busy: true);
-    notifyListeners();
     XFile? picked;
     try {
       picked = await _picker.pick();
@@ -850,6 +852,8 @@ final class AvatarUpdateController extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    state = const AvatarUpdateState(busy: true);
+    notifyListeners();
     try {
       final uploaded = await _files.uploadAvatar(picked.path, picked.name);
       try {

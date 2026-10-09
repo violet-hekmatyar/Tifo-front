@@ -427,16 +427,6 @@ class _AuthorFollowButtonState extends ConsumerState<_AuthorFollowButton> {
   @override
   Widget build(BuildContext context) {
     final provider = publicProfileControllerProvider(widget.userId);
-    ref.listen<PublicProfileController>(provider, (previous, next) {
-      final nextMessage = next.state.message;
-      if (!mounted || nextMessage == null) {
-        return;
-      }
-      final messenger = ScaffoldMessenger.of(context);
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(nextMessage)));
-    });
     final controller = ref.watch(provider);
     if (!_loadingStarted) {
       _loadingStarted = true;

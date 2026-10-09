@@ -134,7 +134,8 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
               )
               .toList(growable: false)
         : state.records;
-    final showSearchFilters = state.status != GlobalSearchStatus.empty;
+    final showSearchFilters =
+        state.status != GlobalSearchStatus.empty || state.keyword.isNotEmpty;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.white,

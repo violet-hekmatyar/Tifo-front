@@ -109,7 +109,12 @@ final class OnboardingController extends ChangeNotifier {
         status: _state.status,
         options: _state.options,
         mainTeamId: id,
-        followTeamIds: {..._state.followTeamIds, id},
+        followTeamIds: {
+          ..._state.followTeamIds.where(
+            (teamId) => teamId != _state.mainTeamId,
+          ),
+          id,
+        },
         followPlayerIds: _state.followPlayerIds,
       ),
     );

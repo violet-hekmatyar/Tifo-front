@@ -210,8 +210,8 @@ class _TeamHeaderState extends ConsumerState<_TeamHeader> {
     setState(() => _busy = true);
     try {
       await ref.read(userCenterRepositoryProvider).setMainTeam(widget.team.id);
-      ref.invalidate(mySummaryProvider);
-      final summary = await ref.read(userCenterRepositoryProvider).summary();
+      final summary = await ref.refresh(mySummaryProvider.future);
+      await ref.read(myProfileControllerProvider).refresh();
       final confirmed = summary.mainTeam?.id == widget.team.id;
       if (confirmed && mounted) {
         setState(() => _isMainTeam = true);
@@ -315,7 +315,9 @@ class _TeamHeaderState extends ConsumerState<_TeamHeader> {
               ),
               FilledButton(
                 key: const ValueKey('team_main'),
-                onPressed: _busy || widget.team.id <= 0 ? null : _setMainTeam,
+                onPressed: _busy || _isMainTeam || widget.team.id <= 0
+                    ? null
+                    : _setMainTeam,
                 style: FilledButton.styleFrom(
                   foregroundColor: const Color(0xffa3184c),
                   backgroundColor: Colors.white,

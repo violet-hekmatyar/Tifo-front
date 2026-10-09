@@ -649,7 +649,11 @@ class _ChangePhonePageState extends ConsumerState<ChangePhonePage> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(const SnackBar(content: Text('手机号已更新')));
-      context.pop();
+      // refreshAfterOnboarding 会触发 refreshListenable 的整轮路由重算，
+      // 同一帧内 pop 会被吞掉，需等下一帧再返回。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.pop();
+      });
     } on AppNetworkException catch (error) {
       if (mounted) {
         setState(() {
