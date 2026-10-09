@@ -13,12 +13,12 @@ class SkeletonPage extends ConsumerWidget {
     final status = ref.watch(skeletonStatusProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('南看台')),
+      appBar: AppBar(title: const Text('Tifo')),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('南看台', style: Theme.of(context).textTheme.headlineMedium),
+            Text('Tifo', style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 12),
             Text(status),
             const SizedBox(height: 8),

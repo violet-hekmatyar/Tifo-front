@@ -416,7 +416,7 @@ GoRouter createAppRouter(AuthController authController) => GoRouter(
     ),
   ],
   errorBuilder: (context, state) => Scaffold(
-    appBar: AppBar(title: const Text('南看台')),
+    appBar: AppBar(title: const Text('Tifo')),
     body: const Center(child: Text('页面不存在')),
   ),
 );

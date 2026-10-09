@@ -69,7 +69,7 @@ class BootstrapPage extends ConsumerWidget {
                               ),
                               SizedBox(height: AppSpacing.sm),
                               Text(
-                                '南看台',
+                                'Tifo',
                                 style: TextStyle(
                                   color: AppColors.brandDark,
                                   fontSize: 30,

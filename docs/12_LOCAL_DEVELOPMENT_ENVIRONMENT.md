@@ -1,4 +1,4 @@
-# 南看台本地开发环境与预览
+# Tifo 本地开发环境与预览
 
 ## F06 数据页预览
 
@@ -85,7 +85,7 @@ flutter run -d Pixel_8_API_36 `
 
 `10.0.2.2` 是 Android 模拟器访问 Windows 宿主机 localhost 的专用地址，只用于本地开发示例。`APP_ENV` 只允许 `development`、`test`、`production`。运行中：`r` 热重载，`R` 热重启，`q` 退出。真机替代方式为启用开发者选项与 USB 调试、连接设备、在 `flutter devices` 确认 device id 后执行 `flutter run -d <deviceId>`；真机不能使用 `10.0.2.2`，应使用开发机在局域网中的可达地址。
 
-`flutter build apk --debug` 仅做构建验证，不显示界面；`flutter run` 才会安装并运行。模拟器适合日常 UI 开发，Android 真机用于最终交互、网络、图片、键盘和性能验证。不得使用 Windows 桌面或 Web 代替移动端视觉验收。人工至少确认“南看台”“Flutter mobile initialized”可见，且无红屏、溢出或启动异常。
+`flutter build apk --debug` 仅做构建验证，不显示界面；`flutter run` 才会安装并运行。模拟器适合日常 UI 开发，Android 真机用于最终交互、网络、图片、键盘和性能验证。不得使用 Windows 桌面或 Web 代替移动端视觉验收。人工至少确认“Tifo”“Flutter mobile initialized”可见，且无红屏、溢出或启动异常。
 
 ## Vue 管理后台预览
 
@@ -97,7 +97,7 @@ $env:VITE_API_BASE_URL='http://localhost:8080'
 npm run dev
 ```
 
-使用 Vite 终端实际输出的本地 URL 在 Edge/Chrome 打开，按 `Ctrl+C` 停止。人工确认“南看台管理后台”“Vue admin initialized”、Element Plus 状态卡和 404 页面。`npm run build` 只生成 `dist`，不等于视觉验收。
+使用 Vite 终端实际输出的本地 URL 在 Edge/Chrome 打开，按 `Ctrl+C` 停止。人工确认“Tifo 管理后台”“Vue admin initialized”、Element Plus 状态卡和 404 页面。`npm run build` 只生成 `dist`，不等于视觉验收。
 
 ## 常见问题
 

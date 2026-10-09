@@ -1,5 +1,5 @@
 name: tifo
-description: "South Stand Flutter mobile application."
+description: "Tifo Flutter mobile application."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -30,4 +30,4 @@ flutter:
     - assets/ui/home/neutral-team-crest.png
     - assets/ui/football/neutral-player-avatar.png
     - assets/ui/profile/cover-stadium.png
-    - assets/ui/profile/user-demo.png
+    - assets/ui/profile/user-placeholder.png

@@ -25,8 +25,8 @@ async function submit(): Promise<void> {
 <template>
   <main class="login-page">
     <section class="login-page__brand">
-      <div class="login-page__badge">南</div>
-      <h1>南看台管理后台</h1>
+      <div class="login-page__badge">T</div>
+      <h1>Tifo 管理后台</h1>
       <p>仅限已授权的内部管理员访问</p>
     </section>
     <el-card class="login-card" shadow="always">

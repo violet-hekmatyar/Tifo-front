@@ -23,8 +23,8 @@ import 'package:tifo/shared/widgets/app_team_logo.dart';
 void main() {
   testWidgets('login shows brand title and primary action', (tester) async {
     await _pumpPage(tester, const LoginPage());
-    expect(find.text('欢迎使用南看台'), findsOneWidget);
-    expect(find.text('Welcome to the South Stand'), findsOneWidget);
+    expect(find.text('欢迎使用 Tifo'), findsOneWidget);
+    expect(find.text('Welcome to Tifo'), findsOneWidget);
     expect(find.text('登录'), findsOneWidget);
   });
 

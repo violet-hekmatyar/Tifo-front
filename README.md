@@ -1,6 +1,6 @@
-# 南看台前端 / Tifo Frontend
+# Tifo 前端 / Tifo Frontend
 
-南看台（Tifo）是一款**卡片化足球内容流 + 赛事数据 + 社区互动** App。本仓库为前端工程，包含面向普通用户的 Flutter 移动客户端，以及仅供内部管理员使用的 Vue 管理后台。
+Tifo 是一款**卡片化足球内容流 + 赛事数据 + 社区互动** App。本仓库为前端工程，包含面向普通用户的 Flutter 移动客户端，以及仅供内部管理员使用的 Vue 管理后台。
 
 后端仓库：[violet-hekmatyar/Tifo](https://github.com/violet-hekmatyar/Tifo)
 

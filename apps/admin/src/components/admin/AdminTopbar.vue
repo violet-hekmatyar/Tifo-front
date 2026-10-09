@@ -17,7 +17,7 @@ const emit = defineEmits<{ toggle: []; logout: [] }>()
       {{ collapsed ? '»' : '«' }}
     </button>
     <div class="admin-topbar__title">
-      <strong>南看台管理后台</strong>
+      <strong>Tifo 管理后台</strong>
       <small>内部管理员工作区</small>
     </div>
     <AdminUserMenu :user="user" @logout="emit('logout')" />

@@ -44,7 +44,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(MatchDetailPage), findsOneWidget);
       expect(find.byKey(const ValueKey('match_header')), findsOneWidget);
-      expect(find.text('南看台'), findsNothing);
+      expect(find.text('Tifo'), findsNothing);
 
       await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
@@ -106,7 +106,7 @@ void main() {
       '/matches/not-a-number',
     );
     expect(find.text('比赛编号无效'), findsOneWidget);
-    expect(find.text('南看台'), findsNothing);
+    expect(find.text('Tifo'), findsNothing);
   });
 
   testWidgets('knockout tree entry opens the real bracket page', (

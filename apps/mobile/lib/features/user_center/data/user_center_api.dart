@@ -284,4 +284,4 @@ String? _text(Object? raw) {
 }
 
 String _displayName(Map map) =>
-    _text(map['nickname']) ?? _text(map['username']) ?? '南看台用户';
+    _text(map['nickname']) ?? _text(map['username']) ?? 'Tifo 用户';

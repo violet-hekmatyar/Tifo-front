@@ -13,9 +13,9 @@ const menu = [
 <template>
   <aside class="admin-sidebar" :class="{ 'admin-sidebar--collapsed': collapsed }">
     <div class="admin-sidebar__brand">
-      <span class="admin-sidebar__logo">南</span>
+      <span class="admin-sidebar__logo">T</span>
       <div v-if="!collapsed">
-        <strong>南看台</strong>
+        <strong>Tifo</strong>
         <small>管理后台</small>
       </div>
     </div>

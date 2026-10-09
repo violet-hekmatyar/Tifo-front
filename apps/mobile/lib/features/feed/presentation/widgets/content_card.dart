@@ -397,7 +397,7 @@ class _NewsContentCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            card.author?.nickname ?? '南看台用户',
+                            card.author?.nickname ?? 'Tifo 用户',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.labelSmall
@@ -510,7 +510,7 @@ class _AuthorRow extends StatelessWidget {
       children: [
         AppEntityAvatar(
           identity: 'user:${card.author?.userId ?? card.cardId}',
-          semanticLabel: '${card.author?.nickname ?? '南看台用户'}头像',
+          semanticLabel: '${card.author?.nickname ?? 'Tifo 用户'}头像',
           fallbackIcon: Icons.person_outline_rounded,
           fallbackText: _initial(card.author?.nickname),
           fallbackAsset: fallbackAsset,
@@ -520,7 +520,7 @@ class _AuthorRow extends StatelessWidget {
         const SizedBox(width: 5),
         Expanded(
           child: Text(
-            card.author?.nickname ?? '南看台用户',
+            card.author?.nickname ?? 'Tifo 用户',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelSmall,

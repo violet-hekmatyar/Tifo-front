@@ -416,7 +416,7 @@ class _UserListViewState extends ConsumerState<UserListView>
           ? null
           : FeedAuthor(
               userId: authorId,
-              nickname: authorNickname ?? '南看台用户',
+              nickname: authorNickname ?? 'Tifo 用户',
               avatarUrl: authorAvatarUrl,
             ),
     );
@@ -427,7 +427,7 @@ class _UserListViewState extends ConsumerState<UserListView>
           card: card,
           coverUrl: resolveMediaUrl(config, coverUrl),
           authorAvatarUrl: resolveMediaUrl(config, authorAvatarUrl),
-          authorFallbackAsset: 'assets/ui/profile/user-demo.png',
+          authorFallbackAsset: 'assets/ui/profile/user-placeholder.png',
           userCenterStyle: true,
           userCenterMediaAspectRatio: mediaAspectRatio,
           showMedia: coverUrl != null && coverUrl.trim().isNotEmpty,
@@ -515,7 +515,7 @@ class _UserListViewState extends ConsumerState<UserListView>
             semanticLabel: '${item.nickname}头像',
             fallbackIcon: Icons.person_outline_rounded,
             fallbackText: item.nickname,
-            fallbackAsset: 'assets/ui/profile/user-demo.png',
+            fallbackAsset: 'assets/ui/profile/user-placeholder.png',
             imageUrl: resolveMediaUrl(config, item.avatarUrl),
             size: 44,
           ),

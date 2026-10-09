@@ -13,7 +13,7 @@ describe('SkeletonView', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('南看台管理后台')
+    expect(wrapper.text()).toContain('Tifo 管理后台')
     expect(wrapper.text()).toContain('Vue admin initialized')
     expect(wrapper.find('.el-card').exists()).toBe(true)
   })

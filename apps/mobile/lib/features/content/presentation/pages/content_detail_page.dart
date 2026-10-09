@@ -93,7 +93,7 @@ class _ContentDetailPageState extends ConsumerState<ContentDetailPage> {
         .read(contentDetailControllerProvider(widget.contentId))
         .state
         .detail;
-    final title = detail?.title ?? '南看台内容';
+    final title = detail?.title ?? 'Tifo 内容';
     final copied = await showModalBottomSheet<bool>(
       context: context,
       showDragHandle: false,
@@ -221,7 +221,7 @@ class _ContentDetailPageState extends ConsumerState<ContentDetailPage> {
             onPressed: _returnToPreviousPage,
             icon: const Icon(Icons.arrow_back_rounded),
           ),
-          title: const Text('南看台'),
+          title: const Text('Tifo'),
           actions: [
             if (s.detail case final detail?
                 when s.status == DetailStatus.ready &&

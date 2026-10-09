@@ -1,4 +1,4 @@
-# 南看台前端 AI Coding 规则
+# Tifo 前端 AI Coding 规则
 
 > 版本：v0.1  
 > 当前阶段：F00  

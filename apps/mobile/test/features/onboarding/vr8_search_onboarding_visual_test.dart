@@ -17,7 +17,7 @@ void main() {
   ) async {
     await _pumpOnboarding(tester);
 
-    expect(find.text('南看台 · 首次设置'), findsNothing);
+    expect(find.text('Tifo · 首次设置'), findsNothing);
     expect(
       find.byKey(const ValueKey('onboarding_step_indicator')),
       findsNothing,

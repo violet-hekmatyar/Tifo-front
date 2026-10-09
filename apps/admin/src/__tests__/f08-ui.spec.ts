@@ -20,7 +20,7 @@ describe('F08 admin UI', () => {
     await router.push('/login')
     await router.isReady()
     const wrapper = mount(LoginView, { global: { plugins: [ElementPlus, router] } })
-    expect(wrapper.text()).toContain('南看台管理后台')
+    expect(wrapper.text()).toContain('Tifo 管理后台')
     expect(wrapper.find('input[autocomplete="username"]').exists()).toBe(true)
     expect(wrapper.find('input[autocomplete="current-password"]').attributes('type')).toBe(
       'password',

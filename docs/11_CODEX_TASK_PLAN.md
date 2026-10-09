@@ -1,4 +1,4 @@
-# 南看台前端 Codex 大任务计划
+# Tifo 前端 Codex 大任务计划
 
 F08 已完成 Vue 管理员真实登录、ADMIN/USER 守卫、会话恢复、401/403、AdminLayout 和无假统计 Dashboard。用户、内容、足球与文件模块仅保留范围占位，未提前实现 F09。
 

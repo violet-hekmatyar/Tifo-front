@@ -41,7 +41,7 @@ class AuthBrandHeader extends StatelessWidget {
               Icon(Icons.sports_soccer_rounded, color: Colors.white, size: 30),
               SizedBox(width: AppSpacing.sm),
               Text(
-                '南看台',
+                'Tifo',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 28,

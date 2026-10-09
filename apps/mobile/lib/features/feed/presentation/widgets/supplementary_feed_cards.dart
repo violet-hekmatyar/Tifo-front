@@ -60,7 +60,7 @@ class HotCommentCard extends StatelessWidget {
               size: 32,
             ),
             const SizedBox(width: AppSpacing.xs),
-            Expanded(child: Text(card.commentAuthor?.nickname ?? '南看台用户')),
+            Expanded(child: Text(card.commentAuthor?.nickname ?? 'Tifo 用户')),
             const Icon(
               Icons.favorite_border_rounded,
               size: 17,
@@ -186,7 +186,7 @@ class DiscussionCard extends StatelessWidget {
             const SizedBox(width: AppSpacing.xs),
             Expanded(
               child: Text(
-                card.author?.nickname ?? '南看台用户',
+                card.author?.nickname ?? 'Tifo 用户',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

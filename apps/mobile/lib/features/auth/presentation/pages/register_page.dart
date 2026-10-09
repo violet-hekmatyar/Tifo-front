@@ -68,7 +68,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         child: Column(
           children: [
             const AuthBrandHeader(
-              title: '加入南看台',
+              title: '加入 Tifo',
               subtitle: '创建账号，建立属于你的足球关注清单',
             ),
             Transform.translate(

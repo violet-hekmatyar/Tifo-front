@@ -138,7 +138,7 @@ class UserProfileHero extends ConsumerWidget {
                               semanticLabel: '$nickname头像',
                               fallbackIcon: Icons.person_outline_rounded,
                               fallbackText: initial,
-                              fallbackAsset: 'assets/ui/profile/user-demo.png',
+                              fallbackAsset: 'assets/ui/profile/user-placeholder.png',
                               imageUrl: resolveMediaUrl(config, avatarUrl),
                               size: 75,
                             ),

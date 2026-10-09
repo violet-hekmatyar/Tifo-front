@@ -366,7 +366,7 @@ void main() {
       tester,
       const Row(
         children: [
-          Expanded(child: Text('南看台')),
+          Expanded(child: Text('Tifo')),
           IconButton(onPressed: null, icon: Icon(Icons.search)),
           FilledButton(onPressed: null, child: Text('发布')),
         ],

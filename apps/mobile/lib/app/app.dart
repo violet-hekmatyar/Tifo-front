@@ -35,7 +35,7 @@ class _TifoAppState extends ConsumerState<TifoApp> {
 
   @override
   Widget build(BuildContext context) => MaterialApp.router(
-    title: '南看台',
+    title: 'Tifo',
     debugShowCheckedModeBanner: false,
     theme: AppTheme.light,
     routerConfig: _router,

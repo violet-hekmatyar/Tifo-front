@@ -129,7 +129,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('评论（1）'), findsOneWidget);
-    expect(find.text('南看台'), findsNothing);
+    expect(find.text('Tifo'), findsNothing);
     final commentsScaffold = find.byType(Scaffold).last;
     final commentsRect = tester.getRect(commentsScaffold);
     final logicalViewport =
@@ -221,7 +221,7 @@ void main() {
     expect(find.text('评论（1）'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('content_comments_back')));
     await tester.pumpAndSettle();
-    expect(find.text('南看台'), findsOneWidget);
+    expect(find.text('Tifo'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -515,7 +515,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('评论（1）'), findsOneWidget);
-    expect(find.text('南看台'), findsNothing);
+    expect(find.text('Tifo'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

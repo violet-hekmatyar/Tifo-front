@@ -99,11 +99,11 @@ ContentDetail _detail(Object? raw) {
     author: author is Map
         ? ContentAuthor(
             userId: (author['userId'] as num?)?.toInt(),
-            nickname: _text(author['nickname']) ?? '南看台用户',
+            nickname: _text(author['nickname']) ?? 'Tifo 用户',
             avatarUrl: _text(author['avatarUrl']),
             verified: author['verified'] == true,
           )
-        : const ContentAuthor(userId: null, nickname: '南看台用户'),
+        : const ContentAuthor(userId: null, nickname: 'Tifo 用户'),
     media: media
         .whereType<Map>()
         .map((item) {

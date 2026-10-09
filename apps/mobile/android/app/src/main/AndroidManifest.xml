@@ -3,7 +3,7 @@
          release 包必须在 main manifest 自行声明，否则所有网络请求会被系统直接拒绝。 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="南看台"
+        android:label="Tifo"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:networkSecurityConfig="@xml/network_security_config">

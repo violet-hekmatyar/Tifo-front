@@ -136,11 +136,11 @@ CommentItem _comment(Object? raw) {
     author: author is Map
         ? ContentAuthor(
             userId: (author['userId'] as num?)?.toInt(),
-            nickname: author['nickname'] as String? ?? '南看台用户',
+            nickname: author['nickname'] as String? ?? 'Tifo 用户',
             avatarUrl: author['avatarUrl'] as String?,
             verified: author['verified'] == true,
           )
-        : const ContentAuthor(userId: null, nickname: '南看台用户'),
+        : const ContentAuthor(userId: null, nickname: 'Tifo 用户'),
     content: raw['contentText'] as String,
     likeCount: (raw['likeCount'] as num?)?.toInt().clamp(0, 1 << 31) ?? 0,
     replyCount: (raw['replyCount'] as num?)?.toInt().clamp(0, 1 << 31) ?? 0,

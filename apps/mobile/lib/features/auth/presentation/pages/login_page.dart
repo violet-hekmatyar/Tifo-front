@@ -273,7 +273,7 @@ class _LoginBrandContent extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           const Text(
-            '欢迎使用南看台',
+            '欢迎使用 Tifo',
             key: ValueKey('login_title'),
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -285,7 +285,7 @@ class _LoginBrandContent extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           const Text(
-            'Welcome to the South Stand',
+            'Welcome to Tifo',
             key: ValueKey('login_subtitle'),
             textAlign: TextAlign.center,
             style: TextStyle(
