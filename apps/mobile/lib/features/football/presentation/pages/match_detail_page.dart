@@ -14,6 +14,7 @@ import '../../../recommendation/domain/recommendation_behavior.dart';
 import '../../../recommendation/presentation/recommendation_behavior_dispatcher.dart';
 import '../../../interaction/presentation/widgets/comment_section.dart';
 import '../../../interaction/presentation/controllers/comment_controller.dart';
+import '../../../prediction/presentation/widgets/prediction_tab.dart';
 import '../../domain/football_models.dart';
 import '../../domain/match_detail_models.dart';
 import '../controllers/match_detail_controllers.dart';
@@ -103,6 +104,7 @@ class _MatchDetailPageState extends ConsumerState<MatchDetailPage> {
                 _LineupsTab(matchId: widget.matchId, events: detail.events),
                 _RankingTab(matchId: widget.matchId),
                 _StatsTab(matchId: widget.matchId, detail: detail),
+                PredictionTab(matchId: widget.matchId),
               ],
             ),
           ),
@@ -194,14 +196,17 @@ class _MatchHeader extends ConsumerWidget {
                                 .join(' · '),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: AppTypography.sized(
+                              14,
                               color: Colors.white,
-                              fontWeight: FontWeight.w800,
                             ),
                           ),
                           Text(
                             '${footballDate(match.matchTime)} ${footballTime(match.matchTime)}',
-                            style: const TextStyle(color: Colors.white70),
+                            style: AppTypography.sized(
+                              12,
+                              color: Colors.white.withValues(alpha: .9),
+                            ),
                           ),
                         ],
                       ),
@@ -233,27 +238,21 @@ class _MatchHeader extends ConsumerWidget {
                                     match.awayTeam.score != null
                                 ? '${match.homeTeam.score} : ${match.awayTeam.score}'
                                 : 'VS',
-                            style: const TextStyle(
+                            style: AppTypography.sized(
+                              22,
+                              weight: FontWeight.w700,
+                              family: AppTypography.scoreFamily,
                               color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w900,
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.xs),
-                          DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: status.color.withValues(alpha: .2),
-                              borderRadius: BorderRadius.circular(AppRadius.lg),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.sm,
-                                vertical: 2,
-                              ),
-                              child: Text(
-                                status.label,
-                                style: TextStyle(color: status.color),
-                              ),
+                          const SizedBox(height: AppSpacing.xxs),
+                          Text(
+                            status.label,
+                            style: AppTypography.sized(
+                              11,
+                              color: match.status == 'LIVE'
+                                  ? AppColors.error
+                                  : AppColors.inkDisabled,
                             ),
                           ),
                         ],
@@ -270,12 +269,11 @@ class _MatchHeader extends ConsumerWidget {
                     ),
                   ],
                 ),
-                if (match.leagueName.trim().isNotEmpty || detail.venue != null)
+                // 赛事名已在顶部标题行出现过，这里只补场地，避免「英超 · 英超」。
+                if (detail.venue case final venue?
+                    when venue.trim().isNotEmpty)
                   Text(
-                    [match.leagueName, detail.venue]
-                        .whereType<String>()
-                        .where((value) => value.trim().isNotEmpty)
-                        .join(' · '),
+                    venue,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(color: Colors.white70),
@@ -314,7 +312,7 @@ class _HeaderTeam extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white),
+            style: AppTypography.sized(12, color: Colors.white),
           ),
         ],
       ),
@@ -333,6 +331,7 @@ class _MatchTabs extends StatelessWidget {
     ('match_tab_lineups', '阵容', Icons.groups_outlined),
     ('match_tab_ranking', '当前排名', Icons.leaderboard_outlined),
     ('match_tab_stats', '统计', Icons.bar_chart_outlined),
+    ('match_tab_prediction', '预测', Icons.auto_graph_outlined),
   ];
 
   @override
@@ -357,38 +356,21 @@ class _MatchTabs extends StatelessWidget {
                       horizontal: AppSpacing.xs,
                       vertical: AppSpacing.sm,
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            _tabs[i].$2,
-                            maxLines: 1,
-                            style: TextStyle(
-                              color: i == selectedIndex
-                                  ? Colors.white
-                                  : Colors.white60,
-                              fontWeight: i == selectedIndex
-                                  ? FontWeight.w800
-                                  : FontWeight.w500,
-                            ),
-                          ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        _tabs[i].$2,
+                        maxLines: 1,
+                        style: AppTypography.sized(
+                          14,
+                          weight: i == selectedIndex
+                              ? FontWeight.w500
+                              : FontWeight.w400,
+                          color: i == selectedIndex
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: .7),
                         ),
-                        const SizedBox(height: 2),
-                        SizedBox(
-                          height: 3,
-                          width: 32,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: i == selectedIndex
-                                  ? Colors.white
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(AppRadius.lg),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -1419,18 +1401,23 @@ class _StandingCard extends StatelessWidget {
           : null,
       leading: CircleAvatar(child: Text(_safe(value.rank))),
       title: Text(value.teamName, maxLines: 2, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        [
-          '赛 ${_safe(value.played)}',
-          '胜 ${_safe(value.won)}',
-          '平 ${_safe(value.drawn)}',
-          '负 ${_safe(value.lost)}',
-          '进 ${_safe(value.goalsFor)}',
-          '失 ${_safe(value.goalsAgainst)}',
-          '净 ${_safe(value.goalDifference)}',
-        ].join(' · '),
-        maxLines: 3,
-        overflow: TextOverflow.ellipsis,
+      // 拆成两行，避免「…负 24 · 进 27 · 失 68 · 净 -41」在窄屏被拆断词。
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '赛 ${_safe(value.played)} · 胜 ${_safe(value.won)} · '
+            '平 ${_safe(value.drawn)} · 负 ${_safe(value.lost)}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          Text(
+            '进 ${_safe(value.goalsFor)} · 失 ${_safe(value.goalsAgainst)} · '
+            '净 ${_safe(value.goalDifference)}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
       trailing: Text('${_safe(value.points)} 积分'),
     ),
