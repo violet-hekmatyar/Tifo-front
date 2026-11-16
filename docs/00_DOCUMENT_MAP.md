@@ -13,6 +13,9 @@
 
 本文档集依据本轮 F00 要求、`D:\Football-APP\docs` 后端原始文档及产品 PDF 整理。后端同步快照位于 `references/backend/`，产品参考位于 `references/product/`。
 
+比赛详情「预测」板块（球迷共识 / 看台挑战 / 赛后复盘）的规则、UI 规格与原型图位于 `references/win-prediction/`。
+面向老板的图文汇报位于 `reports/prediction-module/report.md`（PDF 同名）。
+
 ## 主线文档与唯一职责
 
 | 文档 | 唯一职责 |

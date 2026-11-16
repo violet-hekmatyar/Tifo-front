@@ -1,0 +1,80 @@
+{
+  "code": "00000",
+  "msg": "success",
+  "result": {
+    "batch": "0",
+    "category_cover": [],
+    "create_time": "2026-11-14T18:22:18.904382Z",
+    "group": [],
+    "height": 461,
+    "home": false,
+    "id": "6d6cf1ef-f9a3-416c-a000-b7a43c9e4f5f",
+    "is_replaced": false,
+    "last_version_num": 2,
+    "lat": [],
+    "latest_version": "1e12dbcf-2278-435a-9aa4-67620c245f10",
+    "layout_data": "{\"file_info\":{\"format\":\"png\"}}",
+    "name": "球比赛详情-预测3",
+    "order": 0,
+    "pinyinname": "z",
+    "position_x": 430.5692138671875,
+    "position_y": 5417.81787109375,
+    "positions": [],
+    "pre": [],
+    "share_id": "6d6cf1ef-f9a3-416c-a000-b7a43c9e4f5f",
+    "sketch_id": "7f5e7517-770f-64eb-c29e-a5b4b131bad8",
+    "source": false,
+    "text_scale": null,
+    "trash_recovery": false,
+    "type": "image",
+    "update_time": "2026-11-14T18:24:09.835651Z",
+    "url": "https://alipic.lanhuapp.com/FigmaCover6624871dc774aa474e16a8a190d8fc1b.png",
+    "user_id": "83658aab-e5f6-4c94-b387-93a85e80fab0",
+    "user_in_project": true,
+    "versions": [
+      {
+        "id": "1e12dbcf-2278-435a-9aa4-67620c245f10",
+        "type": "image",
+        "height": 461,
+        "width": 187.5,
+        "create_time": "Sat, 14 Nov 2026 18:24:06 UTC",
+        "version_info": "版本2",
+        "url": "https://alipic.lanhuapp.com/FigmaCover6624871dc774aa474e16a8a190d8fc1b.png",
+        "json_url": "https://alipic.lanhuapp.com/FigmaJSON6a1c4f47baf1ed2c7cc3be3d263b71a8.json",
+        "d2c_url": null,
+        "json_md5": "6a1c4f47baf1ed2c7cc3be3d263b71a8",
+        "version_layout_data": "{\"uid\":\"83658aab-e5f6-4c94-b387-93a85e80fab0\"}",
+        "md5": "6624871dc774aa474e16a8a190d8fc1b",
+        "updated": true,
+        "editor_info": {
+          "nickname": "张龙宵",
+          "avatar": "https://alipic.lanhuapp.com/avatar/1044896_b8aa5a77-7b46-47bd-b261-8bf53e662b09",
+          "color": "orange"
+        },
+        "comments": []
+      },
+      {
+        "id": "fa0a9384-c3d0-4fe7-9459-3ae584427e09",
+        "type": "image",
+        "height": 461,
+        "width": 187.5,
+        "create_time": "Sat, 14 Nov 2026 18:22:18 UTC",
+        "version_info": "版本1",
+        "url": "https://alipic.lanhuapp.com/FigmaCover42087f27d89645142a7e7e580ef6037d.png",
+        "json_url": "https://alipic.lanhuapp.com/FigmaJSONff56b9c4108878b34c342b19d36c6a91.json",
+        "d2c_url": null,
+        "json_md5": "ff56b9c4108878b34c342b19d36c6a91",
+        "version_layout_data": "{\"file_info\":{\"format\":\"png\"},\"uid\":\"83658aab-e5f6-4c94-b387-93a85e80fab0\"}",
+        "md5": "42087f27d89645142a7e7e580ef6037d",
+        "updated": true,
+        "editor_info": {
+          "nickname": "张龙宵",
+          "avatar": "https://alipic.lanhuapp.com/avatar/1044896_b8aa5a77-7b46-47bd-b261-8bf53e662b09",
+          "color": "orange"
+        },
+        "comments": []
+      }
+    ],
+    "width": 187.5
+  }
+}

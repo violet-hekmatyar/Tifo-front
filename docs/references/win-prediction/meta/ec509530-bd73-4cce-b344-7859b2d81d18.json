@@ -1,0 +1,59 @@
+{
+  "code": "00000",
+  "msg": "success",
+  "result": {
+    "batch": "0",
+    "category_cover": [],
+    "create_time": "2026-11-14T18:22:18.899584Z",
+    "group": [],
+    "height": 461,
+    "home": false,
+    "id": "ec509530-bd73-4cce-b344-7859b2d81d18",
+    "is_replaced": false,
+    "last_version_num": 1,
+    "lat": [],
+    "latest_version": "d243bf7d-696c-4725-811c-a855534c5979",
+    "layout_data": "{\"file_info\":{\"format\":\"png\"}}",
+    "name": "球比赛详情-预测1",
+    "order": 0,
+    "pinyinname": "z",
+    "position_x": 17.569229125976562,
+    "position_y": 5417.81787109375,
+    "positions": [],
+    "pre": [],
+    "share_id": "ec509530-bd73-4cce-b344-7859b2d81d18",
+    "sketch_id": "6d16f3d1-8a3d-aa54-5a34-9adf27b55fc1",
+    "source": false,
+    "text_scale": null,
+    "trash_recovery": false,
+    "type": "image",
+    "update_time": "2026-11-14T18:22:53.645144Z",
+    "url": "https://alipic.lanhuapp.com/FigmaCovereace0c0c86197d4b89ce7098e5abc979.png",
+    "user_id": "83658aab-e5f6-4c94-b387-93a85e80fab0",
+    "user_in_project": true,
+    "versions": [
+      {
+        "id": "d243bf7d-696c-4725-811c-a855534c5979",
+        "type": "image",
+        "height": 461,
+        "width": 187.5,
+        "create_time": "Sat, 14 Nov 2026 18:22:18 UTC",
+        "version_info": "版本1",
+        "url": "https://alipic.lanhuapp.com/FigmaCovereace0c0c86197d4b89ce7098e5abc979.png",
+        "json_url": "https://alipic.lanhuapp.com/FigmaJSON2ccd7e6db7c59e883561f042cafdbbbf.json",
+        "d2c_url": null,
+        "json_md5": "2ccd7e6db7c59e883561f042cafdbbbf",
+        "version_layout_data": "{\"file_info\":{\"format\":\"png\"},\"uid\":\"83658aab-e5f6-4c94-b387-93a85e80fab0\"}",
+        "md5": "eace0c0c86197d4b89ce7098e5abc979",
+        "updated": true,
+        "editor_info": {
+          "nickname": "张龙宵",
+          "avatar": "https://alipic.lanhuapp.com/avatar/1044896_b8aa5a77-7b46-47bd-b261-8bf53e662b09",
+          "color": "orange"
+        },
+        "comments": []
+      }
+    ],
+    "width": 187.5
+  }
+}

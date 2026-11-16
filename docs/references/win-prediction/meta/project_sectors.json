@@ -1,0 +1,152 @@
+{
+  "code": "00000",
+  "msg": "success",
+  "data": {
+    "order_type": "drag",
+    "sectors": [
+      {
+        "id": "6c00df47-4f1f-4465-9f54-9e2d469dfeec",
+        "parent_id": "",
+        "name": "预测",
+        "order": 100000,
+        "images": [
+          "ec509530-bd73-4cce-b344-7859b2d81d18",
+          "100cde83-027a-4eeb-b69d-e6cda76e52fe",
+          "6d6cf1ef-f9a3-416c-a000-b7a43c9e4f5f"
+        ]
+      },
+      {
+        "id": "3c23238e-5351-4d07-a40c-feaeaf5f58f3",
+        "parent_id": "",
+        "name": "空状态页面",
+        "order": 90000,
+        "images": [
+          "5fb60be5-5ff2-461c-b67a-de91b7d2ac6d",
+          "e4838356-8084-4e58-a9c2-fb9133eb45d8",
+          "2a17f363-0bc8-4435-911b-86eb5fb80a8a"
+        ]
+      },
+      {
+        "id": "04d54621-b3f2-4e08-95cf-6b3e4ff6c728",
+        "parent_id": "",
+        "name": "登录注册",
+        "order": 80000,
+        "images": [
+          "1d15e7bb-e86e-43ab-a6c0-67653b6cafa7",
+          "0aac6c9b-4ff8-4dc4-8e2b-8c3a2e3d1760",
+          "ea858637-be6a-4b60-b345-d87a18f8c70b",
+          "fbb43773-cd3c-40ae-9214-e0fc1b15863b",
+          "cc1ad2b1-ac6d-415f-a8fd-03a53bb0ccd3",
+          "bfa57af8-7595-4f8a-b6f6-5daac7468665",
+          "695a3e73-cc80-4398-89b0-81cad7148908",
+          "ea3e3c57-dd27-420c-adc1-a4489f42baea"
+        ]
+      },
+      {
+        "id": "af5522fd-8511-4630-a227-641e3e96c537",
+        "parent_id": "",
+        "name": "消息",
+        "order": 70000,
+        "images": [
+          "717d04cf-0f27-4ba3-b2b2-303c6ef8b6e8",
+          "fbad1c06-0157-43c4-b375-37cb569296b3",
+          "126571a8-a5ab-4e04-893b-c3abca3f8cf7"
+        ]
+      },
+      {
+        "id": "274a45cb-c0e1-40cf-9f22-e0822c1f557e",
+        "parent_id": "",
+        "name": "我的",
+        "order": 60000,
+        "images": [
+          "5382f246-20e0-416c-b637-12186d407bb1",
+          "f0847753-24b7-4d21-a88b-35de5ab377d8",
+          "2cb875ec-d55a-4d2c-8fe5-047302b02b77",
+          "1f4d6804-f482-43bc-b5db-1f461d6810bc",
+          "33a0e55a-0e88-413a-a988-24576c99a1b1",
+          "03a7d228-f4fa-42df-ad5c-eb63929597cd",
+          "b28f8ae9-47bf-41f8-b5b4-d94f6f0b8464"
+        ]
+      },
+      {
+        "id": "f860314c-876e-4615-bdbe-c6deba035cca",
+        "parent_id": "",
+        "name": "比赛详情",
+        "order": 50000,
+        "images": [
+          "b157e5de-877e-4c63-83ed-46f00f22c562",
+          "cb5f88f2-936d-4b89-afa3-fdc26758bfcc",
+          "ee08842f-c7fa-4b96-9aa1-ef15efcd3a38",
+          "b3f67005-4550-4eb7-b4cb-9624128cb90f",
+          "55a5b5fb-4192-4f79-89a7-dbb024523b0b",
+          "beaf9b03-192a-4174-a4da-24d7a3518921",
+          "e1504ed4-e35f-439d-a54d-4c6cc10e0856"
+        ]
+      },
+      {
+        "id": "72197da2-e5eb-482b-94ad-51a3853a67d5",
+        "parent_id": "",
+        "name": "球员详情",
+        "order": 40000,
+        "images": [
+          "df4eeec3-f1e2-4004-a0f0-610fe5edc6a7",
+          "5f65b3a5-f405-4955-ae77-35f728a200ed",
+          "69b24dba-a4f1-41e8-bfcc-47270c6b5f8c",
+          "ea7f3295-e0f2-4d19-b39b-a57ae4a6b40a",
+          "ccc131ef-9fd1-436b-94cc-f2829987f9ef",
+          "4fba43ce-52e0-42d8-8c36-b767d7604996"
+        ]
+      },
+      {
+        "id": "48a628ce-804d-4cf8-8991-55f075811cf2",
+        "parent_id": "",
+        "name": "球队详情",
+        "order": 30000,
+        "images": [
+          "4cc391e1-2f73-4529-8086-029ae236e672",
+          "76bc9ca5-abf1-4125-97b5-5fa89d10b812",
+          "e2b79a6a-380c-43fc-aaff-aad796faf677",
+          "c4e0cd68-8a56-4579-8747-ac16fa7402c6",
+          "3ba68c3f-1e85-480f-8afb-f2066d46a47e",
+          "39f840b5-748a-4951-bd6f-691e1d52d4a2",
+          "85a28682-89aa-4671-a26d-1e0c5e791f1a"
+        ]
+      },
+      {
+        "id": "fcf7e631-eef1-4e75-b586-2d1105a09284",
+        "parent_id": "",
+        "name": "数据",
+        "order": 20000,
+        "images": [
+          "ea78c160-32ca-4082-8ecf-f82a52d8ad4b",
+          "2e6fed1d-7db4-4433-9603-2fd5682e3bc8",
+          "03f2e1e4-e3ff-41cd-9907-4e15cb674fa1",
+          "7a4263ba-b02f-4bf5-91a0-3fa4d0d22104",
+          "6cebc7be-03f3-4690-a228-33351249f6e3",
+          "026bed80-167e-4ed8-847c-39d873169025",
+          "103bf6eb-0332-430e-80e8-794f48538759"
+        ]
+      },
+      {
+        "id": "3b51d833-563f-436e-8c95-5bff3b44d648",
+        "parent_id": "",
+        "name": "首页",
+        "order": 10000,
+        "images": [
+          "7be3d125-488d-4e88-8501-718de62b5be1",
+          "7cc5a3f8-dec3-49e0-84bd-3891a8c57ba8",
+          "e1174e0f-3a5f-4755-84c1-34f3e782efc6",
+          "d64221ab-13f0-4aca-b306-4bc0e1209058",
+          "6eb9acf1-9bfe-4c84-a633-c04867e21309",
+          "a94209f9-7a34-4dbe-b0c5-3ec769a884ed",
+          "91c0250a-19d3-452c-8366-b885a0550d12",
+          "b6c15177-d3f9-4ba3-9aea-85ad81dc1a7f",
+          "1ac2f5ea-86e6-4be6-a945-8c26ad1e4125",
+          "1f8ec047-f673-44bb-a8c0-05da49643947",
+          "de344333-6cb2-4d59-bbed-97525d531c7e",
+          "c116e134-dab7-4c25-9b81-bc9725e84349"
+        ]
+      }
+    ]
+  }
+}
