@@ -20,7 +20,7 @@ SQL：`D:\Football-APP\scripts\sql\prediction_module.sql`（幂等，可重复�
 | --- | --- |
 | `match_prediction` | 用户对某场比赛的判断、概率、洞察分、挑战豆、结算状态 |
 | `match_prediction_consensus` | 每场球迷共识与参与人数 |
-| `prediction_wallet` | 用户看台豆余额，首次参与赠送 1,000 |
+| `prediction_wallet` | 用户看台豆余额，注册即发 1,000；存量用户已统一补发 |
 | `prediction_bean_log` | 投入、锁定、返还、奖励流水 |
 | `prediction_trajectory` | 用户自己的赛前判断轨迹 |
 | `prediction_market` | 「更多预测」条目 |
@@ -40,7 +40,7 @@ SQL：`D:\Football-APP\scripts\sql\prediction_module.sql`（幂等，可重复�
 
 ## 3. 后端接口
 
-模块目录：`D:\Football-APP\src\main\java\com\southstand\prediction\`。
+模块目录：`D:\Football-APP\src\main\java\com\southstand\prediction\`。初始本金由 `service/PredictionWalletService.java` 统一发放；`AuthService` 在注册成功和登录成功时调用。
 
 ```
 GET  /api/app/football/matches/{matchId}/prediction
@@ -58,6 +58,8 @@ POST 请求体：
 - 同一用户同一场只能提交一次；开赛、结束、取消后不可提交。
 - 结算使用 Brier 分：`B = Σ(p_i - y_i)²`、`S = round(100 × (1 - B/2))`。
 - 奖励：`floor(stake × min(0.8, max(0, (S-60)/50)))`；命中返还本金 + 奖励，未命中扣除本金。
+- 初始本金：`PredictionWalletService.ensureWallet(userId, remark)` 是唯一入口；钱包按 `user_id` 唯一，重复调用不会重复发放，首次发放同时写一条 `INITIAL_GRANT` 流水。
+- 注册成功调用一次；登录成功再调用一次作为存量用户补发兜底，因此老用户无需手动迁移数据。
 
 ## 4. 前端接入
 
@@ -77,6 +79,9 @@ POST 请求体：
 
 ```powershell
 cmd /c "docker exec -i apihub-mysql mysql -uroot -p123456 --default-character-set=utf8mb4 -D south_stand < D:\Football-APP\scripts\sql\prediction_module.sql"
+
+# 存量用户补发 1,000 初始本金（幂等，可重复执行）
+cmd /c "docker exec -i apihub-mysql mysql -uroot -p123456 --default-character-set=utf8mb4 -D south_stand < D:\Football-APP\scripts\sql\backfill_prediction_wallet.sql"
 ```
 
 ### 5.2 后端
@@ -118,6 +123,7 @@ D:\Flutter\bin\flutter.bat build apk --debug --dart-define=API_BASE_URL=http://1
 | `flutter analyze`（预测 + 比赛详情） | 0 issues |
 | Android debug APK 构建 | 通过 |
 | 提交判断 | Android 模拟器 UI 实测通过，写入 `match_prediction`，钱包扣减、共识 +1、按钮进入已提交态 |
+| 初始本金 | 存量 264 个正常用户全部有钱包；注册新用户自动发 1,000 并写 `INITIAL_GRANT`；重复登录不重复发放 |
 | 赛前/面板/赛后截图 | 见 `implementation/` |
 
 截图（Android 模拟器 1080×2400，Pixel 8 / density 420）：
